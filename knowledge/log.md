@@ -33,6 +33,7 @@
 * **Single-source onboarding checkpoint**: Simplified public setup to one `data` source and one `MCP_DATA_SOURCE_URL` private value while retaining advanced multi-source compatibility. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
 * **Automatic multi-agent MCP setup checkpoint**: Added previewable, merge-safe configuration for all supported clients with project preference and explicit confirmation. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+* **Simplified project bootstrap checkpoint**: Added one-confirmation `init`, a generated ignored retail playground, one private source URL, and URL-inferred SQLite/PostgreSQL dialect handling. See the [bootstrap journal](journals/simplified-project-bootstrap.md).
 
 * **MCP Data Analysis Agent specification**: Added and expanded the stable [local MCP product specification](journals/mcp-data-analysis-agent-spec.md), covering ClineFlow-backed project memory, one-line local installation and preflight, human-controlled credential onboarding, secure SQLite/PostgreSQL analytics, structured observability, reports, development fixtures, acceptance criteria, and safe failure behavior.
 * **MCP Data Analysis Agent delivery goal**: Added the active [delivery goal journal](journals/mcp-data-analysis-agent-goal.md), separating implementation milestones and completion evidence from the stable product specification.

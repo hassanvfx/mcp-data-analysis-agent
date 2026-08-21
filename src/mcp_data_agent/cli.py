@@ -17,6 +17,7 @@ from .clients import plans as client_plans
 from .context import load_context
 from .errors import AgentError
 from .fixtures import clone_sqlite_to_postgres, create_local_postgres_database, generate
+from .onboarding import ENV_EXAMPLE, apply_init, init_plan, project_config_template
 from .service import AnalyticsService
 
 app = typer.Typer(no_args_is_help=True, help="Local governed analytics for MCP clients.")
@@ -73,15 +74,6 @@ def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"),
           status: bool = False) -> None:
     """Preview or merge the local MCP server into detected supported clients."""
     project = root()
-    defaults = {
-        ".env.example": "# Do not commit .env. Add private source values here.\n",
-        ".mcp-data-agent.toml": "[agent]\ndefault_row_limit = 500\nmax_row_limit = 5000\nquery_timeout_seconds = 30\n",
-    }
-    if apply or (not all_clients and client != "all"):
-        for name, content in defaults.items():
-            target = project / name
-            if not target.exists():
-                target.write_text(content, encoding="utf-8")
     try:
         planned = client_plans(project, Path.home(), "all" if all_clients else client)
     except AgentError as exc:
@@ -103,14 +95,37 @@ def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"),
 
 
 @app.command()
+def init(preview: bool = typer.Option(False, "--preview")) -> None:
+    """Prepare this project with one URL-configured source and MCP clients."""
+    project = root()
+    try:
+        planned = init_plan(project, Path.home())
+    except AgentError as exc:
+        emit(exc.as_dict())
+        raise typer.Exit(2) from exc
+    emit({"init_plan": planned.as_dict(), "preview": preview})
+    if preview:
+        return
+    writable = [item for item in planned.clients if item.action in {"add", "update"}]
+    targets = ["project policy and private playground"] + [f"{item.client} ({item.scope})" for item in writable]
+    if not typer.confirm(f"Initialize MCP Data Analysis: {', '.join(targets)}?", default=False):
+        raise typer.Exit()
+    written = apply_init(planned, apply_client_plans)
+    emit({"initialized": {"source_alias": "data", "source_env": "MCP_DATA_SOURCE_URL",
+                           "playground": str(planned.playground)},
+          "client_configurations_written": [str(path) for path in written],
+          "client_configurations_skipped": [item.as_dict() for item in planned.clients if item.action == "skip"]})
+
+
+@app.command()
 def preflight(fix: bool = typer.Option(True, "--fix/--no-fix")) -> None:
     """Ensure required local tooling is installed without connecting to a source."""
     project = root()
     repaired: list[str] = []
     required_action: list[str] = []
     if fix:
-        for name, content in {".env.example": "# Do not commit .env. Add private source values here.\n",
-                              ".mcp-data-agent.toml": "[agent]\ndefault_row_limit = 500\nmax_row_limit = 5000\nquery_timeout_seconds = 30\n"}.items():
+        for name, content in {".env.example": ENV_EXAMPLE,
+                              ".mcp-data-agent.toml": project_config_template()}.items():
             target = project / name
             if not target.exists():
                 target.write_text(content, encoding="utf-8")

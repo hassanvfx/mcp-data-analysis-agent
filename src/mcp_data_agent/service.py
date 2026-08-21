@@ -51,11 +51,12 @@ class AnalyticsService:
         self.ledger.request_cancellation(task_id)
         return {"task_id": task_id, "status": "cancellation_requested"}
 
+    def _source(self, source_alias: str) -> tuple[Any, str]:
+        return self.settings.resolved_source(source_alias)
+
     def schema(self, source_alias: str) -> list[dict[str, Any]]:
-        source = self.settings.sources.get(source_alias)
-        if not source:
-            raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
-        with connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
+        source, location = self._source(source_alias)
+        with connection(source, location, self.settings.timeout_seconds) as db:
             return describe_schema(db, source.dialect)
 
     def schema_state(self, source_alias: str) -> dict[str, object]:
@@ -78,23 +79,29 @@ class AnalyticsService:
         return {"source_alias": source_alias, "fingerprint": fingerprint, "changed": changed, "schema": schema}
 
     def sources(self) -> list[dict[str, object]]:
-        return [{"alias": item.alias, "dialect": item.dialect, "classification": item.classification,
-                 "configured": bool(__import__("os").environ.get(item.env))} for item in self.settings.sources.values()]
+        values: list[dict[str, object]] = []
+        for item in self.settings.sources.values():
+            configured = bool(__import__("os").environ.get(item.env))
+            dialect = item.dialect
+            if configured:
+                try:
+                    dialect = self.settings.resolved_source(item.alias)[0].dialect
+                except AgentError:
+                    dialect = "unsupported"
+            values.append({"alias": item.alias, "dialect": dialect or "inferred", "classification": item.classification,
+                           "configured": configured})
+        return values
 
     def validate(self, source_alias: str, sql: str, parameters: dict[str, Any]) -> dict[str, object]:
-        source = self.settings.sources.get(source_alias)
-        if not source:
-            raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
+        source, _ = self._source(source_alias)
         validated = validate_sql(sql, parameters, source, self.settings)
         return validated.validation.model_dump()
 
     def explain(self, source_alias: str, sql: str, parameters: dict[str, Any]) -> dict[str, object]:
-        source = self.settings.sources.get(source_alias)
-        if not source:
-            raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
+        source, location = self._source(source_alias)
         validated = validate_sql(sql, parameters, source, self.settings)
         prefix = "EXPLAIN QUERY PLAN" if source.dialect == "sqlite" else "EXPLAIN (FORMAT JSON)"
-        with connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
+        with connection(source, location, self.settings.timeout_seconds) as db:
             plan = [list(row) for row in db.execute(text(f"{prefix} {validated.sql}"), parameters).all()]
         warnings = ["Review plan cost before querying a large source."] if len(plan) > 4 else []
         return {"normalized_sql": validated.sql, "sql_hash": validated.sql_hash, "plan": plan, "warnings": warnings}
@@ -290,15 +297,13 @@ class AnalyticsService:
         return artifacts
 
     def quality(self, source_alias: str, table: str) -> dict[str, Any]:
-        source = self.settings.sources.get(source_alias)
-        if not source:
-            raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
+        source, location = self._source(source_alias)
         schema = next((item for item in self.schema(source_alias) if item["table"] == table), None)
         if not schema:
             raise AgentError("TABLE_UNKNOWN", "The selected table is not available.")
         columns = [str(column) for column in schema["columns"]]
         quoted_table = quote_identifier(table)
-        with connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
+        with connection(source, location, self.settings.timeout_seconds) as db:
             count = db.execute(text(f"SELECT COUNT(*) FROM {quoted_table}")).scalar_one()
             null_counts: dict[str, int] = {}
             for column in columns:
@@ -319,9 +324,7 @@ class AnalyticsService:
 
     def execute(self, source_alias: str, sql: str, parameters: dict[str, Any], task_id: str | None = None,
                 limit: int | None = None, offset: int = 0) -> QueryResult:
-        source = self.settings.sources.get(source_alias)
-        if not source:
-            raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
+        source, location = self._source(source_alias)
         requested_limit = self.settings.default_row_limit if limit is None else limit
         bounded_limit = min(requested_limit, self.settings.max_row_limit)
         if bounded_limit < 1:
@@ -334,7 +337,7 @@ class AnalyticsService:
         try:
             validated = validate_sql(sql, parameters, source, self.settings)
             wrapped = f"SELECT * FROM ({validated.sql}) AS bounded_query LIMIT {bounded_limit + 1} OFFSET {offset}"
-            with self.query_gate, connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
+            with self.query_gate, connection(source, location, self.settings.timeout_seconds) as db:
                 raw_rows, columns = self._execute_bounded(db, source.dialect, task_id, wrapped, parameters)
         except AgentError as exc:
             duration = round((time.monotonic() - started) * 1000)

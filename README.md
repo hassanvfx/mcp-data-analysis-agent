@@ -44,12 +44,19 @@ Run `mcp-data-cli preflight` to install or report required local tooling through
 uv tool install mcp-data-analysis-agent
 cd /path/to/your-project
 mcp-data-cli preflight
-mcp-data-cli setup --all
-mcp-data-cli setup --all --apply
+mcp-data-cli init
 mcp-data-cli doctor
 ```
 
-`setup --all` previews detected MCP clients without changing them. `setup --all --apply` merges only the `mcp-data-analysis` stdio entry after one explicit confirmation; it preserves unrelated servers and settings. Use `setup --status` to inspect detection and current configuration state.
+To install the current repository version before a package release, replace the install command with:
+
+```bash
+uv tool install git+https://github.com/hassanvfx/mcp-data-analysis-agent.git
+```
+
+`init` previews and, after one explicit confirmation, creates a deterministic development-only retail playground, the one private source setting, and merge-safe MCP client entries. It runs only in the current project; package installation never modifies an arbitrary directory. The generated playground lives at `.mcp-data/playground.sqlite` and is ignored by Git.
+
+Use `setup --all` to preview client configuration only, or `setup --all --apply` to merge only the `mcp-data-analysis` stdio entry after one explicit confirmation. It preserves unrelated servers and settings. Use `setup --status` to inspect detection and current configuration state.
 
 | Client | Preferred scope | Fallback | Operator action after setup |
 | --- | --- | --- | --- |
@@ -77,6 +84,14 @@ The bootstrap requires `curl` and `uv`, verifies the artifact with `sha256sum` o
 
 The standard installation uses exactly one active source, named `data`, and exactly one private value in `.env`: `MCP_DATA_SOURCE_URL`. It is not a package constant or a test value—it is the one value the operator changes to point at their own read-only database. Keep `.env` private; it is ignored by Git.
 
+After `mcp-data-cli init`, that value points to the generated retail playground:
+
+```bash
+MCP_DATA_SOURCE_URL='/absolute/path/to/your-project/.mcp-data/playground.sqlite'
+```
+
+The playground is development-only synthetic data. It lets a new installation run schema discovery, governed queries, receipts, and reports immediately; it is never production data and is never overwritten by a later `init` run.
+
 ```toml
 # .mcp-data-agent.toml
 [agent]
@@ -84,9 +99,8 @@ default_row_limit = 500
 max_row_limit = 5000
 query_timeout_seconds = 30
 
-# Change only `dialect` and policy restrictions as needed for your source.
-[sources.data]
-dialect = "postgres"
+# The database dialect is inferred from MCP_DATA_SOURCE_URL.
+[source]
 env = "MCP_DATA_SOURCE_URL"
 allowed_schemas = ["analytics"]
 classification = "internal"
@@ -100,13 +114,14 @@ email = "restricted"
 MCP_DATA_SOURCE_URL='postgresql://readonly_user:password@localhost:5432/analytics'
 ```
 
-For SQLite, set `dialect = "sqlite"` and make the same single variable a file path instead:
+For SQLite, make the same single variable an absolute file path or a SQLite URL. For PostgreSQL, use a `postgres://` or `postgresql://` URL. No manual dialect setting is needed:
 
 ```bash
 MCP_DATA_SOURCE_URL=/absolute/path/to/your.sqlite
+# or: MCP_DATA_SOURCE_URL='postgresql://readonly_user:password@localhost:5432/analytics'
 ```
 
-Use `data` as the source argument in CLI calls, for example `mcp-data-cli schema data`. Advanced multi-source policy remains available for established deployments, but it is intentionally outside the standard onboarding path.
+Use `data` as the source argument in CLI calls, for example `mcp-data-cli schema data`. The agent rejects unsupported URL schemes, relative SQLite paths, and a legacy declared dialect that conflicts with the URL. Established multi-source policies remain readable, but `init` deliberately refuses to rewrite them; migrate manually or start a new simplified project.
 
 For PostgreSQL, use a dedicated least-privilege account with no write or DDL privileges. The agent also enables a read-only session and applies the configured schema search path, but database-side access control remains mandatory.
 
@@ -139,7 +154,7 @@ Each report contains offline HTML, CSV, optional Parquet/PDF artifacts, receipt 
 
 ## Development fixtures and PostgreSQL parity
 
-Normal setup creates no sample data. Contributors can generate deterministic synthetic fixtures explicitly:
+`init` creates only the small retail playground described above. Contributors can generate additional deterministic synthetic fixtures explicitly:
 
 ```bash
 mcp-data-cli dataset retail /tmp/retail.sqlite --tier unit --seed 1

@@ -7,10 +7,11 @@ from mcp_data_agent import adapters, cli
 from mcp_data_agent.adapters import connection, describe_schema
 from mcp_data_agent.cli import app
 from mcp_data_agent.clients import ClientTemplate, apply, plans, templates, write_template
-from mcp_data_agent.config import Settings, SourcePolicy, load_settings
+from mcp_data_agent.config import Settings, SourcePolicy, infer_dialect, load_settings
 from mcp_data_agent.context import load_context
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import create_local_postgres_database, generate, local_postgres_url
+from mcp_data_agent.onboarding import _merge_env, apply_init, init_plan
 
 
 def test_sqlite_adapter_schema_and_read_only(tmp_path: Path) -> None:
@@ -80,6 +81,43 @@ def test_source_url_requires_known_configured_private_value(tmp_path: Path, monk
         settings.source_url("source")
     monkeypatch.setenv("MISSING_URL", "configured")
     assert settings.source_url("source") == "configured"
+
+
+def test_single_source_infers_dialect_from_private_url(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / ".mcp-data-agent.toml").write_text("[source]\nenv='MCP_DATA_SOURCE_URL'\n")
+    database = tmp_path / "data.sqlite"
+    generate("retail", "unit", 1, database)
+    monkeypatch.setenv("MCP_DATA_SOURCE_URL", f"sqlite:///{database}")
+    source, location = load_settings(tmp_path).resolved_source("data")
+    assert source.dialect == "sqlite"
+    assert location.startswith("sqlite://")
+    assert infer_dialect("postgres://readonly@localhost/data") == "postgres"
+    assert infer_dialect("postgresql+psycopg://readonly@localhost/data") == "postgres"
+    with pytest.raises(AgentError, match="SQLite path/URL"):
+        infer_dialect("mysql://localhost/data")
+    with pytest.raises(AgentError, match="must be absolute"), connection(source, "relative.sqlite", 1):
+        pass
+
+
+def test_source_contract_rejects_mismatches_and_invalid_single_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = Settings(tmp_path, sources={"data": SourcePolicy("data", "sqlite", "URL")})
+    monkeypatch.setenv("URL", "postgresql://readonly@localhost/data")
+    with pytest.raises(AgentError, match="does not match"):
+        settings.resolved_source("data")
+    monkeypatch.setenv("URL", "")
+    with pytest.raises(AgentError, match="private credential"):
+        settings.resolved_source("data")
+    with pytest.raises(AgentError, match="private credential"):
+        infer_dialect(" ")
+    (tmp_path / ".mcp-data-agent.toml").write_text("source='not-a-table'\n")
+    with pytest.raises(AgentError, match="TOML table"):
+        load_settings(tmp_path)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[source]\nclassification='unknown'\n")
+    with pytest.raises(AgentError, match="classification"):
+        load_settings(tmp_path)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[source]\n[sources.legacy]\n")
+    with pytest.raises(AgentError, match="either the single"):
+        load_settings(tmp_path)
 
 
 def test_column_classifications_load_validate_and_preserve_restricted_compatibility(tmp_path: Path) -> None:
@@ -177,13 +215,79 @@ def test_cli_setup_and_doctor(tmp_path: Path, monkeypatch) -> None:
         path.chmod(0o755)
     runner = CliRunner()
     assert runner.invoke(app, ["setup", "--client", "codex"]).exit_code == 0
-    assert (tmp_path / ".mcp-data-agent.toml").exists()
+    assert not (tmp_path / ".mcp-data-agent.toml").exists()
     preview = runner.invoke(app, ["setup", "--all", "--status"])
     assert preview.exit_code == 0
     applied = runner.invoke(app, ["setup", "--client", "claude-code", "--apply"], input="y\n")
     assert applied.exit_code == 0, applied.output
     assert "mcp-data-analysis" in (tmp_path / ".mcp.json").read_text()
     assert runner.invoke(app, ["doctor"]).exit_code == 0
+
+
+def test_cli_init_creates_one_url_playground_and_merges_clients(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    home = tmp_path / "home"
+    (home / ".claude").mkdir(parents=True)
+    monkeypatch.setattr(cli.Path, "home", lambda: home)
+    runner = CliRunner()
+    preview = runner.invoke(app, ["init", "--preview"])
+    assert preview.exit_code == 0
+    assert not (tmp_path / ".env").exists()
+    applied = runner.invoke(app, ["init"], input="y\n")
+    assert applied.exit_code == 0, applied.output
+    playground = tmp_path / ".mcp-data" / "playground.sqlite"
+    assert playground.is_file()
+    assert f"MCP_DATA_SOURCE_URL='{playground}'" in (tmp_path / ".env").read_text()
+    assert "dialect" not in (tmp_path / ".mcp-data-agent.toml").read_text()
+    assert "mcp-data-analysis" in (tmp_path / ".mcp.json").read_text()
+    (tmp_path / ".env").write_text("UNRELATED=value\nMCP_DATA_SOURCE_URL='postgresql://readonly@localhost/data'\n")
+    repeated = runner.invoke(app, ["init"], input="y\n")
+    assert repeated.exit_code == 0, repeated.output
+    assert "postgresql://readonly@localhost/data" in (tmp_path / ".env").read_text()
+
+
+def test_cli_init_preserves_legacy_multi_source_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    policy = "[sources.one]\ndialect='sqlite'\nenv='ONE'\n"
+    (tmp_path / ".mcp-data-agent.toml").write_text(policy)
+    result = CliRunner().invoke(app, ["init"], input="y\n")
+    assert result.exit_code == 2
+    assert "SOURCE_MIGRATION_REQUIRED" in result.output
+    assert (tmp_path / ".mcp-data-agent.toml").read_text() == policy
+    assert not (tmp_path / ".mcp-data" / "playground.sqlite").exists()
+
+
+def test_init_handles_existing_project_files_and_cleans_failed_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / ".mcp-data-agent.toml").write_text("[agent]\ndefault_row_limit=10\n")
+    (tmp_path / ".env").write_text("OTHER=value\n")
+    (tmp_path / ".env.example").write_text("existing\n")
+    plan = init_plan(tmp_path, tmp_path / "home")
+    assert plan.config_action == "append_single_source"
+    assert plan.env_action == "add_source_url"
+    assert _merge_env("MCP_DATA_SOURCE_URL=old\n", "/tmp/new") == "MCP_DATA_SOURCE_URL='/tmp/new'\n"
+
+    def failed_generate(_domain: str, _tier: str, _seed: int, output: Path) -> None:
+        output.write_text("partial")
+        raise RuntimeError("fixture failed")
+
+    monkeypatch.setattr("mcp_data_agent.onboarding.generate", failed_generate)
+    with pytest.raises(RuntimeError, match="fixture failed"):
+        apply_init(plan, lambda _plans: [])
+    assert not (tmp_path / ".mcp-data" / "playground.pending").exists()
+    assert "[source]" in (tmp_path / ".mcp-data-agent.toml").read_text()
+    assert "MCP_DATA_SOURCE_URL" in (tmp_path / ".env").read_text()
+
+
+def test_init_rejects_unsafe_playground_path_and_malformed_policy(tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (tmp_path / ".mcp-data").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(AgentError, match="symbolic link"):
+        init_plan(tmp_path, tmp_path / "home")
+    (tmp_path / ".mcp-data").unlink()
+    (tmp_path / ".mcp-data-agent.toml").write_text("not valid = [")
+    with pytest.raises(AgentError, match="malformed"):
+        init_plan(tmp_path, tmp_path / "home")
 
 
 def test_setup_all_preview_is_read_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -10,6 +10,7 @@ from typing import Any
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection, Engine
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.pool import NullPool
 
 from .config import SourcePolicy
@@ -18,14 +19,31 @@ from .errors import AgentError
 
 def _engine(source: SourcePolicy, location: str, timeout: int) -> Engine:
     if source.dialect == "sqlite":
-        path = Path(location).resolve()
+        path = _sqlite_path(location)
         if not path.is_file():
             raise AgentError("SOURCE_UNAVAILABLE", "SQLite database path is not readable.")
         return create_engine(f"sqlite+pysqlite:///file:{path}?mode=ro&uri=true", connect_args={"timeout": timeout}, poolclass=NullPool)
     if source.dialect in {"postgres", "postgresql"}:
-        url = location.replace("postgresql://", "postgresql+psycopg://", 1)
+        if location.startswith("postgres://"):
+            url = "postgresql+psycopg://" + location.removeprefix("postgres://")
+        else:
+            url = location.replace("postgresql://", "postgresql+psycopg://", 1)
         return create_engine(url, connect_args={"options": f"-c statement_timeout={timeout * 1000}"}, pool_pre_ping=True)
     raise AgentError("SOURCE_DIALECT_UNSUPPORTED", "The source dialect is unsupported.")
+
+
+def _sqlite_path(location: str) -> Path:
+    """Resolve a local SQLite path from a bare absolute path or SQLAlchemy URL."""
+    if location.lower().startswith(("sqlite://", "sqlite+pysqlite://")):
+        parsed = make_url(location)
+        if parsed.database is None or parsed.host is not None:
+            raise AgentError("SOURCE_UNAVAILABLE", "SQLite URLs must identify a local database file.")
+        path = Path(parsed.database)
+    else:
+        path = Path(location)
+    if not path.is_absolute():
+        raise AgentError("SOURCE_UNAVAILABLE", "SQLite database paths must be absolute.")
+    return path.resolve()
 
 
 @contextmanager
