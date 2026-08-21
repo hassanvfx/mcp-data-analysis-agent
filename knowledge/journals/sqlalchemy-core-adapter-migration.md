@@ -6,7 +6,7 @@ tags: [engineering, database, sqlalchemy, sqlite, postgresql, migration]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T05:00:00Z
+  at: 2026-08-21T05:40:00Z
 ---
 
 # Goal
@@ -34,25 +34,32 @@ Migrate the data-access layer from direct `sqlite3`/`psycopg` cursor handling to
 
 ## 2026-08-21 05:00 UTC - PostgreSQL Core parity-contract expansion
 
-- Expanded the disposable PostgreSQL contract to validate Core schema discovery, `text()` parameter binding, `EXPLAIN (FORMAT JSON)`, typed result metadata, and pre-execution mutation denial using the GitHub Actions PostgreSQL 16 service.
-- The test remains intentionally skipped locally without an explicit disposable URL, preserving local database safety.
+- Expanded the PostgreSQL contract to validate Core schema discovery, `text()` parameter binding, `EXPLAIN (FORMAT JSON)`, typed result metadata, qualified quality checks, and pre-execution mutation denial.
+
+## 2026-08-21 05:30 UTC - Local synthetic PostgreSQL parity checkpoint
+
+- Added `mcp-data-cli dataset-postgres DOMAIN DATABASE`, which uses the local `createdb` command and never replaces an existing database. It generates SQLite only in a temporary directory, then copies the deterministic fixture to the new database's `mcp_parity` schema.
+- Preflight now verifies or installs the PostgreSQL command-line tooling alongside Typst and the SQLAlchemy Core runtime prerequisite.
+- PostgreSQL tests now use `MCP_DATA_TEST_POSTGRES_URL` when CI provides one, otherwise probe the named local `mcp_data_parity` database and skip cleanly when it is unavailable.
+- A real isolated PostgreSQL 15 instance was initialized through `initdb`/`pg_ctl`; `createdb` created and seeded `mcp_data_retail`; all four SQLite/PostgreSQL fixture-parity and Core contract tests passed. The temporary server and its files were stopped and removed afterward.
+- Corrected SQLGlot PostgreSQL bind rendering (`%(name)s`) to portable SQLAlchemy Core `:name` syntax before execution. This was found by the live contract run.
 
 # Decisions
 
 - **Use SQLAlchemy Core, not declarative ORM mappings:** The agent must work against user-owned schemas that are not known at package-build time. Core provides portable engines, SQL compilation primitives, inspection, pooling, and result interfaces without imposing model classes.
 - **Retain SQLGlot policy:** SQLAlchemy is not an authorization mechanism. Every caller-provided statement remains validated and normalized by SQLGlot before execution.
 - **Use the psycopg SQLAlchemy dialect explicitly:** PostgreSQL URLs are normalized to `postgresql+psycopg://` so the package cannot accidentally select an uninstalled `psycopg2` driver.
-- **Keep real PostgreSQL parity tests:** SQLite verifies shared behavior cheaply, but dialect-specific semantics, session configuration, and error behavior require disposable PostgreSQL evidence.
+- **Keep real PostgreSQL parity tests:** SQLite verifies shared behavior cheaply, but dialect-specific semantics, session configuration, and error behavior require local PostgreSQL evidence. The CLI provisions the named test database rather than requiring a manually supplied disposable URL.
 
 # Testing
 
 - Focused preflight/interface test passed after adding the `sqlalchemy_core` requirement check.
 - Checkpoint validation (2026-08-21): `uv run ruff check src tests scripts`, `uv run mypy src`, `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests), coverage verification (94.33% statements; 87.01% branches), OKF, and whitespace validation passed.
 - Checkpoint validation (2026-08-21): PostgreSQL Core contract module passed Ruff and was safely skipped locally without `MCP_DATA_TEST_POSTGRES_URL`; hosted CI owns live execution.
+- Checkpoint validation (2026-08-21): Ruff, strict mypy, 79 tests, coverage verification, OKF, and whitespace validation passed against an isolated `initdb` server. Coverage is 94.53% lines and 87.41% branches; configuration, context, ledger, and policy each remain 100% line/branch covered. No pre-existing user database was touched.
 
 # Open Issues
 
-- Obtain the first hosted PostgreSQL CI result for the expanded Core contract.
 - Add live read-only session and typed timeout scenarios where the disposable service can safely exercise them.
 
 # References

@@ -1,4 +1,4 @@
-"""Runs locally only when MCP_DATA_TEST_POSTGRES_URL targets a disposable database."""
+"""Runs against the named local parity database when PostgreSQL is available."""
 
 from __future__ import annotations
 
@@ -8,11 +8,24 @@ from pathlib import Path
 import pytest
 
 from mcp_data_agent.errors import AgentError
+from mcp_data_agent.fixtures import local_postgres_url
 from mcp_data_agent.service import AnalyticsService
 
-POSTGRES_URL = os.getenv("MCP_DATA_TEST_POSTGRES_URL")
 
-pytestmark = pytest.mark.skipif(not POSTGRES_URL, reason="requires disposable PostgreSQL")
+def available_postgres_url() -> str | None:
+    import psycopg
+
+    candidate = os.getenv("MCP_DATA_TEST_POSTGRES_URL", local_postgres_url("mcp_data_parity"))
+    try:
+        with psycopg.connect(candidate, connect_timeout=1):
+            return candidate
+    except psycopg.OperationalError:
+        return None
+
+
+POSTGRES_URL = available_postgres_url()
+
+pytestmark = pytest.mark.skipif(not POSTGRES_URL, reason="requires local mcp_data_parity PostgreSQL database")
 
 
 def test_postgres_core_adapter_contract(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -36,5 +49,6 @@ def test_postgres_core_adapter_contract(tmp_path: Path, monkeypatch: pytest.Monk
     assert result.rows == [[1, "one"]]
     assert result.columns[0]["name"] == "id"
     assert result.validation.outcome == "permitted"
+    assert service.quality("contract", "public.mcp_contract_items")["row_count"] == 2
     with pytest.raises(AgentError, match="Only SELECT"):
         service.execute("contract", "DELETE FROM mcp_contract_items", {})

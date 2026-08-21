@@ -10,7 +10,7 @@ from mcp_data_agent.clients import ClientTemplate, templates, write_template
 from mcp_data_agent.config import Settings, SourcePolicy, load_settings
 from mcp_data_agent.context import load_context
 from mcp_data_agent.errors import AgentError
-from mcp_data_agent.fixtures import generate
+from mcp_data_agent.fixtures import create_local_postgres_database, generate, local_postgres_url
 
 
 def test_sqlite_adapter_schema_and_read_only(tmp_path: Path) -> None:
@@ -160,6 +160,71 @@ def test_typst_install_detection_uses_existing_user_tools(monkeypatch: pytest.Mo
 
     monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda name: None)
     assert cli._install_typst() is not None
+
+
+def test_postgres_cli_install_detection_uses_existing_user_tools(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda name: "/bin/createdb" if name == "createdb" else None)
+    assert cli._install_postgres_cli() is None
+
+    calls: list[list[str]] = []
+    monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda name: "/bin/brew" if name == "brew" else None)
+    monkeypatch.setattr("mcp_data_agent.cli.subprocess.run", lambda command, **kwargs: calls.append(command))
+    assert cli._install_postgres_cli() is None
+    assert calls == [["brew", "install", "postgresql@15"]]
+
+    monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda name: None)
+    assert cli._install_postgres_cli() is not None
+
+
+def test_local_postgres_database_helper_is_validated_and_non_overwriting(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert local_postgres_url("mcp_data_parity") == "postgresql:///mcp_data_parity"
+    with pytest.raises(ValueError):
+        local_postgres_url("not-safe-name")
+    monkeypatch.setattr("mcp_data_agent.fixtures.shutil.which", lambda name: None)
+    with pytest.raises(RuntimeError, match="createdb"):
+        create_local_postgres_database("mcp_data_parity")
+
+    monkeypatch.setattr("mcp_data_agent.fixtures.shutil.which", lambda name: "/bin/createdb")
+    completed = type("Completed", (), {"returncode": 1, "stderr": "database already exists"})()
+    monkeypatch.setattr("mcp_data_agent.fixtures.subprocess.run", lambda *args, **kwargs: completed)
+    with pytest.raises(FileExistsError):
+        create_local_postgres_database("mcp_data_parity")
+    completed.stderr = "server unavailable"
+    with pytest.raises(RuntimeError, match="server is running"):
+        create_local_postgres_database("mcp_data_parity")
+    completed.returncode = 0
+    assert create_local_postgres_database("mcp_data_parity") == "postgresql:///mcp_data_parity"
+
+
+def test_local_postgres_fixture_command_never_replaces_existing_database(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "mcp_data_agent.cli.create_local_postgres_database",
+        lambda database: (_ for _ in ()).throw(FileExistsError(f"local PostgreSQL database already exists: {database}")),
+    )
+    result = CliRunner().invoke(app, ["dataset-postgres", "retail", "mcp_data_parity"])
+    assert result.exit_code == 2
+    assert "LOCAL_POSTGRES_SETUP_FAILED" in result.output
+
+
+def test_local_postgres_fixture_command_uses_generated_sqlite_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("mcp_data_agent.cli.create_local_postgres_database", lambda database: f"postgresql:///{database}")
+    captured: dict[str, object] = {}
+
+    def copy(source: Path, url: str) -> dict[str, int]:
+        captured.update({"source_exists": source.exists(), "url": url})
+        return {"tables": 2, "rows": 3}
+
+    monkeypatch.setattr("mcp_data_agent.cli.clone_sqlite_to_postgres", copy)
+    result = CliRunner().invoke(app, ["dataset-postgres", "retail", "mcp_data_parity"])
+    assert result.exit_code == 0, result.output
+    assert captured == {"source_exists": True, "url": "postgresql:///mcp_data_parity"}
+    assert '"schema": "mcp_parity"' in result.output
 
 
 def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:

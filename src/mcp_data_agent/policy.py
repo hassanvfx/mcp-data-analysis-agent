@@ -95,6 +95,12 @@ def validate_sql(sql: str, parameters: dict[str, Any], source: SourcePolicy, set
     if not placeholders and parameters:
         raise AgentError("PARAMETER_UNUSED", "Parameters must be bound by the query.")
     normalized = statement.sql(dialect=source.dialect, pretty=False)
+    # SQLGlot emits psycopg's DB-API ``%(name)s`` placeholders for PostgreSQL.
+    # SQLAlchemy Core's ``text()`` owns driver adaptation and requires ``:name``.
+    # Keep validation and stored query representation aligned with the portable
+    # Core statement that is actually executed.
+    if source.dialect == "postgres":
+        normalized = re.sub(r"%\(([A-Za-z_][A-Za-z0-9_]*)\)s", r":\1", normalized)
     digest = hashlib.sha256(normalized.encode()).hexdigest()
     validation = ValidationResult(outcome="permitted", normalized_sql=normalized, sql_hash=digest)
     return ValidatedQuery(normalized, digest, parameters, validation)

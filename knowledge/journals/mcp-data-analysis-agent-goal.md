@@ -334,10 +334,11 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-21): installation-enforcing preflight checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests); coverage verifier passed at 94.02% statements, 86.11% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): cross-platform installer coverage checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests); coverage verifier passed at 94.20% statements, 86.51% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): SQLAlchemy Core engine migration checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests); coverage verifier passed at 94.33% statements, 87.01% branches, and all critical module gates.
+- Checkpoint validation (2026-08-21): local PostgreSQL parity checkpoint passed Ruff, strict mypy, 79 tests including live SQLite/PostgreSQL contract parity, coverage verification (94.53% lines; 87.41% branches), OKF, and whitespace validation.
 
 # Open Issues
 
-- Live PostgreSQL parity is configured for CI with a disposable service; it requires the first hosted CI run as external verification evidence, including live cancellation behavior.
+- Local PostgreSQL fixture parity has passed through the CLI-created database. Live cancellation behavior and hosted CI evidence remain to be collected.
 - Typst PDF rendering, detailed metric/comparison/change-detection operations, full recipe metadata, live PostgreSQL cancellation, and the remaining golden report scenarios require subsequent checkpoints.
 - Overall and designated safety-critical module coverage gates are enforced. Remaining production-readiness evidence is primarily live CI/release validation and full product-operation completion.
 

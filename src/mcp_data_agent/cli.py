@@ -7,6 +7,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import typer
@@ -14,7 +15,7 @@ import typer
 from .clients import templates, write_template
 from .context import load_context
 from .errors import AgentError
-from .fixtures import generate
+from .fixtures import clone_sqlite_to_postgres, create_local_postgres_database, generate
 from .service import AnalyticsService
 
 app = typer.Typer(no_args_is_help=True, help="Local governed analytics for MCP clients.")
@@ -39,6 +40,16 @@ def _install_typst() -> str | None:
         subprocess.run(["winget", "install", "--id", "Typst.Typst", "--exact"], check=True)
         return None
     return "Install Typst with your platform package manager, then rerun preflight."
+
+
+def _install_postgres_cli() -> str | None:
+    """Install PostgreSQL local client/server tooling when a user package manager can do so."""
+    if shutil.which("createdb"):
+        return None
+    if shutil.which("brew"):
+        subprocess.run(["brew", "install", "postgresql@15"], check=True)
+        return None
+    return "Install PostgreSQL client tools (including createdb) to run local parity fixtures."
 
 
 @app.command()
@@ -86,11 +97,17 @@ def preflight(fix: bool = typer.Option(True, "--fix/--no-fix")) -> None:
                 required_action.append(action)
         except subprocess.CalledProcessError:
             required_action.append("Typst installation failed; install it with your platform package manager.")
+        try:
+            if action := _install_postgres_cli():
+                required_action.append(action)
+        except subprocess.CalledProcessError:
+            required_action.append("PostgreSQL tooling installation failed; install PostgreSQL client tools.")
     checks = {"project_writable": project.exists() and project.is_dir(), "git": shutil.which("git") is not None,
               "uv": shutil.which("uv") is not None, "python_3_11": sys.version_info >= (3, 11),
               "clineflow": (project / "clineflow-doctor").is_file(), "okf": (project / "validate-okf").is_file(),
               "mcp_executable": shutil.which("mcp-data-mcp") is not None, "typst": shutil.which("typst") is not None,
-              "sqlalchemy_core": importlib.util.find_spec("sqlalchemy") is not None}
+              "sqlalchemy_core": importlib.util.find_spec("sqlalchemy") is not None,
+              "postgres_local_cli": shutil.which("createdb") is not None}
     emit({"checks": checks, "repaired": repaired, "required_action": required_action,
           "status": "pass" if all(checks.values()) else "required_action"})
 
@@ -273,6 +290,26 @@ def context(query: str = "") -> None:
 def dataset(domain: str, output: Path, tier: str = "unit", seed: int = 1) -> None:
     """Generate an explicit development-only synthetic SQLite source."""
     emit(generate(domain, tier, seed, output))
+
+
+@app.command("dataset-postgres")
+def dataset_postgres(domain: str, database: str, tier: str = "unit", seed: int = 1) -> None:
+    """Create a local synthetic PostgreSQL database without a supplied connection URL.
+
+    The selected database must not already exist. The deterministic SQLite fixture is
+    generated only in a temporary directory, then copied into the ``mcp_parity`` schema.
+    """
+    try:
+        postgres_url = create_local_postgres_database(database)
+        with tempfile.TemporaryDirectory(prefix="mcp-data-fixture-") as temporary:
+            fixture = Path(temporary) / f"{domain}.sqlite"
+            generated = generate(domain, tier, seed, fixture)
+            copied = clone_sqlite_to_postgres(fixture, postgres_url)
+        emit({"status": "created", "database": database, "postgres_url": postgres_url,
+              "schema": "mcp_parity", **generated, **copied})
+    except (FileExistsError, RuntimeError, ValueError) as exc:
+        emit({"code": "LOCAL_POSTGRES_SETUP_FAILED", "message": str(exc)})
+        raise typer.Exit(2) from exc
 
 
 @app.command()

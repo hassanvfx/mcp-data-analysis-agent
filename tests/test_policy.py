@@ -19,6 +19,14 @@ def test_permits_parameterized_select(source: SourcePolicy, tmp_path: Path) -> N
     assert result.sql_hash
 
 
+def test_postgres_parameters_are_normalized_for_sqlalchemy_core(tmp_path: Path) -> None:
+    result = validate_sql(
+        "SELECT id FROM products WHERE id = :id", {"id": 1},
+        SourcePolicy("test", "postgres", "URL"), Settings(root=tmp_path),
+    )
+    assert result.sql.endswith("id = :id")
+
+
 @pytest.mark.parametrize("sql", ["DELETE FROM products", "SELECT 1; SELECT 2", "PRAGMA journal_mode=WAL"])
 def test_blocks_unsafe_sql(source: SourcePolicy, tmp_path: Path, sql: str) -> None:
     with pytest.raises(AgentError):

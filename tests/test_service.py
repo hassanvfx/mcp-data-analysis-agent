@@ -7,7 +7,7 @@ import pytest
 from mcp_data_agent import ledger as ledger_module
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import generate
-from mcp_data_agent.service import AnalyticsService
+from mcp_data_agent.service import AnalyticsService, quote_identifier
 
 
 def test_retail_query_creates_task_and_receipt(tmp_path: Path, monkeypatch) -> None:
@@ -29,6 +29,10 @@ def test_all_development_domains_generate(tmp_path: Path) -> None:
     for domain in ("retail", "saas", "support"):
         path = tmp_path / f"{domain}.sqlite"
         assert generate(domain, "unit", 1, path)["rows"] == 20
+
+
+def test_qualified_identifiers_preserve_schema_parts() -> None:
+    assert quote_identifier("public.items") == '"public"."items"'
 
 
 def test_service_quality_metrics_and_artifacts(tmp_path: Path, monkeypatch) -> None:

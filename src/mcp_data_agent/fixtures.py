@@ -2,11 +2,74 @@
 
 from __future__ import annotations
 
+import re
+import shutil
 import sqlite3
+import subprocess
 from pathlib import Path
 from random import Random
 
+from sqlalchemy import create_engine, text
+
 DOMAINS = {"retail", "saas", "support"}
+POSTGRES_DATABASE = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,62}$")
+
+
+def local_postgres_url(database: str) -> str:
+    """Return the peer-authenticated local PostgreSQL URL for a safe database name."""
+    if not POSTGRES_DATABASE.fullmatch(database):
+        raise ValueError("database must be a simple PostgreSQL identifier up to 63 characters")
+    return f"postgresql:///{database}"
+
+
+def create_local_postgres_database(database: str) -> str:
+    """Create a new local PostgreSQL database through its CLI without replacing one."""
+    url = local_postgres_url(database)
+    if not shutil.which("createdb"):
+        raise RuntimeError("PostgreSQL createdb is required; install PostgreSQL client tools first")
+    completed = subprocess.run(["createdb", database], capture_output=True, text=True, check=False)
+    if completed.returncode:
+        detail = completed.stderr.strip().lower()
+        if "already exists" in detail:
+            raise FileExistsError(f"local PostgreSQL database already exists: {database}")
+        raise RuntimeError("local PostgreSQL database creation failed; verify the local server is running")
+    return url
+
+
+def clone_sqlite_to_postgres(source: Path, postgres_url: str, schema: str = "mcp_parity") -> dict[str, int]:
+    """Copy a deterministic SQLite fixture into a disposable PostgreSQL schema.
+
+    This is test/development infrastructure only. Callers must provide a
+    disposable URL; the function replaces only its named schema.
+    """
+    if not schema.isidentifier():
+        raise ValueError("schema must be a simple PostgreSQL identifier")
+    engine = create_engine(postgres_url.replace("postgresql://", "postgresql+psycopg://", 1))
+    sqlite = sqlite3.connect(source)
+    try:
+        tables = [row[0] for row in sqlite.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
+        with engine.begin() as database:
+            database.exec_driver_sql(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
+            database.exec_driver_sql(f'CREATE SCHEMA "{schema}"')
+            rows_copied = 0
+            for table in tables:
+                columns = sqlite.execute(f'PRAGMA table_info("{table}")').fetchall()
+                definitions = []
+                for _, name, column_type, _, _, primary_key in columns:
+                    mapped = {"INTEGER": "BIGINT", "REAL": "DOUBLE PRECISION", "TEXT": "TEXT"}.get(column_type.upper(), "TEXT")
+                    definitions.append(f'"{name}" {mapped}{" PRIMARY KEY" if primary_key else ""}')
+                database.exec_driver_sql(f'CREATE TABLE "{schema}"."{table}" ({", ".join(definitions)})')
+                values = sqlite.execute(f'SELECT * FROM "{table}"').fetchall()
+                if values:
+                    names = [column[1] for column in columns]
+                    placeholders = ", ".join(f':{name}' for name in names)
+                    quoted = ", ".join(f'"{name}"' for name in names)
+                    database.execute(text(f'INSERT INTO "{schema}"."{table}" ({quoted}) VALUES ({placeholders})'), [dict(zip(names, row, strict=True)) for row in values])
+                    rows_copied += len(values)
+    finally:
+        sqlite.close()
+        engine.dispose()
+    return {"tables": len(tables), "rows": rows_copied}
 
 
 def generate(domain: str, tier: str, seed: int, output: Path) -> dict[str, int]:

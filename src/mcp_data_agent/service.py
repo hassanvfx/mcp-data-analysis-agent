@@ -32,6 +32,11 @@ from .models import QueryResult, TaskResult
 from .policy import validate_sql
 
 
+def quote_identifier(identifier: str) -> str:
+    """Quote a discovered SQLite or PostgreSQL identifier, preserving schema parts."""
+    return ".".join(f'"{part.replace(chr(34), chr(34) * 2)}"' for part in identifier.split("."))
+
+
 class AnalyticsService:
     def __init__(self, root: Path) -> None:
         self.settings: Settings = load_settings(root)
@@ -292,17 +297,17 @@ class AnalyticsService:
         if not schema:
             raise AgentError("TABLE_UNKNOWN", "The selected table is not available.")
         columns = [str(column) for column in schema["columns"]]
-        quoted_table = f'"{table.replace(chr(34), chr(34) * 2)}"'
+        quoted_table = quote_identifier(table)
         with connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
             count = db.execute(text(f"SELECT COUNT(*) FROM {quoted_table}")).scalar_one()
             null_counts: dict[str, int] = {}
             for column in columns:
-                quoted_column = f'"{column.replace(chr(34), chr(34) * 2)}"'
+                quoted_column = quote_identifier(column)
                 null_counts[column] = int(db.execute(text(f"SELECT COUNT(*) - COUNT({quoted_column}) FROM {quoted_table}")).scalar_one())
             freshness_column = next((column for column in columns if column.lower().endswith(("_at", "_date"))), None)
             freshness = None
             if freshness_column:
-                quoted_column = f'"{freshness_column.replace(chr(34), chr(34) * 2)}"'
+                quoted_column = quote_identifier(freshness_column)
                 freshness = db.execute(text(f"SELECT MAX({quoted_column}) FROM {quoted_table}")).scalar_one()
         warnings = [] if count else ["Table is empty."]
         if any(null_counts.values()):
