@@ -7,7 +7,7 @@ tags: [engineering, onboarding, mcp, sqlite, postgresql]
 status: stable
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T00:35:00Z
+  at: 2026-08-21T00:45:00Z
 ---
 
 # Goal
@@ -64,6 +64,10 @@ Deliver an explicit, confirmation-gated project bootstrap that generates an igno
 - Added `mcp-data-cli seed-postgres DOMAIN`, which uses the private disposable test URL and replaces only the reserved `mcp_seed_<domain>` schema. It never targets application/public schemas.
 - Seeded the local retail development schema successfully: nine tables and 98 deterministic rows with seed 7.
 - Added command-level coverage and live PostgreSQL tests for retail, SaaS, and support seed schemas. Full quality validation passed: 97 tests, 94.17% line coverage, 87.17% branch coverage, and all safety-critical modules at 100% line/branch coverage.
+
+## 2026-08-21 00:45 UTC - Repository cleanup
+
+- Confirmed `.DS_Store` was already ignored. At user direction, removed the remaining tracked project PDF asset in the repository cleanup commit.
 
 # Decisions
 
