@@ -69,6 +69,13 @@ class AnalyticsService:
         return [{"alias": item.alias, "dialect": item.dialect, "classification": item.classification,
                  "configured": bool(__import__("os").environ.get(item.env))} for item in self.settings.sources.values()]
 
+    def validate(self, source_alias: str, sql: str, parameters: dict[str, Any]) -> dict[str, object]:
+        source = self.settings.sources.get(source_alias)
+        if not source:
+            raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
+        validated = validate_sql(sql, parameters, source, self.settings)
+        return validated.validation.model_dump()
+
     def explain(self, source_alias: str, sql: str, parameters: dict[str, Any]) -> dict[str, object]:
         source = self.settings.sources.get(source_alias)
         if not source:

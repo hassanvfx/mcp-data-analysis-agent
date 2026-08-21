@@ -52,6 +52,14 @@ def explain_sql(source_alias: str, sql: str, parameters_json: str = "{}") -> dic
 
 
 @mcp.tool()
+def validate_sql(source_alias: str, sql: str, parameters_json: str = "{}") -> dict[str, object]:
+    try:
+        return service().validate(source_alias, sql, json.loads(parameters_json))
+    except AgentError as exc:
+        return {"error": exc.as_dict()}
+
+
+@mcp.tool()
 def task_timeline(task_id: str) -> list[dict[str, object]]:
     return service().timeline(task_id)
 

@@ -104,6 +104,16 @@ def explain(source: str, sql: str, params: str = "{}") -> None:
     emit(AnalyticsService(root()).explain(source, sql, json.loads(params)))
 
 
+@app.command("sql")
+def sql_validate(source: str, query: str, params: str = "{}") -> None:
+    """Validate parameterized SQL without connecting to the source."""
+    try:
+        emit(AnalyticsService(root()).validate(source, query, json.loads(params)))
+    except AgentError as exc:
+        emit(exc.as_dict())
+        raise typer.Exit(2)
+
+
 @app.command()
 def metrics() -> None:
     emit(AnalyticsService(root()).metrics())

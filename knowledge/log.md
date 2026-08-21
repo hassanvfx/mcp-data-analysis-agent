@@ -48,6 +48,8 @@
 
 * **Critical safety coverage checkpoint**: CI now requires 100% line and branch coverage for configuration, ClineFlow context, observability ledger, and SQL policy modules. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Pre-execution SQL validation checkpoint**: Added a safe SQL-validation CLI/MCP interface that returns policy evidence before source access. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
