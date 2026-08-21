@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T19:15:00Z
+  at: 2026-08-20T19:30:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 19:30 UTC - Safety coverage checkpoint
+
+- Added SQLite/PostgreSQL adapter contract tests, direct MCP stdio startup coverage, expanded CLI execution paths, SQL-policy negative cases, and optional artifact renderer/export coverage.
+- The full test suite now passes with 90% combined coverage; safety-critical SQL policy is at 95% and adapters are at 96%. Distinct branch-threshold enforcement remains open rather than being claimed as complete.
 
 ## 2026-08-20 19:15 UTC - CLI and MCP contract coverage checkpoint
 
@@ -124,12 +129,14 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): six-workflow checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest tests/test_golden_scenarios.py -q` (6 tests), `./validate-okf`, and `git diff --check`.
 - Checkpoint validation (2026-08-20): task-evaluation checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (25 tests), `./validate-okf`, and `git diff --check`.
 - Checkpoint validation (2026-08-20): interface-coverage checkpoint passed `uv run ruff check src tests`, `uv run pytest -q` (27 tests), and coverage measurement (83% overall).
+- Checkpoint validation (2026-08-20): safety-coverage checkpoint passed `uv run ruff check src tests` and `uv run pytest --cov=mcp_data_agent --cov-branch` (35 tests; 90% combined coverage).
 
 # Open Issues
 
 - PostgreSQL parity needs a live disposable PostgreSQL contract-test service in CI; the adapter uses read-only connection settings but has not yet run against a server.
 - Typst PDF rendering, detailed metric/comparison/change-detection operations, full recipe metadata, and the remaining golden report scenarios require subsequent checkpoints.
 - Coverage gates are not enforced yet; the current suite is intentionally incremental and will be expanded before production readiness.
+- The required distinct 85% branch-coverage gate is not yet separately enforced; combined coverage is 90% but insufficient proof for the final release threshold.
 
 # References
 

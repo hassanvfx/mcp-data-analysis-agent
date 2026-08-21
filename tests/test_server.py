@@ -46,3 +46,10 @@ def test_all_mcp_tool_contracts(monkeypatch) -> None:
     assert server.validate_and_execute("source", "bad")["error"]["code"] == "SQL_INVALID"
     assert server.task_timeline("task") == [{"task_id": "task"}]
     assert server.evaluate_analysis_task("task")["score"] == 100
+
+
+def test_server_main_uses_stdio_transport(monkeypatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(server.mcp, "run", lambda transport: calls.append(transport))
+    server.main()
+    assert calls == ["stdio"]

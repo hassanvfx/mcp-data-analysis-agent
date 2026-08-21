@@ -1,8 +1,15 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from mcp_data_agent.artifacts import create_output_directory, export_csv, render_html, render_pdf
+from mcp_data_agent.artifacts import (
+    create_output_directory,
+    export_csv,
+    export_parquet,
+    render_html,
+    render_pdf,
+)
 from mcp_data_agent.errors import AgentError
 
 
@@ -23,3 +30,16 @@ def test_pdf_requires_typst(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr("mcp_data_agent.artifacts.shutil.which", lambda _: None)
     with pytest.raises(AgentError, match="Typst"):
         render_pdf(tmp_path, "Test", ["id"], [[1]])
+
+
+def test_parquet_and_pdf_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert Path(export_parquet(tmp_path, ["id"], [[1]])["path"]).exists()
+    destination = tmp_path / "report.pdf"
+    monkeypatch.setattr("mcp_data_agent.artifacts.shutil.which", lambda _: "typst")
+
+    def compile_pdf(*args: object, **kwargs: object) -> SimpleNamespace:
+        destination.write_bytes(b"pdf")
+        return SimpleNamespace()
+
+    monkeypatch.setattr("mcp_data_agent.artifacts.subprocess.run", compile_pdf)
+    assert Path(render_pdf(tmp_path, "Test", ["id"], [[1]])["path"]).exists()

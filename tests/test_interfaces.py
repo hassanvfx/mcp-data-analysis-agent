@@ -1,5 +1,8 @@
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
 from typer.testing import CliRunner
 
 from mcp_data_agent.adapters import connection, describe_schema
@@ -7,6 +10,7 @@ from mcp_data_agent.cli import app
 from mcp_data_agent.clients import templates, write_template
 from mcp_data_agent.config import SourcePolicy
 from mcp_data_agent.context import load_context
+from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import generate
 
 
@@ -18,10 +22,71 @@ def test_sqlite_adapter_schema_and_read_only(tmp_path: Path) -> None:
         assert any(item["table"] == "products" for item in describe_schema(db, "sqlite"))
 
 
+def test_adapter_failures_and_postgres_contract(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    with pytest.raises(AgentError), connection(SourcePolicy("x", "sqlite", "PATH"), str(tmp_path / "missing.sqlite"), 1):
+        pass
+    with pytest.raises(AgentError), connection(SourcePolicy("x", "oracle", "URL"), "value", 1):
+        pass
+
+    executed: list[str] = []
+
+    class Cursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def execute(self, sql: str) -> None:
+            executed.append(sql)
+
+        def close(self) -> None:
+            return None
+
+    class Database:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def cursor(self) -> Cursor:
+            return Cursor()
+
+    fake = SimpleNamespace(connect=lambda *args, **kwargs: Database())
+    monkeypatch.setitem(sys.modules, "psycopg", fake)
+    with connection(SourcePolicy("pg", "postgres", "URL"), "postgresql://example", 2) as db:
+        assert isinstance(db, Database)
+    assert executed == ["SET default_transaction_read_only = on"]
+
+
+def test_postgres_schema_description() -> None:
+    class Cursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def execute(self, sql: str) -> None:
+            assert "information_schema.columns" in sql
+
+        def fetchall(self) -> list[tuple[str, str, str]]:
+            return [("public", "items", "id"), ("public", "items", "name")]
+
+    class Database:
+        def cursor(self) -> Cursor:
+            return Cursor()
+
+    assert describe_schema(Database(), "postgres") == [{"table": "public.items", "columns": ["id", "name"]}]
+
+
 def test_client_templates_do_not_overwrite(tmp_path: Path) -> None:
     template = templates(tmp_path)["codex"]
     assert "mcp-data-mcp" in template.render()
     assert write_template(template).exists()
+    with pytest.raises(AgentError):
+        write_template(template)
 
 
 def test_context_progressively_loads_matching_journal(tmp_path: Path) -> None:
@@ -52,12 +117,14 @@ def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
     commands = [
+        ["preflight"],
         ["sources"], ["schema", "retail"], ["joins", "retail"], ["profile", "retail", "products"],
         ["quality", "retail", "products"], ["metrics"], ["chart", "name,stock", "2"],
         ["explain", "retail", "SELECT id FROM products"], ["query", "retail", "SELECT id FROM products"],
         ["recipe", "one", "--params", '{"id": 1}'], ["context"], ["dataset", "saas", "data.sqlite"],
+        ["report", "retail", "SELECT id FROM products", "report-output"], ["observe", "unknown"], ["evaluate-task", "unknown"],
         ["demo", "start", "--domain", "support", "--output", "demo.sqlite"], ["demo", "stop", "--output", "demo.sqlite"],
-        ["benchmark", "support", "benchmark.sqlite"],
+        ["benchmark", "support", "benchmark.sqlite"], ["uninstall"],
     ]
     for command in commands:
         result = runner.invoke(app, command)

@@ -35,5 +35,20 @@ def test_blocks_table_outside_source_policy(source: SourcePolicy, tmp_path: Path
         validate_sql("SELECT * FROM people", {}, restricted_source, Settings(root=tmp_path))
 
 
+@pytest.mark.parametrize(
+    ("sql", "parameters"),
+    [("NOT SQL", {}), ("SELECT * FROM products WHERE id = :id", {}), ("SELECT * FROM products", {"id": 1})],
+)
+def test_sql_validation_errors(source: SourcePolicy, tmp_path: Path, sql: str, parameters: dict[str, object]) -> None:
+    with pytest.raises(AgentError):
+        validate_sql(sql, parameters, source, Settings(root=tmp_path))
+
+
+def test_blocks_schema_outside_source_policy(tmp_path: Path) -> None:
+    source = SourcePolicy("test", "postgres", "URL", allowed_schemas=("public",))
+    with pytest.raises(AgentError, match="schema"):
+        validate_sql("SELECT * FROM private.people", {}, source, Settings(root=tmp_path))
+
+
 def test_redacts_secret_values() -> None:
     assert redact_value("api_token", "value")["redacted"] is True

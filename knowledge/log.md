@@ -18,6 +18,8 @@
 
 * **Interface coverage checkpoint**: Added direct MCP and fixture-backed CLI contract tests, raising measured coverage to 83% while identifying the remaining PostgreSQL and optional-renderer paths. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Safety coverage checkpoint**: Added adapter, SQL-policy, artifact, CLI, and MCP path coverage; the test suite now reaches 90% combined coverage. The separate branch-coverage gate remains documented as unfinished in the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
