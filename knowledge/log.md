@@ -56,6 +56,8 @@
 
 * **Package build checkpoint**: Built the source distribution and wheel and smoke-tested the declared CLI/MCP entry points. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Release and security automation checkpoint**: Added CI dependency audit/SBOM generation, a security policy, and an attested trusted-PyPI publishing workflow. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

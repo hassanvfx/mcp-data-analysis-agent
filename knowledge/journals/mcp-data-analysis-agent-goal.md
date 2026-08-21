@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T00:00:00Z
+  at: 2026-08-21T00:15:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 00:15 UTC - Release and security automation checkpoint
+
+- Added dependency vulnerability auditing and CycloneDX SBOM generation to CI, plus responsible-disclosure policy documentation.
+- Added a release-published workflow that builds distributions, attests provenance, and uses PyPI trusted publishing via GitHub OIDC. Local work does not publish packages or invoke external release services.
 
 ## 2026-08-21 00:00 UTC - Package build checkpoint
 
@@ -229,6 +234,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): task-audit linkage checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (54 tests); coverage verifier passed at 95.72% statements, 89.25% branches, and all critical module gates.
 - Checkpoint validation (2026-08-20): MCP task-completion checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (54 tests); coverage verifier passed at 95.74% statements, 89.25% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): package-build checkpoint passed `uv build`, `uv run mcp-data-cli --help`, MCP package initialization, `./validate-okf`, and `git diff --check`.
+- Checkpoint validation (2026-08-21): release/security checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (54 tests), overall/critical coverage verification, OKF, and whitespace validation.
 
 # Open Issues
 

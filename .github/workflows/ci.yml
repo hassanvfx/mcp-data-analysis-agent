@@ -33,3 +33,15 @@ jobs:
       - run: uv run pytest tests/test_postgres_contract.py -q
         env:
           MCP_DATA_TEST_POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/mcp_contract
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv export --format requirements-txt --no-dev --output-file requirements.txt
+      - run: uvx pip-audit -r requirements.txt
+      - run: uvx cyclonedx-py environment --output-file sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
