@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -34,6 +35,12 @@ def connection(source: SourcePolicy, location: str, timeout: int) -> Iterator[An
         with psycopg.connect(location, autocommit=True, options=f"-c statement_timeout={timeout * 1000}") as postgres_db:
             cursor = postgres_db.cursor()
             cursor.execute("SET default_transaction_read_only = on")
+            if source.allowed_schemas:
+                if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", schema) for schema in source.allowed_schemas):
+                    cursor.close()
+                    raise AgentError("SOURCE_POLICY_INVALID", "A configured PostgreSQL schema name is invalid.")
+                search_path = ", ".join(f'"{schema}"' for schema in source.allowed_schemas)
+                cursor.execute(f"SET search_path TO {search_path}")
             cursor.close()
             yield postgres_db
         return

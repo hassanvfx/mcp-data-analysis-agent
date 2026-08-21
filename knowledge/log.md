@@ -34,6 +34,8 @@
 
 * **Schema drift checkpoint**: Added atomic local schema fingerprints and drift detection for safe discovery-cache invalidation. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **PostgreSQL schema isolation checkpoint**: Added configured schema search-path enforcement for unqualified PostgreSQL queries. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

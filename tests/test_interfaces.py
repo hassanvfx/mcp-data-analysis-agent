@@ -55,9 +55,12 @@ def test_adapter_failures_and_postgres_contract(tmp_path: Path, monkeypatch: pyt
 
     fake = SimpleNamespace(connect=lambda *args, **kwargs: Database())
     monkeypatch.setitem(sys.modules, "psycopg", fake)
-    with connection(SourcePolicy("pg", "postgres", "URL"), "postgresql://example", 2) as db:
+    with connection(SourcePolicy("pg", "postgres", "URL", allowed_schemas=("analytics",)), "postgresql://example", 2) as db:
         assert isinstance(db, Database)
-    assert executed == ["SET default_transaction_read_only = on"]
+    assert executed == ["SET default_transaction_read_only = on", 'SET search_path TO "analytics"']
+
+    with pytest.raises(AgentError), connection(SourcePolicy("pg", "postgres", "URL", allowed_schemas=("bad;schema",)), "postgresql://example", 2):
+        pass
 
 
 def test_postgres_schema_description() -> None:
