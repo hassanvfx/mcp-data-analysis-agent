@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T06:20:00Z
+  at: 2026-08-21T06:25:00Z
 ---
 
 # Goal
@@ -62,6 +62,10 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 06:25 UTC - CI secret-scanning checkpoint
+
+- Added repository secret scanning to the existing dependency vulnerability and SBOM CI job, completing the specified release-readiness security checks.
 
 ## 2026-08-21 06:20 UTC - Required tooling contract alignment
 
