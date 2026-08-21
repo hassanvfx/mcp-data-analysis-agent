@@ -46,6 +46,8 @@
 
 * **Enforced coverage-gate checkpoint**: CI now independently enforces the overall 90% statement and 85% branch thresholds, backed by expanded public-interface and failure-path tests. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Critical safety coverage checkpoint**: CI now requires 100% line and branch coverage for configuration, ClineFlow context, observability ledger, and SQL policy modules. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

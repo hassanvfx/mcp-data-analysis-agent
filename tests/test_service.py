@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from mcp_data_agent import ledger as ledger_module
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import generate
 from mcp_data_agent.service import AnalyticsService
@@ -129,6 +130,38 @@ def test_schema_state_fingerprints_and_detects_drift(tmp_path: Path, monkeypatch
 def test_recipe_name_cannot_traverse_project(tmp_path: Path) -> None:
     with pytest.raises(AgentError, match="Recipe names"):
         AnalyticsService(tmp_path).run_recipe("../outside", {})
+
+
+def test_ledger_invalid_records_and_missing_completion_are_detected(tmp_path: Path) -> None:
+    service = AnalyticsService(tmp_path)
+    item = service.ledger.begin_task("explicit", "test", task_id="task-explicit")
+    assert item["task_id"] == "task-explicit"
+    with pytest.raises(FileNotFoundError):
+        service.ledger.complete_task("missing", "none")
+    query = tmp_path / "observability" / "queries" / "2026" / "08" / "invalid.json"
+    query.parent.mkdir(parents=True)
+    query.write_text("not json")
+    event = tmp_path / "observability" / "events" / "2026" / "08.jsonl"
+    event.parent.mkdir(parents=True, exist_ok=True)
+    event.write_text("{}\n")
+    verification = service.verify_observability()
+    assert verification["status"] == "failed"
+    assert {item["reason"] for item in verification["failures"]} == {"record_invalid", "event_invalid"}
+
+
+def test_ledger_atomic_failure_cleans_temporary_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    destination = tmp_path / "record.json"
+    monkeypatch.setattr(ledger_module.os, "replace", lambda *args: (_ for _ in ()).throw(OSError("replace failed")))
+    with pytest.raises(OSError):
+        ledger_module._write_atomic(destination, "value")
+    assert not list(tmp_path.glob(".pending-*"))
+
+
+def test_task_completion_tolerates_missing_linked_journal(tmp_path: Path) -> None:
+    service = AnalyticsService(tmp_path)
+    task = service.begin_task("missing journal", "test")
+    (tmp_path / task.journal_path).unlink()
+    service.ledger.complete_task(task.task_id, "done")
 
 
 def test_service_errors_chart_options_and_quality_variants(tmp_path: Path, monkeypatch) -> None:

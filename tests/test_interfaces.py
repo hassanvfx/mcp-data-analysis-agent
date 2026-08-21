@@ -111,6 +111,11 @@ def test_context_progressively_loads_matching_journal(tmp_path: Path) -> None:
     (tmp_path / "knowledge" / "journals" / "index.md").write_text("# Journals")
     (tmp_path / "knowledge" / "journals" / "retail.md").write_text("# Retail revenue")
     assert load_context(tmp_path, "revenue")[0]["path"].endswith("retail.md")
+    assert len(load_context(tmp_path, limit=1)) == 1
+
+
+def test_context_without_knowledge_is_empty(tmp_path: Path) -> None:
+    assert load_context(tmp_path) == []
 
 
 def test_cli_setup_and_doctor(tmp_path: Path, monkeypatch) -> None:

@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from mcp_data_agent import policy
 from mcp_data_agent.config import Settings, SourcePolicy
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.policy import redact_value, validate_sql
@@ -28,6 +29,14 @@ def test_blocks_unsafe_sql(source: SourcePolicy, tmp_path: Path, sql: str) -> No
 def test_blocks_select_write_and_side_effecting_function(tmp_path: Path, sql: str) -> None:
     with pytest.raises(AgentError):
         validate_sql(sql, {}, SourcePolicy("test", "postgres", "URL"), Settings(root=tmp_path))
+
+
+def test_blocks_writable_cte_and_parser_failures(source: SourcePolicy, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    with pytest.raises(AgentError):
+        validate_sql("WITH written AS (INSERT INTO products VALUES (1) RETURNING id) SELECT * FROM written", {}, source, Settings(root=tmp_path))
+    monkeypatch.setattr(policy.sqlglot, "parse", lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("broken")))
+    with pytest.raises(AgentError, match="parsed"):
+        validate_sql("SELECT 1", {}, source, Settings(root=tmp_path))
 
 
 def test_blocks_restricted_column(source: SourcePolicy, tmp_path: Path) -> None:

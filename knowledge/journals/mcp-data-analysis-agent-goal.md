@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T22:45:00Z
+  at: 2026-08-20T23:00:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 23:00 UTC - Critical safety coverage checkpoint
+
+- Added direct failure-path coverage for parser errors, writable CTEs, ClineFlow progressive-context limits, atomic ledger failures, malformed ledger records, and missing linked journals.
+- CI now enforces 100% combined and branch coverage for configuration, ClineFlow context, observability ledger, and SQL policy modules, in addition to overall thresholds.
 
 ## 2026-08-20 22:45 UTC - Enforced coverage-gate checkpoint
 
@@ -201,12 +206,13 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): SQL bypass-hardening checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (42 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): recipe path-safety checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (43 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): enforced-coverage checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (48 tests), independent coverage verification (94.72% statements; 85.47% branches), OKF, and whitespace validation.
+- Checkpoint validation (2026-08-20): critical-safety-coverage checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (53 tests); coverage verifier passed at 95.96% statements, 88.95% branches, and 100% line/branch coverage for configuration, context, ledger, and policy modules.
 
 # Open Issues
 
 - Live PostgreSQL parity is configured for CI with a disposable service; it requires the first hosted CI run as external verification evidence.
 - Typst PDF rendering, detailed metric/comparison/change-detection operations, full recipe metadata, and the remaining golden report scenarios require subsequent checkpoints.
-- The overall coverage thresholds are now enforced. Safety-critical module-specific 100% line/branch gates still need dedicated configuration and evidence before production readiness.
+- Overall and designated safety-critical module coverage gates are enforced. Remaining production-readiness evidence is primarily live CI/release validation and full product-operation completion.
 
 # References
 
