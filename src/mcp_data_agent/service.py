@@ -86,6 +86,9 @@ class AnalyticsService:
     def evaluate_task(self, task_id: str) -> dict[str, object]:
         return self.ledger.evaluate(task_id)
 
+    def verify_observability(self) -> dict[str, object]:
+        return self.ledger.verify_integrity()
+
     def metrics(self) -> list[dict[str, Any]]:
         path = self.settings.root / "catalog" / "metrics.toml"
         if not path.exists():

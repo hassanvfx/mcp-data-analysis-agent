@@ -119,6 +119,30 @@ class Ledger:
                     output.append(item)
         return output
 
+    def verify_integrity(self) -> dict[str, object]:
+        """Validate immutable record shape and normalized SQL hashes without loading result data."""
+        failures: list[dict[str, str]] = []
+        records = 0
+        for path in sorted((self.base / "queries").rglob("*.json")) if (self.base / "queries").exists() else []:
+            records += 1
+            try:
+                record = json.loads(path.read_text(encoding="utf-8"))
+                normalized_sql = str(record["normalized_sql"])
+                expected = hashlib.sha256(normalized_sql.encode()).hexdigest()
+                if record.get("sql_hash") != expected:
+                    failures.append({"path": str(path), "reason": "sql_hash_mismatch"})
+            except (OSError, json.JSONDecodeError, KeyError):
+                failures.append({"path": str(path), "reason": "record_invalid"})
+        for path in sorted((self.base / "events").rglob("*.jsonl")) if (self.base / "events").exists() else []:
+            for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                try:
+                    event = json.loads(line)
+                    if not all(key in event for key in ("at", "task_id", "kind", "payload")):
+                        raise ValueError
+                except (json.JSONDecodeError, ValueError):
+                    failures.append({"path": f"{path}:{line_number}", "reason": "event_invalid"})
+        return {"status": "pass" if not failures else "failed", "query_records": records, "failures": failures}
+
     @staticmethod
     def checksum(rows: list[list[object]]) -> str:
         return hashlib.sha256(json.dumps(rows, default=str, sort_keys=True).encode()).hexdigest()

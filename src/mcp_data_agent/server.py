@@ -57,6 +57,11 @@ def evaluate_analysis_task(task_id: str) -> dict[str, object]:
 
 
 @mcp.tool()
+def verify_observability() -> dict[str, object]:
+    return service().verify_observability()
+
+
+@mcp.tool()
 def validate_and_execute(source_alias: str, sql: str, parameters_json: str = "{}", task_id: str = "", limit: int = 0) -> dict[str, object]:
     try:
         result = service().execute(source_alias, sql, json.loads(parameters_json), task_id or None, limit or None)

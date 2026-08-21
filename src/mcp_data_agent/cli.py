@@ -132,6 +132,14 @@ def observe(task_id: str) -> None:
     emit(AnalyticsService(root()).timeline(task_id))
 
 
+@app.command("verify-observability")
+def verify_observability() -> None:
+    result = AnalyticsService(root()).verify_observability()
+    emit(result)
+    if result["status"] != "pass":
+        raise typer.Exit(1)
+
+
 @app.command("evaluate-task")
 def evaluate_task(task_id: str) -> None:
     emit(AnalyticsService(root()).evaluate_task(task_id))

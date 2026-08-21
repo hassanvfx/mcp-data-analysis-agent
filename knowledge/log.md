@@ -22,6 +22,8 @@
 
 * **PostgreSQL CI parity checkpoint**: Added a disposable PostgreSQL 16 Actions service and an opt-in adapter contract test that stays locally safe by requiring an explicit disposable URL. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Observability integrity checkpoint**: Added immutable receipt and event-timeline verification with a tampering regression test, exposed to CLI and MCP users. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

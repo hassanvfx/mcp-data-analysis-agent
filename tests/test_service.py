@@ -62,3 +62,16 @@ def test_task_completion_closes_journal_and_evaluates(tmp_path: Path) -> None:
     evaluation = service.evaluate_task(task.task_id)
     assert evaluation["status"] == "incomplete"
     assert "query_recorded" in evaluation["missing"]
+
+
+def test_ledger_integrity_detects_tampered_receipt(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 8, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='INTEGRITY_RETAIL_PATH'\n")
+    monkeypatch.setenv("INTEGRITY_RETAIL_PATH", str(database))
+    service = AnalyticsService(tmp_path)
+    service.execute("retail", "SELECT id FROM products", {})
+    assert service.verify_observability()["status"] == "pass"
+    receipt = next((tmp_path / "observability" / "queries").rglob("*.json"))
+    receipt.write_text(receipt.read_text().replace("SELECT", "SELECT /* tampered */", 1))
+    assert service.verify_observability()["status"] == "failed"
