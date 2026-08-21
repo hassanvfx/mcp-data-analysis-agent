@@ -12,7 +12,8 @@ from pathlib import Path
 
 import typer
 
-from .clients import templates, write_template
+from .clients import apply as apply_client_plans
+from .clients import plans as client_plans
 from .context import load_context
 from .errors import AgentError
 from .fixtures import clone_sqlite_to_postgres, create_local_postgres_database, generate
@@ -68,26 +69,37 @@ def _install_postgres_cli() -> str | None:
 
 
 @app.command()
-def setup(client: str = "codex", apply: bool = False) -> None:
-    """Create safe project templates and print an MCP client configuration."""
+def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"), apply: bool = False,
+          status: bool = False) -> None:
+    """Preview or merge the local MCP server into detected supported clients."""
     project = root()
     defaults = {
         ".env.example": "# Do not commit .env. Add private source values here.\n",
         ".mcp-data-agent.toml": "[agent]\ndefault_row_limit = 500\nmax_row_limit = 5000\nquery_timeout_seconds = 30\n",
     }
-    for name, content in defaults.items():
-        target = project / name
-        if not target.exists():
-            target.write_text(content, encoding="utf-8")
-    available = templates(Path.home())
-    if client not in available:
-        raise typer.BadParameter(f"Supported clients: {', '.join(available)}")
-    template = available[client]
-    typer.echo(template.render())
+    if apply or (not all_clients and client != "all"):
+        for name, content in defaults.items():
+            target = project / name
+            if not target.exists():
+                target.write_text(content, encoding="utf-8")
+    try:
+        planned = client_plans(project, Path.home(), "all" if all_clients else client)
+    except AgentError as exc:
+        raise typer.BadParameter(exc.message) from exc
+    payload = {"client_plans": [item.as_dict() for item in planned], "apply": apply,
+               "status": status, "detected": [item.client for item in planned]}
+    emit(payload)
+    if status or not apply:
+        return
+    writable = [item for item in planned if item.action in {"add", "update"}]
+    if not writable:
+        return
     if apply:
-        if not typer.confirm(f"Write a new {client} MCP configuration?", default=False):
+        targets = ", ".join(f"{item.client} ({item.scope})" for item in writable)
+        if not typer.confirm(f"Merge mcp-data-analysis into: {targets}?", default=False):
             raise typer.Exit()
-        typer.echo(f"Wrote {write_template(template)}")
+        emit({"written": [str(path) for path in apply_client_plans(writable)],
+              "skipped": [item.as_dict() for item in planned if item.action == "skip"]})
 
 
 @app.command()

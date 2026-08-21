@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T08:35:00Z
+  at: 2026-08-21T09:10:00Z
 ---
 
 # Goal
@@ -62,6 +62,12 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 09:10 UTC - Automatic multi-agent MCP setup checkpoint
+
+- Replaced create-only client templates with detected-client setup plans, merge-only JSON/TOML/Continue writers, atomic writes, project-preferred targets, and a narrow Codex user-configuration fallback.
+- Added `setup --all`, `setup --all --apply`, and `setup --status`; preview/status are read-only and apply requires one explicit confirmation while preserving unrelated client configuration.
+- Updated public installation/operations guidance with a client scope matrix and client-trust limitations. Full quality gates passed at 92.12% lines and 85.19% branches; critical modules remain 100% covered.
 
 ## 2026-08-21 08:35 UTC - Single-source onboarding checkpoint
 

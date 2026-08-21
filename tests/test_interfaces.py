@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 from mcp_data_agent import adapters, cli
 from mcp_data_agent.adapters import connection, describe_schema
 from mcp_data_agent.cli import app
-from mcp_data_agent.clients import ClientTemplate, templates, write_template
+from mcp_data_agent.clients import ClientTemplate, apply, plans, templates, write_template
 from mcp_data_agent.config import Settings, SourcePolicy, load_settings
 from mcp_data_agent.context import load_context
 from mcp_data_agent.errors import AgentError
@@ -98,14 +98,62 @@ def test_column_classifications_load_validate_and_preserve_restricted_compatibil
     assert load_settings(tmp_path).sources["data"].classification == "restricted"
 
 
-def test_client_templates_do_not_overwrite(tmp_path: Path) -> None:
+def test_client_templates_merge_idempotently_and_preserve_other_servers(tmp_path: Path) -> None:
     template = templates(tmp_path)["codex"]
     assert "mcp-data-mcp" in template.render()
     assert write_template(template).exists()
-    with pytest.raises(AgentError):
-        write_template(template)
+    assert write_template(template) == template.target
     with pytest.raises(AgentError):
         write_template(ClientTemplate("generic", None))
+
+    project = tmp_path / "project"
+    project.mkdir()
+    home = tmp_path / "home"
+    (home / ".claude").mkdir(parents=True)
+    target = project / ".mcp.json"
+    target.write_text('{"mcpServers": {"other": {"command": "other"}}}')
+    plan = plans(project, home, "claude-code")
+    assert plan[0].scope == "project"
+    assert plan[0].action == "add"
+    apply(plan)
+    merged = __import__("json").loads(target.read_text())
+    assert merged["mcpServers"]["other"]["command"] == "other"
+    assert merged["mcpServers"]["mcp-data-analysis"] == {"command": "mcp-data-mcp", "args": []}
+    assert plans(project, home, "claude-code")[0].action == "unchanged"
+
+
+def test_client_plans_detect_all_and_skip_malformed_files(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    home = tmp_path / "home"
+    project.mkdir()
+    (home / ".cursor").mkdir(parents=True)
+    (project / ".cursor").mkdir()
+    (project / ".cursor" / "mcp.json").write_text("not json")
+    detected = plans(project, home)
+    assert [item.client for item in detected] == ["cursor"]
+    assert detected[0].action == "skip"
+    assert "malformed" in detected[0].reason
+
+
+def test_client_plan_formats_preserve_toml_and_continue_scope(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    home = tmp_path / "home"
+    project.mkdir()
+    codex = home / ".codex" / "config.toml"
+    codex.parent.mkdir(parents=True)
+    codex.write_text('[mcp_servers.other]\ncommand = "other"\n')
+    codex_plan = plans(project, home, "codex")
+    assert codex_plan[0].scope == "user-fallback"
+    apply(codex_plan)
+    contents = codex.read_text()
+    assert "[mcp_servers.other]" in contents
+    assert "[mcp_servers.mcp-data-analysis]" in contents
+
+    (home / ".continue").mkdir()
+    continue_plan = plans(project, home, "continue")
+    assert continue_plan[0].scope == "project"
+    apply(continue_plan)
+    assert "name: mcp-data-analysis" in continue_plan[0].target.read_text()
 
 
 def test_context_progressively_loads_matching_journal(tmp_path: Path) -> None:
@@ -130,7 +178,20 @@ def test_cli_setup_and_doctor(tmp_path: Path, monkeypatch) -> None:
     runner = CliRunner()
     assert runner.invoke(app, ["setup", "--client", "codex"]).exit_code == 0
     assert (tmp_path / ".mcp-data-agent.toml").exists()
+    preview = runner.invoke(app, ["setup", "--all", "--status"])
+    assert preview.exit_code == 0
+    applied = runner.invoke(app, ["setup", "--client", "claude-code", "--apply"], input="y\n")
+    assert applied.exit_code == 0, applied.output
+    assert "mcp-data-analysis" in (tmp_path / ".mcp.json").read_text()
     assert runner.invoke(app, ["doctor"]).exit_code == 0
+
+
+def test_setup_all_preview_is_read_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(app, ["setup", "--all", "--status"])
+    assert result.exit_code == 0
+    assert not (tmp_path / ".mcp-data-agent.toml").exists()
+    assert not (tmp_path / ".env.example").exists()
 
 
 def test_doctor_rejects_an_unhealthy_clineflow_check(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

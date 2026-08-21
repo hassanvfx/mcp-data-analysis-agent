@@ -44,11 +44,22 @@ Run `mcp-data-cli preflight` to install or report required local tooling through
 uv tool install mcp-data-analysis-agent
 cd /path/to/your-project
 mcp-data-cli preflight
-mcp-data-cli setup --client codex
+mcp-data-cli setup --all
+mcp-data-cli setup --all --apply
 mcp-data-cli doctor
 ```
 
-`setup` prints a stdio MCP configuration for Codex, Claude Code, VS Code GitHub Copilot, Cline, Cursor, Windsurf, or Continue. It changes a client configuration only after explicit interactive confirmation.
+`setup --all` previews detected MCP clients without changing them. `setup --all --apply` merges only the `mcp-data-analysis` stdio entry after one explicit confirmation; it preserves unrelated servers and settings. Use `setup --status` to inspect detection and current configuration state.
+
+| Client | Preferred scope | Fallback | Operator action after setup |
+| --- | --- | --- | --- |
+| Claude Code | Project `.mcp.json` | User configuration | Review project-server approval when prompted. |
+| VS Code / GitHub Copilot | Project `.vscode/mcp.json` | User MCP configuration | Restart or use MCP server management; trust the server. |
+| Cline, Cursor, Windsurf | Project MCP configuration | Client user configuration | Restart or reload the client and approve/trust the server. |
+| Continue | Project `.continue/mcpServers/` fragment | User configuration | Restart Continue and use Agent mode. |
+| Codex | — | User `~/.codex/config.toml` | Restart Codex; this is the narrow user-scope fallback. |
+
+Setup configures MCP definitions only. It cannot bypass a client's trust/enable prompt or launch/restart an IDE. VS Code configuration details are documented by [VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) and [GitHub Copilot in VS Code](https://code.visualstudio.com/docs/agent-customization/mcp-servers); Continue documents project MCP fragments in its [MCP guide](https://docs.continue.dev/customize/deep-dives/mcp).
 
 ### Verified release bootstrap
 
