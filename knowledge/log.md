@@ -82,6 +82,8 @@
 
 * **Source classification normalization checkpoint**: Closed the case-variant restricted-source policy bypass. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Transactional export cleanup checkpoint**: Failed report/export renders now leave no partial final output directory. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

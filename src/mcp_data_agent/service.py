@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sqlite3
 import time
 import tomllib
@@ -261,21 +262,25 @@ class AnalyticsService:
     def export(self, result: QueryResult, output: Path, html: bool = True, csv: bool = True,
                parquet: bool = False, pdf: bool = False) -> list[dict[str, str]]:
         directory = create_output_directory(self.settings.root, output)
-        names = [column["name"] for column in result.columns]
-        receipt = {"version": result.version, "query_id": result.query_id, "task_id": result.task_id,
-                   "source_alias": result.source_alias, "normalized_sql": result.normalized_sql,
-                   "sql_hash": result.sql_hash, "correlation_id": result.correlation_id,
-                   "result_checksum": result.result_checksum, "truncated": result.truncated,
-                   "duration_ms": result.duration_ms}
-        artifacts: list[dict[str, str]] = [write_receipt_metadata(directory, receipt)]
-        if csv:
-            artifacts.append(export_csv(directory, names, result.rows))
-        if html:
-            artifacts.append(render_html(directory, "MCP Data Analysis", names, result.rows, receipt))
-        if parquet:
-            artifacts.append(export_parquet(directory, names, result.rows))
-        if pdf:
-            artifacts.append(render_pdf(directory, "MCP Data Analysis", names, result.rows))
+        try:
+            names = [column["name"] for column in result.columns]
+            receipt = {"version": result.version, "query_id": result.query_id, "task_id": result.task_id,
+                       "source_alias": result.source_alias, "normalized_sql": result.normalized_sql,
+                       "sql_hash": result.sql_hash, "correlation_id": result.correlation_id,
+                       "result_checksum": result.result_checksum, "truncated": result.truncated,
+                       "duration_ms": result.duration_ms}
+            artifacts: list[dict[str, str]] = [write_receipt_metadata(directory, receipt)]
+            if csv:
+                artifacts.append(export_csv(directory, names, result.rows))
+            if html:
+                artifacts.append(render_html(directory, "MCP Data Analysis", names, result.rows, receipt))
+            if parquet:
+                artifacts.append(export_parquet(directory, names, result.rows))
+            if pdf:
+                artifacts.append(render_pdf(directory, "MCP Data Analysis", names, result.rows))
+        except Exception:
+            shutil.rmtree(directory)
+            raise
         self.ledger.link_task_value(result.task_id, "source_aliases", result.source_alias)
         for artifact in artifacts:
             self.ledger.link_task_value(result.task_id, "artifacts", f"{artifact['path']}#{artifact['sha256']}")

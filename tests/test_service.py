@@ -316,3 +316,17 @@ def test_service_export_selected_formats(tmp_path: Path, monkeypatch) -> None:
     task_record = (tmp_path / "observability" / "tasks" / f"{result.task_id}.md").read_text()
     assert "source_aliases:" in task_record
     assert "artifacts:" in task_record
+
+
+def test_failed_export_removes_its_final_directory(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 17, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='FAILED_EXPORT_RETAIL_PATH'\n")
+    monkeypatch.setenv("FAILED_EXPORT_RETAIL_PATH", str(database))
+    service = AnalyticsService(tmp_path)
+    result = service.execute("retail", "SELECT id FROM products", {})
+    monkeypatch.setattr("mcp_data_agent.artifacts.shutil.which", lambda _: None)
+    output = tmp_path / "outputs" / "failed"
+    with pytest.raises(AgentError, match="Typst"):
+        service.export(result, output, pdf=True)
+    assert not output.exists()

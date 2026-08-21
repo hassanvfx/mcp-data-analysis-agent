@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T03:15:00Z
+  at: 2026-08-21T03:30:00Z
 ---
 
 # Goal
@@ -62,6 +62,10 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 03:30 UTC - Transactional export cleanup checkpoint
+
+- Export failures now remove the new final output directory before propagating an actionable error, ensuring optional renderer/export failures leave no partial report artifacts or task references.
 
 ## 2026-08-21 03:15 UTC - Source classification normalization checkpoint
 
@@ -300,6 +304,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-21): governed-semantic-metric checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (65 tests); coverage verifier passed at 94.11% statements, 85.90% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): restricted-source classification checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (66 tests); coverage verifier passed at 94.13% statements, 86.13% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): source-classification normalization checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (66 tests); coverage verifier passed at 94.13% statements, 86.13% branches, and all critical module gates.
+- Checkpoint validation (2026-08-21): transactional-export cleanup checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (67 tests); coverage verifier passed at 94.25% statements, 86.55% branches, and all critical module gates.
 
 # Open Issues
 
