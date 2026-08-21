@@ -33,6 +33,7 @@ packages = ["src/mcp_data_agent"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = ["benchmark: deterministic end-to-end performance evidence"]
 
 [tool.ruff]
 line-length = 100

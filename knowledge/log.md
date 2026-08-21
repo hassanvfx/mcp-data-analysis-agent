@@ -74,6 +74,8 @@
 
 * **Approved recipe catalog checkpoint**: Added validated, versioned recipes for the three synthetic domains with CLI/MCP discovery. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Deterministic benchmark evidence checkpoint**: Added generated all-domain recipe/evidence performance coverage with a 60-second limit. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
