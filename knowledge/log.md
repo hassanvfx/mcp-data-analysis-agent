@@ -10,6 +10,8 @@
 
 * **Report and policy checkpoint**: Added table/schema policy enforcement, governed explain/profile/recipe/timeline operations, and safe HTML/CSV/Parquet/optional-PDF report outputs. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md) for verification evidence.
 
+* **Full-domain fixture checkpoint**: Expanded deterministic development fixtures to represent all documented retail, SaaS, and support relationships used by the six target scenarios. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md) for the tested evidence.
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T18:15:00Z
+  at: 2026-08-20T18:30:00Z
 ---
 
 # Goal
@@ -63,6 +63,12 @@ Each representative use case is complete only when it:
 
 # Work Log
 
+## 2026-08-20 18:30 UTC - Full-domain fixture checkpoint
+
+- Expanded deterministic retail fixtures with categories, customers, warehouses, snapshots, orders, returns, and promotions; preserved intentionally sparse returns for quality scenarios.
+- Expanded SaaS fixtures with users, invoices, product events, and feature flags; expanded support fixtures with customers, agents, ticket events, tags, SLA targets, and escalations.
+- Corrected and regression-tested the retail inventory seed binding before committing the fixture schema expansion.
+
 ## 2026-08-20 18:15 UTC - Policy and report checkpoint
 
 - Added source table/schema policy enforcement in SQL validation, plus explain-plan, join-suggestion, profiling, recipe execution, and timeline operations.
@@ -99,6 +105,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): `uv run pytest -q` passed (19 tests), including policy, receipts, artifacts, interfaces, and deterministic retail/SaaS/support scenarios.
 - Checkpoint validation (2026-08-20): `./validate-okf` and `git diff --check` passed.
 - Checkpoint validation (2026-08-20): report/policy checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (21 tests), `./validate-okf`, and `git diff --check`.
+- Checkpoint validation (2026-08-20): expanded fixture checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (21 tests), `./validate-okf`, and `git diff --check`.
 
 # Open Issues
 
