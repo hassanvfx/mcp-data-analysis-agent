@@ -9,7 +9,8 @@ jobs:
       - run: uv sync --extra dev --extra parquet
       - run: uv run ruff check src tests
       - run: uv run mypy src
-      - run: uv run pytest --cov=mcp_data_agent --cov-branch
+      - run: uv run pytest --cov=mcp_data_agent --cov-branch --cov-report=json:coverage.json
+      - run: uv run python scripts/check_coverage.py coverage.json
       - run: ./validate-okf
   postgres-contract:
     runs-on: ubuntu-latest

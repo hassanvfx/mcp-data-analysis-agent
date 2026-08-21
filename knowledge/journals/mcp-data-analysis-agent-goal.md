@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T22:30:00Z
+  at: 2026-08-20T22:45:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 22:45 UTC - Enforced coverage-gate checkpoint
+
+- Added a CI coverage verifier that independently enforces at least 90% statement coverage and 85% branch coverage from Coverage JSON, rather than accepting a combined percentage.
+- Expanded direct CLI/MCP/service/configuration/renderer failure coverage. The gate now passes at 94.72% statements and 85.47% branches in the local non-destructive suite.
 
 ## 2026-08-20 22:30 UTC - Recipe path-safety checkpoint
 
@@ -195,13 +200,13 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): artifact path-safety checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (40 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): SQL bypass-hardening checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (42 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): recipe path-safety checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (43 tests), plus OKF and whitespace validation.
+- Checkpoint validation (2026-08-20): enforced-coverage checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (48 tests), independent coverage verification (94.72% statements; 85.47% branches), OKF, and whitespace validation.
 
 # Open Issues
 
 - Live PostgreSQL parity is configured for CI with a disposable service; it requires the first hosted CI run as external verification evidence.
 - Typst PDF rendering, detailed metric/comparison/change-detection operations, full recipe metadata, and the remaining golden report scenarios require subsequent checkpoints.
-- Coverage gates are not enforced yet; the current suite is intentionally incremental and will be expanded before production readiness.
-- The required distinct 85% branch-coverage gate is not yet separately enforced; combined coverage is 90% but insufficient proof for the final release threshold.
+- The overall coverage thresholds are now enforced. Safety-critical module-specific 100% line/branch gates still need dedicated configuration and evidence before production readiness.
 
 # References
 

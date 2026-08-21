@@ -7,8 +7,8 @@ from typer.testing import CliRunner
 
 from mcp_data_agent.adapters import connection, describe_schema
 from mcp_data_agent.cli import app
-from mcp_data_agent.clients import templates, write_template
-from mcp_data_agent.config import SourcePolicy
+from mcp_data_agent.clients import ClientTemplate, templates, write_template
+from mcp_data_agent.config import Settings, SourcePolicy
 from mcp_data_agent.context import load_context
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import generate
@@ -84,12 +84,25 @@ def test_postgres_schema_description() -> None:
     assert describe_schema(Database(), "postgres") == [{"table": "public.items", "columns": ["id", "name"]}]
 
 
+def test_source_url_requires_known_configured_private_value(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = Settings(tmp_path, sources={"source": SourcePolicy("source", "sqlite", "MISSING_URL")})
+    with pytest.raises(AgentError):
+        settings.source_url("unknown")
+    monkeypatch.delenv("MISSING_URL", raising=False)
+    with pytest.raises(AgentError):
+        settings.source_url("source")
+    monkeypatch.setenv("MISSING_URL", "configured")
+    assert settings.source_url("source") == "configured"
+
+
 def test_client_templates_do_not_overwrite(tmp_path: Path) -> None:
     template = templates(tmp_path)["codex"]
     assert "mcp-data-mcp" in template.render()
     assert write_template(template).exists()
     with pytest.raises(AgentError):
         write_template(template)
+    with pytest.raises(AgentError):
+        write_template(ClientTemplate("generic", None))
 
 
 def test_context_progressively_loads_matching_journal(tmp_path: Path) -> None:
@@ -121,11 +134,14 @@ def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
     runner = CliRunner()
     commands = [
         ["preflight"],
-        ["sources"], ["schema", "retail"], ["joins", "retail"], ["profile", "retail", "products"],
+        ["sources"], ["schema", "retail"], ["schema-state", "retail"], ["joins", "retail"], ["profile", "retail", "products"],
         ["quality", "retail", "products"], ["metrics"], ["chart", "name,stock", "2"],
         ["explain", "retail", "SELECT id FROM products"], ["query", "retail", "SELECT id FROM products"],
         ["recipe", "one", "--params", '{"id": 1}'], ["context"], ["dataset", "saas", "data.sqlite"],
         ["report", "retail", "SELECT id FROM products", "report-output"], ["observe", "unknown"], ["evaluate-task", "unknown"],
+        ["compare-periods", "retail", "SELECT COUNT(*) FROM products WHERE id <= :maximum", '{"maximum": 20}', '{"maximum": 10}'],
+        ["detect-change", "retail", "SELECT COUNT(*) FROM products WHERE id <= :maximum", '{"maximum": 10}', '{"maximum": 20}'],
+        ["verify-observability"],
         ["demo", "start", "--domain", "support", "--output", "demo.sqlite"], ["demo", "stop", "--output", "demo.sqlite"],
         ["benchmark", "support", "benchmark.sqlite"], ["uninstall"],
     ]

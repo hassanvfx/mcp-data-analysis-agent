@@ -44,6 +44,8 @@
 
 * **Recipe path-safety checkpoint**: Hardened Git-native recipe lookup against caller-supplied path traversal. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Enforced coverage-gate checkpoint**: CI now independently enforces the overall 90% statement and 85% branch thresholds, backed by expanded public-interface and failure-path tests. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

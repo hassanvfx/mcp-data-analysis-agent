@@ -151,7 +151,7 @@ class AnalyticsService:
 
     def suggest_chart(self, columns: list[dict[str, str]], row_count: int) -> dict[str, str]:
         names = [column["name"].lower() for column in columns]
-        if any("date" in name or "month" in name for name in names):
+        if any("date" in name or "month" in name or name.endswith("_at") for name in names):
             return {"type": "line", "reason": "A temporal dimension is present."}
         if row_count <= 30:
             return {"type": "bar", "reason": "A bounded categorical comparison is present."}

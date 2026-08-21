@@ -129,3 +129,36 @@ def test_schema_state_fingerprints_and_detects_drift(tmp_path: Path, monkeypatch
 def test_recipe_name_cannot_traverse_project(tmp_path: Path) -> None:
     with pytest.raises(AgentError, match="Recipe names"):
         AnalyticsService(tmp_path).run_recipe("../outside", {})
+
+
+def test_service_errors_chart_options_and_quality_variants(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 13, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='VARIANT_RETAIL_PATH'\n")
+    monkeypatch.setenv("VARIANT_RETAIL_PATH", str(database))
+    service = AnalyticsService(tmp_path)
+    with pytest.raises(AgentError):
+        service.schema("missing")
+    with pytest.raises(AgentError):
+        service.explain("missing", "SELECT 1", {})
+    with pytest.raises(AgentError):
+        service.profile("retail", "missing")
+    with pytest.raises(AgentError):
+        service.quality("retail", "missing")
+    with pytest.raises(AgentError):
+        service.run_recipe("missing", {})
+    assert service.suggest_chart([{"name": "ordered_at", "type": "text"}], 1)["type"] == "line"
+    assert service.suggest_chart([{"name": "name", "type": "text"}], 31)["type"] == "table"
+    assert service.quality("retail", "orders")["freshest_value"] == "2026-08-01"
+
+
+def test_service_export_selected_formats(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 14, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='EXPORT_RETAIL_PATH'\n")
+    monkeypatch.setenv("EXPORT_RETAIL_PATH", str(database))
+    service = AnalyticsService(tmp_path)
+    result = service.execute("retail", "SELECT id FROM products", {})
+    artifacts = service.export(result, tmp_path / "outputs" / "parquet", html=False, csv=False, parquet=True)
+    assert len(artifacts) == 2
+    assert artifacts[1]["path"].endswith(".parquet")

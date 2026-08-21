@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -53,3 +54,17 @@ def test_parquet_and_pdf_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setattr("mcp_data_agent.artifacts.subprocess.run", compile_pdf)
     assert Path(render_pdf(tmp_path, "Test", ["id"], [[1]])["path"]).exists()
+
+
+@pytest.mark.parametrize("failure", ["render", "timeout"])
+def test_pdf_render_failures_are_safe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str) -> None:
+    monkeypatch.setattr("mcp_data_agent.artifacts.shutil.which", lambda _: "typst")
+
+    def fail(*args: object, **kwargs: object) -> None:
+        if failure == "render":
+            raise subprocess.CalledProcessError(1, "typst", stderr="render failure")
+        raise subprocess.TimeoutExpired("typst", 60)
+
+    monkeypatch.setattr("mcp_data_agent.artifacts.subprocess.run", fail)
+    with pytest.raises(AgentError):
+        render_pdf(tmp_path, "Test", ["id"], [[1]])
