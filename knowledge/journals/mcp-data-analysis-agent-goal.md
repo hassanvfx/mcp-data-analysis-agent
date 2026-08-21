@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T18:00:00Z
+  at: 2026-08-20T18:15:00Z
 ---
 
 # Goal
@@ -63,6 +63,12 @@ Each representative use case is complete only when it:
 
 # Work Log
 
+## 2026-08-20 18:15 UTC - Policy and report checkpoint
+
+- Added source table/schema policy enforcement in SQL validation, plus explain-plan, join-suggestion, profiling, recipe execution, and timeline operations.
+- Added CSV/HTML/Parquet outputs and optional safe Typst PDF rendering; PDF generation fails with a stable actionable error when Typst is absent.
+- Added CLI/MCP-facing command coverage for source discovery, joins, profile, explain, recipe, report, observe, benchmark, and explicit demo lifecycle.
+
 ## 2026-08-20 18:00 UTC - Foundation, safe SQLite flow, and development fixtures
 
 - Added the UV-managed Python package, MIT license, locked dependencies, local CLI, stdio MCP server, configuration templates, safe installer, documentation, and a GitHub Actions quality workflow.
@@ -92,6 +98,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): `uv run mypy src` passed.
 - Checkpoint validation (2026-08-20): `uv run pytest -q` passed (19 tests), including policy, receipts, artifacts, interfaces, and deterministic retail/SaaS/support scenarios.
 - Checkpoint validation (2026-08-20): `./validate-okf` and `git diff --check` passed.
+- Checkpoint validation (2026-08-20): report/policy checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (21 tests), `./validate-okf`, and `git diff --check`.
 
 # Open Issues
 

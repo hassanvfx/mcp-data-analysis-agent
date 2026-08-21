@@ -29,5 +29,11 @@ def test_blocks_restricted_column(source: SourcePolicy, tmp_path: Path) -> None:
         validate_sql("SELECT ssn FROM people", {}, source, Settings(root=tmp_path, restricted_columns=frozenset({"ssn"})))
 
 
+def test_blocks_table_outside_source_policy(source: SourcePolicy, tmp_path: Path) -> None:
+    restricted_source = SourcePolicy("test", "sqlite", "URL", allowed_tables=("products",))
+    with pytest.raises(AgentError, match="outside"):
+        validate_sql("SELECT * FROM people", {}, restricted_source, Settings(root=tmp_path))
+
+
 def test_redacts_secret_values() -> None:
     assert redact_value("api_token", "value")["redacted"] is True

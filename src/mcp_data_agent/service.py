@@ -9,7 +9,7 @@ from typing import Any
 from uuid import uuid4
 
 from .adapters import connection, describe_schema
-from .artifacts import create_output_directory, export_csv, render_html
+from .artifacts import create_output_directory, export_csv, export_parquet, render_html, render_pdf
 from .config import Settings, load_settings
 from .errors import AgentError
 from .ledger import Ledger
@@ -106,7 +106,8 @@ class AnalyticsService:
             return {"type": "bar", "reason": "A bounded categorical comparison is present."}
         return {"type": "table", "reason": "The result is too large for a simple chart."}
 
-    def export(self, result: QueryResult, output: Path, html: bool = True, csv: bool = True) -> list[dict[str, str]]:
+    def export(self, result: QueryResult, output: Path, html: bool = True, csv: bool = True,
+               parquet: bool = False, pdf: bool = False) -> list[dict[str, str]]:
         directory = create_output_directory(self.settings.root, output)
         names = [column["name"] for column in result.columns]
         artifacts: list[dict[str, str]] = []
@@ -114,6 +115,10 @@ class AnalyticsService:
             artifacts.append(export_csv(directory, names, result.rows))
         if html:
             artifacts.append(render_html(directory, "MCP Data Analysis", names, result.rows))
+        if parquet:
+            artifacts.append(export_parquet(directory, names, result.rows))
+        if pdf:
+            artifacts.append(render_pdf(directory, "MCP Data Analysis", names, result.rows))
         self.ledger.event(result.task_id, "artifacts_created", {"artifacts": artifacts})
         return artifacts
 

@@ -8,6 +8,8 @@
 
 * **Implementation checkpoint**: Added the initial local MCP package, safe SQL/SQLite execution path, ClineFlow-linked observability ledger, multi-agent configuration templates, and deterministic retail/SaaS/support development fixtures. Verification evidence and remaining production-readiness work are recorded in the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Report and policy checkpoint**: Added table/schema policy enforcement, governed explain/profile/recipe/timeline operations, and safe HTML/CSV/Parquet/optional-PDF report outputs. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md) for verification evidence.
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

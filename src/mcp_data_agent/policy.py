@@ -50,6 +50,14 @@ def validate_sql(sql: str, parameters: dict[str, Any], source: SourcePolicy, set
     denied = columns & settings.restricted_columns
     if denied:
         raise AgentError("FIELD_RESTRICTED", "A restricted field was requested.", ", ".join(sorted(denied)))
+    tables = {table.name for table in statement.find_all(exp.Table)}
+    if source.allowed_tables and not tables.issubset(set(source.allowed_tables)):
+        blocked = tables - set(source.allowed_tables)
+        raise AgentError("TABLE_DENIED", "A table is outside the source policy.", ", ".join(sorted(blocked)))
+    schemas = {table.db for table in statement.find_all(exp.Table) if table.db}
+    if source.allowed_schemas and not schemas.issubset(set(source.allowed_schemas)):
+        blocked = schemas - set(source.allowed_schemas)
+        raise AgentError("SCHEMA_DENIED", "A schema is outside the source policy.", ", ".join(sorted(blocked)))
     placeholders = {node.name for node in statement.find_all(exp.Placeholder) if node.name}
     missing = placeholders - parameters.keys()
     if missing:

@@ -119,6 +119,14 @@ def recipe(name: str, params: str = "{}", task_id: str | None = None) -> None:
 
 
 @app.command()
+def report(source: str, sql: str, output: Path, params: str = "{}", task_id: str | None = None,
+           parquet: bool = False, pdf: bool = False) -> None:
+    """Execute a governed query and create caller-selected artifacts."""
+    result = AnalyticsService(root()).execute(source, sql, json.loads(params), task_id)
+    emit(AnalyticsService(root()).export(result, output, parquet=parquet, pdf=pdf))
+
+
+@app.command()
 def observe(task_id: str) -> None:
     emit(AnalyticsService(root()).timeline(task_id))
 

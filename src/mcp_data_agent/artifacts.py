@@ -5,6 +5,8 @@ from __future__ import annotations
 import csv
 import hashlib
 import os
+import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -53,4 +55,21 @@ def export_parquet(directory: Path, columns: list[str], rows: list[list[Any]]) -
     destination = directory / "results.parquet"
     table = pa.table({name: [row[index] for row in rows] for index, name in enumerate(columns)})
     pq.write_table(table, destination)
+    return {"path": str(destination), "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()}
+
+
+def render_pdf(directory: Path, title: str, columns: list[str], rows: list[list[Any]]) -> dict[str, str]:
+    typst = shutil.which("typst")
+    if not typst:
+        raise AgentError("TYPST_UNAVAILABLE", "Install Typst to generate PDF output.")
+    destination = directory / "report.pdf"
+    source = directory / "report.typ"
+    table = "\n".join(["#table(", *[f"[{name}]" for name in columns], *[f"[{value}]" for row in rows for value in row], ")"])
+    source.write_text(f"= {title}\n\n{table}\n", encoding="utf-8")
+    try:
+        subprocess.run([typst, "compile", str(source), str(destination)], check=True, capture_output=True, text=True, timeout=60)
+    except subprocess.CalledProcessError as exc:
+        raise AgentError("REPORT_RENDER_FAILED", "Typst failed to render the PDF.", exc.stderr[:500]) from exc
+    except subprocess.TimeoutExpired as exc:
+        raise AgentError("REPORT_RENDER_TIMEOUT", "Typst did not finish within 60 seconds.") from exc
     return {"path": str(destination), "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()}

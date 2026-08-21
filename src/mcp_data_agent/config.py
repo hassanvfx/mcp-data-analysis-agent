@@ -18,6 +18,7 @@ class SourcePolicy:
     dialect: str
     env: str
     allowed_schemas: tuple[str, ...] = ()
+    allowed_tables: tuple[str, ...] = ()
     classification: str = "internal"
 
 
@@ -56,6 +57,7 @@ def load_settings(root: Path) -> Settings:
             dialect=item.get("dialect", "sqlite"),
             env=item.get("env", f"MCP_DATA_SOURCE_{alias.upper()}_PATH"),
             allowed_schemas=tuple(item.get("allowed_schemas", [])),
+            allowed_tables=tuple(item.get("allowed_tables", [])),
             classification=item.get("classification", "internal"),
         )
         for alias, item in source_data.items()
