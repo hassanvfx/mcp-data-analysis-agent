@@ -58,6 +58,8 @@
 
 * **Release and security automation checkpoint**: Added CI dependency audit/SBOM generation, a security policy, and an attested trusted-PyPI publishing workflow. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **End-to-end evidence checkpoint**: Added full governed evidence-chain tests for retail, SaaS, and support analysis tasks. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
