@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T20:45:00Z
+  at: 2026-08-20T21:00:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 21:00 UTC - Period comparison and change-detection checkpoint
+
+- Added governed current-vs-prior period comparison and deterministic result-checksum change detection. Each period is independently validated and executed under a shared task, preserving two query receipts and a common audit timeline.
+- Exposed both capabilities through CLI and typed MCP tools.
 
 ## 2026-08-20 20:45 UTC - Data-quality evidence checkpoint
 
@@ -158,6 +163,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): receipt-backed-report checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (36 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): bounded-execution checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (37 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): data-quality checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (37 tests), plus OKF and whitespace validation.
+- Checkpoint validation (2026-08-20): period-comparison checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (38 tests), plus OKF and whitespace validation.
 
 # Open Issues
 

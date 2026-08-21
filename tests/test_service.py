@@ -95,3 +95,16 @@ def test_invalid_limit_and_failed_query_are_bounded_and_audited(tmp_path: Path, 
     with pytest.raises(AgentError):
         service.execute("retail", "DELETE FROM products", {}, task.task_id)
     assert any(event["kind"] == "query_failed" for event in service.timeline(task.task_id))
+
+
+def test_period_comparison_and_change_detection(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 10, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='PERIOD_RETAIL_PATH'\n")
+    monkeypatch.setenv("PERIOD_RETAIL_PATH", str(database))
+    service = AnalyticsService(tmp_path)
+    sql = "SELECT COUNT(*) AS count FROM products WHERE id <= :maximum"
+    comparison = service.compare_periods("retail", sql, {"maximum": 20}, {"maximum": 10})
+    assert comparison["changed"] is True
+    detection = service.detect_change("retail", sql, {"maximum": 10}, {"maximum": 20})
+    assert detection["changed"] is True

@@ -62,6 +62,26 @@ def verify_observability() -> dict[str, object]:
 
 
 @mcp.tool()
+def compare_periods(source_alias: str, sql: str, current_parameters_json: str, previous_parameters_json: str,
+                    task_id: str = "") -> dict[str, object]:
+    try:
+        return service().compare_periods(source_alias, sql, json.loads(current_parameters_json),
+                                         json.loads(previous_parameters_json), task_id or None)
+    except AgentError as exc:
+        return {"error": exc.as_dict()}
+
+
+@mcp.tool()
+def detect_change(source_alias: str, sql: str, baseline_parameters_json: str, current_parameters_json: str,
+                  task_id: str = "") -> dict[str, object]:
+    try:
+        return service().detect_change(source_alias, sql, json.loads(baseline_parameters_json),
+                                       json.loads(current_parameters_json), task_id or None)
+    except AgentError as exc:
+        return {"error": exc.as_dict()}
+
+
+@mcp.tool()
 def validate_and_execute(source_alias: str, sql: str, parameters_json: str = "{}", task_id: str = "", limit: int = 0) -> dict[str, object]:
     try:
         result = service().execute(source_alias, sql, json.loads(parameters_json), task_id or None, limit or None)

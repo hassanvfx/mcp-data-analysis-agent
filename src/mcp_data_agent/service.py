@@ -6,7 +6,7 @@ import time
 import tomllib
 from pathlib import Path
 from threading import BoundedSemaphore
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from .adapters import connection, describe_schema
@@ -97,6 +97,24 @@ class AnalyticsService:
 
     def verify_observability(self) -> dict[str, object]:
         return self.ledger.verify_integrity()
+
+    def compare_periods(self, source_alias: str, sql: str, current_parameters: dict[str, Any],
+                        previous_parameters: dict[str, Any], task_id: str | None = None) -> dict[str, object]:
+        """Execute two independently governed period queries under one task."""
+        task_id = task_id or self.begin_task("Period comparison", "Compare caller-defined current and prior periods.").task_id
+        current = self.execute(source_alias, sql, current_parameters, task_id)
+        previous = self.execute(source_alias, sql, previous_parameters, task_id)
+        return {"task_id": task_id, "current": current.model_dump(), "previous": previous.model_dump(),
+                "changed": current.result_checksum != previous.result_checksum}
+
+    def detect_change(self, source_alias: str, sql: str, baseline_parameters: dict[str, Any],
+                      current_parameters: dict[str, Any], task_id: str | None = None) -> dict[str, object]:
+        comparison = self.compare_periods(source_alias, sql, current_parameters, baseline_parameters, task_id)
+        current = cast(dict[str, Any], comparison["current"])
+        previous = cast(dict[str, Any], comparison["previous"])
+        return {"task_id": comparison["task_id"], "changed": comparison["changed"],
+                "baseline_checksum": previous["result_checksum"], "current_checksum": current["result_checksum"],
+                "current_query_id": current["query_id"], "baseline_query_id": previous["query_id"]}
 
     def metrics(self) -> list[dict[str, Any]]:
         path = self.settings.root / "catalog" / "metrics.toml"

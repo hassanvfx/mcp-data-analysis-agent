@@ -127,6 +127,16 @@ def report(source: str, sql: str, output: Path, params: str = "{}", task_id: str
     emit(AnalyticsService(root()).export(result, output, parquet=parquet, pdf=pdf))
 
 
+@app.command("compare-periods")
+def compare_periods(source: str, sql: str, current_params: str, previous_params: str, task_id: str | None = None) -> None:
+    emit(AnalyticsService(root()).compare_periods(source, sql, json.loads(current_params), json.loads(previous_params), task_id))
+
+
+@app.command("detect-change")
+def detect_change(source: str, sql: str, baseline_params: str, current_params: str, task_id: str | None = None) -> None:
+    emit(AnalyticsService(root()).detect_change(source, sql, json.loads(baseline_params), json.loads(current_params), task_id))
+
+
 @app.command()
 def observe(task_id: str) -> None:
     emit(AnalyticsService(root()).timeline(task_id))

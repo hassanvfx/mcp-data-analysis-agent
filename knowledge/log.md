@@ -30,6 +30,8 @@
 
 * **Data-quality evidence checkpoint**: Added per-column null and freshness evidence to safe quality checks. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Period comparison checkpoint**: Added receipt-backed governed period comparisons and deterministic result change detection through CLI and MCP. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
