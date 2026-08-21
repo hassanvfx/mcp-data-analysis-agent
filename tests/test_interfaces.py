@@ -107,6 +107,8 @@ def test_column_classifications_load_validate_and_preserve_restricted_compatibil
     (tmp_path / ".mcp-data-agent.toml").write_text("[sources.data]\nclassification='unknown'\n")
     with pytest.raises(AgentError):
         load_settings(tmp_path)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.data]\nclassification='RESTRICTED'\n")
+    assert load_settings(tmp_path).sources["data"].classification == "restricted"
 
 
 def test_client_templates_do_not_overwrite(tmp_path: Path) -> None:

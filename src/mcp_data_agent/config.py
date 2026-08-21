@@ -69,7 +69,7 @@ def load_settings(root: Path) -> Settings:
             env=item.get("env", f"MCP_DATA_SOURCE_{alias.upper()}_PATH"),
             allowed_schemas=tuple(item.get("allowed_schemas", [])),
             allowed_tables=tuple(item.get("allowed_tables", [])),
-            classification=item.get("classification", "internal"),
+            classification=str(item.get("classification", "internal")).lower(),
         )
         for alias, item in source_data.items()
     }

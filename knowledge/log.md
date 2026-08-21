@@ -80,6 +80,8 @@
 
 * **Restricted source classification checkpoint**: Enforced source-level policy denial before parsing or connecting. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Source classification normalization checkpoint**: Closed the case-variant restricted-source policy bypass. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
