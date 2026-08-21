@@ -27,6 +27,21 @@ class ValidatedQuery:
     validation: ValidationResult
 
 
+def has_wildcard_projection(statement: exp.Expression) -> bool:
+    """Return whether a SELECT result projection can expose every column.
+
+    Aggregate arguments such as ``COUNT(*)`` do not expose field values and
+    must remain available when a source has restricted columns.
+    """
+    for select in statement.find_all(exp.Select):
+        for projection in select.expressions:
+            if isinstance(projection, exp.Star):
+                return True
+            if isinstance(projection, exp.Column) and isinstance(projection.this, exp.Star):
+                return True
+    return False
+
+
 def redact_value(name: str, value: Any, restricted: bool = False) -> Any:
     if restricted or SECRET_NAME.search(name):
         digest = hashlib.sha256(repr(value).encode()).hexdigest()[:16]
@@ -58,7 +73,7 @@ def validate_sql(sql: str, parameters: dict[str, Any], source: SourcePolicy, set
     denied = {column for column in columns if settings.column_classification(column) == "restricted"}
     if denied:
         raise AgentError("FIELD_RESTRICTED", "A restricted field was requested.", ", ".join(sorted(denied)))
-    if any(statement.find_all(exp.Star)) and any(
+    if has_wildcard_projection(statement) and any(
         settings.column_classification(column) == "restricted"
         for column in set(settings.restricted_columns) | set(settings.column_classifications)
     ):

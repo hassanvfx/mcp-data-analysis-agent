@@ -64,6 +64,8 @@
 
 * **Wildcard restricted-field safety checkpoint**: Blocked wildcard projections when restricted fields are configured. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Wildcard projection precision checkpoint**: Preserved approved aggregate queries while enforcing restricted-field wildcard protection. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

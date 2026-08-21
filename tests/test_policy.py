@@ -50,6 +50,9 @@ def test_blocks_configured_restricted_classification(source: SourcePolicy, tmp_p
         validate_sql("SELECT tax_id FROM people", {}, source, settings)
     with pytest.raises(AgentError, match="Wildcard"):
         validate_sql("SELECT * FROM people", {}, source, settings)
+    with pytest.raises(AgentError, match="Wildcard"):
+        validate_sql("SELECT people.* FROM people", {}, source, settings)
+    assert validate_sql("SELECT COUNT(*) FROM people", {}, source, settings).validation.outcome == "permitted"
 
 
 def test_blocks_table_outside_source_policy(source: SourcePolicy, tmp_path: Path) -> None:
