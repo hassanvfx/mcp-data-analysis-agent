@@ -63,6 +63,10 @@ Each representative use case is complete only when it:
 
 # Work Log
 
+## 2026-08-21 05:55 UTC - PostgreSQL session-enforcement checkpoint
+
+- Verified the SQLAlchemy Core PostgreSQL adapter's live session-level read-only enforcement and server timeout behavior on the local generated test server. See the [migration journal](sqlalchemy-core-adapter-migration.md).
+
 ## 2026-08-21 05:00 UTC - PostgreSQL Core contract checkpoint
 
 - Expanded the disposable PostgreSQL 16 CI contract with SQLAlchemy Core schema, explain, parameter-binding, typed-result, and mutation-denial evidence. See the [migration journal](sqlalchemy-core-adapter-migration.md).

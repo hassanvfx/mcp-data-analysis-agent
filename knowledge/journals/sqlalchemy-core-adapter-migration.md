@@ -6,7 +6,7 @@ tags: [engineering, database, sqlalchemy, sqlite, postgresql, migration]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T05:40:00Z
+  at: 2026-08-21T05:55:00Z
 ---
 
 # Goal
@@ -44,6 +44,11 @@ Migrate the data-access layer from direct `sqlite3`/`psycopg` cursor handling to
 - A real isolated PostgreSQL 15 instance was initialized through `initdb`/`pg_ctl`; `createdb` created and seeded `mcp_data_retail`; all four SQLite/PostgreSQL fixture-parity and Core contract tests passed. The temporary server and its files were stopped and removed afterward.
 - Corrected SQLGlot PostgreSQL bind rendering (`%(name)s`) to portable SQLAlchemy Core `:name` syntax before execution. This was found by the live contract run.
 
+## 2026-08-21 05:55 UTC - Live PostgreSQL session-enforcement checkpoint
+
+- Extended the local Core contract against an isolated PostgreSQL 15 instance to assert `transaction_read_only = on`, direct insert rejection by the session, and a real server-side statement timeout.
+- This closes the remaining adapter-level proof gap from the migration: the governed SQL policy prevents mutations before dispatch, while the PostgreSQL session independently rejects a bypass attempt and imposes the configured timeout.
+
 # Decisions
 
 - **Use SQLAlchemy Core, not declarative ORM mappings:** The agent must work against user-owned schemas that are not known at package-build time. Core provides portable engines, SQL compilation primitives, inspection, pooling, and result interfaces without imposing model classes.
@@ -57,6 +62,7 @@ Migrate the data-access layer from direct `sqlite3`/`psycopg` cursor handling to
 - Checkpoint validation (2026-08-21): `uv run ruff check src tests scripts`, `uv run mypy src`, `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests), coverage verification (94.33% statements; 87.01% branches), OKF, and whitespace validation passed.
 - Checkpoint validation (2026-08-21): PostgreSQL Core contract module passed Ruff and was safely skipped locally without `MCP_DATA_TEST_POSTGRES_URL`; hosted CI owns live execution.
 - Checkpoint validation (2026-08-21): Ruff, strict mypy, 79 tests, coverage verification, OKF, and whitespace validation passed against an isolated `initdb` server. Coverage is 94.53% lines and 87.41% branches; configuration, context, ledger, and policy each remain 100% line/branch covered. No pre-existing user database was touched.
+- Checkpoint validation (2026-08-21): live PostgreSQL read-only and timeout contract tests passed on an isolated `initdb` server; full test suite remains green, with the known third-party Pydantic forward-reference warning only.
 
 # Open Issues
 

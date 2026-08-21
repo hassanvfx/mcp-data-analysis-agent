@@ -6,7 +6,10 @@ import os
 from pathlib import Path
 
 import pytest
+from sqlalchemy import text
 
+from mcp_data_agent.adapters import connection
+from mcp_data_agent.config import SourcePolicy
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import local_postgres_url
 from mcp_data_agent.service import AnalyticsService
@@ -52,3 +55,18 @@ def test_postgres_core_adapter_contract(tmp_path: Path, monkeypatch: pytest.Monk
     assert service.quality("contract", "public.mcp_contract_items")["row_count"] == 2
     with pytest.raises(AgentError, match="Only SELECT"):
         service.execute("contract", "DELETE FROM mcp_contract_items", {})
+
+
+def test_postgres_adapter_enforces_read_only_session_and_server_timeout() -> None:
+    import psycopg
+
+    assert POSTGRES_URL
+    with psycopg.connect(POSTGRES_URL, autocommit=True) as admin, admin.cursor() as cursor:
+        cursor.execute("CREATE TABLE IF NOT EXISTS mcp_contract_items (id integer primary key, name text, updated_at timestamptz)")
+    source = SourcePolicy("contract", "postgres", "MCP_DATA_TEST_POSTGRES_URL", allowed_schemas=("public",))
+    with connection(source, POSTGRES_URL, 1) as readonly_db, connection(source, POSTGRES_URL, 1) as timeout_db:
+        assert readonly_db.execute(text("SHOW transaction_read_only")).scalar_one() == "on"
+        with pytest.raises(Exception, match="read-only"):
+            readonly_db.execute(text("INSERT INTO mcp_contract_items VALUES (3, 'blocked', now())"))
+        with pytest.raises(Exception, match="statement timeout"):
+            timeout_db.execute(text("SELECT COUNT(*) FROM generate_series(1, 1000000000)"))
