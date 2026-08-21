@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T06:35:00Z
+  at: 2026-08-21T06:45:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 06:45 UTC - Hosted cross-dialect parity checkpoint
+
+- Expanded the PostgreSQL CI job from the adapter contract alone to include retail, SaaS, and support SQLite-to-PostgreSQL fixture parity scenarios.
+- The exact expanded suite passed on an isolated local PostgreSQL server before CI configuration was checkpointed.
 
 ## 2026-08-21 06:35 UTC - ClineFlow health-enforcement checkpoint
 

@@ -6,7 +6,7 @@ tags: [engineering, database, sqlalchemy, sqlite, postgresql, migration]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T05:55:00Z
+  at: 2026-08-21T06:45:00Z
 ---
 
 # Goal
@@ -48,6 +48,10 @@ Migrate the data-access layer from direct `sqlite3`/`psycopg` cursor handling to
 
 - Extended the local Core contract against an isolated PostgreSQL 15 instance to assert `transaction_read_only = on`, direct insert rejection by the session, and a real server-side statement timeout.
 - This closes the remaining adapter-level proof gap from the migration: the governed SQL policy prevents mutations before dispatch, while the PostgreSQL session independently rejects a bypass attempt and imposes the configured timeout.
+
+## 2026-08-21 06:45 UTC - Hosted cross-dialect parity checkpoint
+
+- CI now runs the SQLite-to-PostgreSQL fixture parity suite for retail, SaaS, and support alongside the Core adapter contract, using its PostgreSQL service rather than relying solely on manual local evidence.
 
 # Decisions
 
