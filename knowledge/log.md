@@ -68,6 +68,8 @@
 
 * **Auditable cancellation-request checkpoint**: Added pre-dispatch task cancellation with immutable cancellation evidence. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **SQLite in-flight cancellation and timeout checkpoint**: Added deterministic SQLite query interruption for running cancellation requests and elapsed deadlines. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

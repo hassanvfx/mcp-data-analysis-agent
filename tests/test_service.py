@@ -1,3 +1,5 @@
+import sqlite3
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -94,6 +96,47 @@ def test_cancellation_is_persisted_and_blocks_execution(tmp_path: Path, monkeypa
     assert service.ledger.cancellation_requested("missing") is False
     with pytest.raises(FileNotFoundError):
         service.cancel_task("missing")
+
+
+def test_zero_timeout_is_a_governed_query_timeout(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 16, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text(
+        "[agent]\nquery_timeout_seconds=0\n[sources.retail]\ndialect='sqlite'\nenv='TIMEOUT_RETAIL_PATH'\n"
+    )
+    monkeypatch.setenv("TIMEOUT_RETAIL_PATH", str(database))
+    with pytest.raises(AgentError, match="timeout"):
+        AnalyticsService(tmp_path).execute("retail", "SELECT id FROM products", {})
+
+
+def test_sqlite_progress_handler_interrupts_an_inflight_cancellation(tmp_path: Path) -> None:
+    service = AnalyticsService(tmp_path)
+    task = service.begin_task("inflight", "cancel while SQLite is executing")
+
+    class Cursor:
+        description = None
+
+        def execute(self, sql: str, parameters: dict[str, object]) -> None:
+            service.ledger.request_cancellation(task.task_id)
+            if database.progress_handler and database.progress_handler():
+                raise sqlite3.OperationalError("interrupted")
+
+        def fetchall(self) -> list[object]:
+            return []
+
+    class Database:
+        progress_handler: Callable[[], int] | None = None
+
+        def set_progress_handler(self, handler: Callable[[], int] | None, count: int) -> None:
+            self.progress_handler = handler
+
+        def cursor(self) -> Cursor:
+            return Cursor()
+
+    database = Database()
+    with pytest.raises(AgentError, match="cancelled"):
+        service._execute_bounded(database, "sqlite", task.task_id, "SELECT 1", {})
+    assert database.progress_handler is None
 
 
 def test_ledger_integrity_detects_tampered_receipt(tmp_path: Path, monkeypatch) -> None:

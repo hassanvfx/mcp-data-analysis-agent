@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 import time
 import tomllib
 from pathlib import Path
@@ -134,6 +135,51 @@ class AnalyticsService:
     def verify_observability(self) -> dict[str, object]:
         return self.ledger.verify_integrity()
 
+    def _execute_bounded(self, db: Any, dialect: str, task_id: str, sql: str,
+                         parameters: dict[str, Any]) -> tuple[list[Any], list[dict[str, str]]]:
+        """Execute a query with SQLite progress-based cancellation and timeout.
+
+        PostgreSQL receives the same timeout through its server-side connection
+        setting; SQLite needs a progress callback because its connection timeout
+        only governs lock acquisition.
+        """
+        deadline = time.monotonic() + self.settings.timeout_seconds
+        interrupt_reason: str | None = None
+
+        def interrupt() -> int:
+            nonlocal interrupt_reason
+            if self.ledger.cancellation_requested(task_id):
+                interrupt_reason = "QUERY_CANCELLED"
+                return 1
+            if time.monotonic() >= deadline:
+                interrupt_reason = "QUERY_TIMEOUT"
+                return 1
+            return 0
+
+        if self.ledger.cancellation_requested(task_id):
+            raise AgentError("QUERY_CANCELLED", "The task was cancelled before query execution.")
+        if time.monotonic() >= deadline:
+            raise AgentError("QUERY_TIMEOUT", "The query timeout elapsed before execution began.")
+        use_progress_handler = dialect == "sqlite"
+        if use_progress_handler:
+            db.set_progress_handler(interrupt, 1_000)
+        try:
+            cursor = db.cursor()
+            cursor.execute(sql, parameters)
+            raw_rows = cursor.fetchall()
+            columns = [{"name": desc[0], "type": "unknown", "classification": self.settings.column_classification(desc[0])}
+                       for desc in cursor.description or []]
+            return raw_rows, columns
+        except sqlite3.OperationalError as exc:
+            if interrupt_reason == "QUERY_CANCELLED":
+                raise AgentError("QUERY_CANCELLED", "The running SQLite query was cancelled.") from exc
+            if interrupt_reason == "QUERY_TIMEOUT":
+                raise AgentError("QUERY_TIMEOUT", "The running SQLite query exceeded its timeout.") from exc
+            raise AgentError("QUERY_EXECUTION_FAILED", "The query could not be executed safely.") from exc
+        finally:
+            if use_progress_handler:
+                db.set_progress_handler(None, 0)
+
     def compare_periods(self, source_alias: str, sql: str, current_parameters: dict[str, Any],
                         previous_parameters: dict[str, Any], task_id: str | None = None) -> dict[str, object]:
         """Execute two independently governed period queries under one task."""
@@ -237,15 +283,10 @@ class AnalyticsService:
         correlation = uuid4().hex
         started = time.monotonic()
         try:
-            if self.ledger.cancellation_requested(task_id):
-                raise AgentError("QUERY_CANCELLED", "The task was cancelled before query execution.")
             validated = validate_sql(sql, parameters, source, self.settings)
             wrapped = f"SELECT * FROM ({validated.sql}) AS bounded_query LIMIT {bounded_limit + 1}"
             with self.query_gate, connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
-                cursor = db.cursor()
-                cursor.execute(wrapped, parameters)
-                raw_rows = cursor.fetchall()
-                columns = [{"name": desc[0], "type": "unknown", "classification": self.settings.column_classification(desc[0])} for desc in cursor.description or []]
+                raw_rows, columns = self._execute_bounded(db, source.dialect, task_id, wrapped, parameters)
         except AgentError as exc:
             duration = round((time.monotonic() - started) * 1000)
             cancelled = exc.code == "QUERY_CANCELLED"
