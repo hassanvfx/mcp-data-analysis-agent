@@ -136,16 +136,36 @@ class AnalyticsService:
         return artifacts
 
     def quality(self, source_alias: str, table: str) -> dict[str, Any]:
-        if not table.replace("_", "").isalnum():
-            raise AgentError("TABLE_INVALID", "The table name is invalid.")
         source = self.settings.sources.get(source_alias)
         if not source:
             raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
+        schema = next((item for item in self.schema(source_alias) if item["table"] == table), None)
+        if not schema:
+            raise AgentError("TABLE_UNKNOWN", "The selected table is not available.")
+        columns = [str(column) for column in schema["columns"]]
+        quoted_table = f'"{table.replace(chr(34), chr(34) * 2)}"'
         with connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
             cursor = db.cursor()
-            cursor.execute(f'SELECT COUNT(*) FROM "{table}"')
+            cursor.execute(f"SELECT COUNT(*) FROM {quoted_table}")
             count = cursor.fetchone()[0]
-        return {"table": table, "row_count": count, "warnings": [] if count else ["Table is empty."]}
+            null_counts: dict[str, int] = {}
+            for column in columns:
+                quoted_column = f'"{column.replace(chr(34), chr(34) * 2)}"'
+                cursor.execute(f"SELECT COUNT(*) - COUNT({quoted_column}) FROM {quoted_table}")
+                null_counts[column] = int(cursor.fetchone()[0])
+            freshness_column = next((column for column in columns if column.lower().endswith(("_at", "_date"))), None)
+            freshness = None
+            if freshness_column:
+                quoted_column = f'"{freshness_column.replace(chr(34), chr(34) * 2)}"'
+                cursor.execute(f"SELECT MAX({quoted_column}) FROM {quoted_table}")
+                freshness = cursor.fetchone()[0]
+        warnings = [] if count else ["Table is empty."]
+        if any(null_counts.values()):
+            warnings.append("One or more columns contain null values.")
+        if freshness is None and freshness_column:
+            warnings.append("The freshness column contains no values.")
+        return {"table": table, "row_count": count, "null_counts": null_counts,
+                "freshness_column": freshness_column, "freshest_value": freshness, "warnings": warnings}
 
     def execute(self, source_alias: str, sql: str, parameters: dict[str, Any], task_id: str | None = None,
                 limit: int | None = None) -> QueryResult:

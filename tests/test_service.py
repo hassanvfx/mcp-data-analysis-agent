@@ -32,7 +32,9 @@ def test_service_quality_metrics_and_artifacts(tmp_path: Path, monkeypatch) -> N
     (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='TEST_RETAIL_PATH'\n")
     monkeypatch.setenv("TEST_RETAIL_PATH", str(database))
     service = AnalyticsService(tmp_path)
-    assert service.quality("retail", "products")["row_count"] == 20
+    quality = service.quality("retail", "products")
+    assert quality["row_count"] == 20
+    assert quality["null_counts"]["name"] == 0
     assert service.metrics()[0]["name"] == "revenue"
     result = service.execute("retail", "SELECT id, name FROM products", {})
     artifacts = service.export(result, tmp_path / "outputs" / "run")

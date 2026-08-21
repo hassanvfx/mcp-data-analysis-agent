@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T20:30:00Z
+  at: 2026-08-20T20:45:00Z
 ---
 
 # Goal
@@ -62,6 +62,10 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 20:45 UTC - Data-quality evidence checkpoint
+
+- Quality checks now validate the requested table through discovered schema, report per-column null counts, detect conventional freshness columns, return the latest observed timestamp, and emit warnings for empty, null-bearing, or freshness-empty data.
 
 ## 2026-08-20 20:30 UTC - Bounded execution checkpoint
 
@@ -153,6 +157,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): observability-integrity checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (36 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): receipt-backed-report checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (36 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): bounded-execution checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (37 tests), plus OKF and whitespace validation.
+- Checkpoint validation (2026-08-20): data-quality checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (37 tests), plus OKF and whitespace validation.
 
 # Open Issues
 

@@ -28,6 +28,8 @@
 
 * **Bounded execution checkpoint**: Added strict positive-limit enforcement, configured query concurrency bounds, and correlated failed-run ledger events. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Data-quality evidence checkpoint**: Added per-column null and freshness evidence to safe quality checks. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
