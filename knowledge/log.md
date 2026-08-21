@@ -52,6 +52,8 @@
 
 * **Task-audit linkage checkpoint**: Task records now accumulate source, receipt, run, and artifact references as a complete audit index. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **MCP task-completion checkpoint**: Added the missing MCP task-completion lifecycle tool. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

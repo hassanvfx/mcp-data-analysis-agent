@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T23:30:00Z
+  at: 2026-08-20T23:45:00Z
 ---
 
 # Goal
@@ -62,6 +62,10 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 23:45 UTC - MCP task-completion checkpoint
+
+- Added typed `complete_analysis_task` MCP support, completing the remote lifecycle surface for task begin, query/evidence, completion, timeline, and deterministic evaluation.
 
 ## 2026-08-20 23:30 UTC - Task-audit linkage checkpoint
 
@@ -218,6 +222,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): critical-safety-coverage checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (53 tests); coverage verifier passed at 95.96% statements, 88.95% branches, and 100% line/branch coverage for configuration, context, ledger, and policy modules.
 - Checkpoint validation (2026-08-20): SQL-validation interface checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (53 tests); coverage verifier passed at 95.60% statements, 88.51% branches, and all critical module gates.
 - Checkpoint validation (2026-08-20): task-audit linkage checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (54 tests); coverage verifier passed at 95.72% statements, 89.25% branches, and all critical module gates.
+- Checkpoint validation (2026-08-20): MCP task-completion checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (54 tests); coverage verifier passed at 95.74% statements, 89.25% branches, and all critical module gates.
 
 # Open Issues
 

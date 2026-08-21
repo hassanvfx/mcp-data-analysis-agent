@@ -5,6 +5,9 @@ from mcp_data_agent.errors import AgentError
 
 
 class FakeService:
+    def __init__(self) -> None:
+        self.ledger = SimpleNamespace(complete_task=lambda *args: None)
+
     def begin_task(self, title: str, objective: str) -> SimpleNamespace:
         return SimpleNamespace(model_dump=lambda: {"title": title, "objective": objective})
 
@@ -54,6 +57,7 @@ class FakeService:
 def test_all_mcp_tool_contracts(monkeypatch) -> None:
     monkeypatch.setattr(server, "service", lambda: FakeService())
     assert server.begin_analysis_task("title", "objective")["title"] == "title"
+    assert server.complete_analysis_task("task", "findings")["status"] == "complete"
     assert server.get_schema("source") == [{"table": "source"}]
     assert server.schema_state("source")["source_alias"] == "source"
     assert server.list_sources() == [{"alias": "demo"}]

@@ -24,6 +24,12 @@ def begin_analysis_task(title: str, objective: str) -> dict[str, str]:
 
 
 @mcp.tool()
+def complete_analysis_task(task_id: str, findings: str, next_steps: str = "") -> dict[str, str]:
+    service().ledger.complete_task(task_id, findings, next_steps)
+    return {"task_id": task_id, "status": "complete"}
+
+
+@mcp.tool()
 def get_schema(source_alias: str) -> list[dict[str, object]]:
     return service().schema(source_alias)
 
