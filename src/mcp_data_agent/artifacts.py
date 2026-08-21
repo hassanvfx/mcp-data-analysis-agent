@@ -89,7 +89,12 @@ def render_pdf(directory: Path, title: str, columns: list[str], rows: list[list[
         raise AgentError("TYPST_UNAVAILABLE", "Install Typst to generate PDF output.")
     destination = directory / "report.pdf"
     source = directory / "report.typ"
-    table = "\n".join(["#table(", *[f"[{name}]" for name in columns], *[f"[{value}]" for row in rows for value in row], ")"])
+    def typst_cell(value: Any) -> str:
+        content = str(value).replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+        return f"[{content}]"
+
+    cells = ",\n".join([*(typst_cell(name) for name in columns), *(typst_cell(value) for row in rows for value in row)])
+    table = f"#table(columns: {len(columns)},\n{cells},\n)"
     source.write_text(f"= {title}\n\n{table}\n", encoding="utf-8")
     try:
         subprocess.run([typst, "compile", str(source), str(destination)], check=True, capture_output=True, text=True, timeout=60)

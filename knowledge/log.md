@@ -12,6 +12,8 @@
 
 * **PostgreSQL session-enforcement checkpoint**: Verified live read-only session enforcement and server statement timeout behavior through the SQLAlchemy Core adapter. See the [migration journal](journals/sqlalchemy-core-adapter-migration.md).
 
+* **Required Typst rendering checkpoint**: Verified the installed Typst compiler end-to-end and corrected report table syntax found by the real render. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 * **MCP Data Analysis Agent specification**: Added and expanded the stable [local MCP product specification](journals/mcp-data-analysis-agent-spec.md), covering ClineFlow-backed project memory, one-line local installation and preflight, human-controlled credential onboarding, secure SQLite/PostgreSQL analytics, structured observability, reports, development fixtures, acceptance criteria, and safe failure behavior.
 * **MCP Data Analysis Agent delivery goal**: Added the active [delivery goal journal](journals/mcp-data-analysis-agent-goal.md), separating implementation milestones and completion evidence from the stable product specification.
 * **Representative analytics scenarios**: Added linked retail, SaaS, and support use cases to the stable [specification](journals/mcp-data-analysis-agent-spec.md) and active [delivery goal](journals/mcp-data-analysis-agent-goal.md), defining deterministic synthetic data, expected evidence, and test verification.

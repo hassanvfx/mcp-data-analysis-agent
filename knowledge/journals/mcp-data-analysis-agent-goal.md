@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T05:00:00Z
+  at: 2026-08-21T06:10:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 06:10 UTC - Required Typst rendering checkpoint
+
+- Added an end-to-end test against the installed required Typst binary. It exposed invalid generated table syntax that mocked compiler tests did not detect.
+- Corrected Typst table generation and escaped cell delimiters; the resulting PDF begins with the expected PDF signature. HTML/CSV/Parquet behavior remains unchanged.
 
 ## 2026-08-21 05:55 UTC - PostgreSQL session-enforcement checkpoint
 
