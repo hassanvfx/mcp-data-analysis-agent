@@ -269,6 +269,18 @@ def test_cli_init_creates_one_url_playground_and_merges_clients(tmp_path: Path, 
     assert "postgresql://readonly@localhost/data" in (tmp_path / ".env").read_text()
 
 
+def test_cli_init_yes_applies_without_terminal_confirmation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    home = tmp_path / "home"
+    (home / ".claude").mkdir(parents=True)
+    monkeypatch.setattr(cli.Path, "home", lambda: home)
+    result = CliRunner().invoke(app, ["init", "--yes"])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / ".mcp-data" / "playground.sqlite").is_file()
+    assert "MCP_DATA_SOURCE_URL" in (tmp_path / ".env").read_text()
+    assert "mcp-data-analysis" in (tmp_path / ".mcp.json").read_text()
+
+
 def test_cli_init_preserves_legacy_multi_source_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     policy = "[sources.one]\ndialect='sqlite'\nenv='ONE'\n"

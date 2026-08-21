@@ -23,6 +23,15 @@ When the user asks to commit:
 3. Run `./validate-okf` and resolve validation failures. When the project has optional PyYAML available, prefer `./validate-okf --strict` before committing.
 4. Stage the code and updated knowledge artifacts together, then create a descriptive commit.
 
+## Repository installation requests
+
+When a user asks to install this repository into the current project, use this repository's
+`install.sh` from that project directory (or its documented GitHub `curl | bash` command). Do not
+substitute bare `uv tool install`: it installs a user-level executable only. The installer is the
+explicit project bootstrap; it creates the ignored retail playground, writes the single private
+`MCP_DATA_SOURCE_URL` value, and configures every detected supported MCP client without placing
+source URLs or credentials in client configuration.
+
 ## Knowledge navigation
 
 - Start with `knowledge/index.md` and descend through `index.md` files for progressive disclosure.

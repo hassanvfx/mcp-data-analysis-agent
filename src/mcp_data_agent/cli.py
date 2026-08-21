@@ -101,7 +101,7 @@ def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"),
 
 
 @app.command()
-def init(preview: bool = typer.Option(False, "--preview")) -> None:
+def init(preview: bool = typer.Option(False, "--preview"), yes: bool = typer.Option(False, "--yes")) -> None:
     """Prepare this project with one URL-configured source and MCP clients."""
     project = root()
     try:
@@ -114,7 +114,7 @@ def init(preview: bool = typer.Option(False, "--preview")) -> None:
         return
     writable = [item for item in planned.clients if item.action in {"add", "update"}]
     targets = ["project policy and private playground"] + [f"{item.client} ({item.scope})" for item in writable]
-    if not typer.confirm(f"Initialize MCP Data Analysis: {', '.join(targets)}?", default=False):
+    if not yes and not typer.confirm(f"Initialize MCP Data Analysis: {', '.join(targets)}?", default=False):
         raise typer.Exit()
     written = apply_init(planned, apply_client_plans)
     emit({"initialized": {"source_alias": "data", "source_env": "MCP_DATA_SOURCE_URL",

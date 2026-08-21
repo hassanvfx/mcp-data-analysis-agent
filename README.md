@@ -38,6 +38,27 @@ Run `mcp-data-cli preflight` to install or report required local tooling through
 
 ## Install
 
+### Install this repository into the current project
+
+When an agent or operator is asked to install this GitHub repository into a project, use the
+repository installer—not a bare `uv tool install` command:
+
+```bash
+cd /path/to/your-project
+curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/main/install.sh | bash
+```
+
+The installer installs the command-line tool and initializes the directory from which it was run.
+It creates the ignored deterministic retail playground, writes the one private
+`MCP_DATA_SOURCE_URL` value to `.env`, writes the source policy, and merges the MCP server into
+every detected supported client. It does not copy the package into the project, and it never puts a
+database URL or credential into a client configuration. Client trust/enablement and restart prompts
+remain under each client application's control.
+
+`uv tool install` intentionally installs user-level executables and does not run project-mutating
+post-install hooks. Use it only when you want to install the executable separately, then run
+`mcp-data-cli init` yourself.
+
 ### PyPI-compatible workflow
 
 ```bash
@@ -54,7 +75,7 @@ To install the current repository version before a package release, replace the 
 uv tool install git+https://github.com/hassanvfx/mcp-data-analysis-agent.git
 ```
 
-On first server use in any supported MCP client, the agent creates and opens a deterministic development-only retail SQLite playground at `.mcp-data/playground.sqlite`. The shared MCP `welcome` tool explains how to explore it and how to switch to a real source. `init` materializes the same playground into the explicit project policy and private `.env`, then merges safe MCP client entries after one confirmation.
+On first server use in any supported MCP client, the agent creates and opens a deterministic development-only retail SQLite playground at `.mcp-data/playground.sqlite`. The shared MCP `welcome` tool explains how to explore it and how to switch to a real source. `init` materializes the same playground into the explicit project policy and private `.env`, then merges safe MCP client entries after one confirmation. The explicit repository installer uses `init --yes` because running that installer is the single authorization for those scoped writes.
 
 Use `setup --all` to preview client configuration only, or `setup --all --apply` to merge only the `mcp-data-analysis` stdio entry after one explicit confirmation. It preserves unrelated servers and settings. Use `setup --status` to inspect detection and current configuration state.
 
@@ -68,7 +89,7 @@ Use `setup --all` to preview client configuration only, or `setup --all --apply`
 
 Setup configures MCP definitions only. It cannot bypass a client's trust/enable prompt or launch/restart an IDE. VS Code configuration details are documented by [VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) and [GitHub Copilot in VS Code](https://code.visualstudio.com/docs/agent-customization/mcp-servers); Continue documents project MCP fragments in its [MCP guide](https://docs.continue.dev/customize/deep-dives/mcp).
 
-### Verified release bootstrap
+### Checksum-verified release bootstrap
 
 For a versioned wheel and its published SHA-256 checksum:
 
@@ -78,7 +99,7 @@ MCP_DATA_RELEASE_SHA256='published-sha256' \
 ./install.sh
 ```
 
-The bootstrap requires `curl` and `uv`, verifies the artifact with `sha256sum` or `shasum`, and installs only after the checksum matches. It does not use `sudo`, create data, or contact a database.
+The bootstrap requires `curl` and `uv`, verifies the artifact with `sha256sum` or `shasum`, and installs only after the checksum matches. It then initializes the current project exactly as the repository installer does. It does not use `sudo` or contact a production database; it creates only local deterministic demo data.
 
 ## Configure one active source
 

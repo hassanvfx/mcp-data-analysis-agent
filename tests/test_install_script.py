@@ -1,4 +1,4 @@
-"""Portable, checksum-first release bootstrap contract."""
+"""Current-project installer and checksum-verified release bootstrap contract."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ def test_install_script_verifies_artifact_before_fake_uv_install(tmp_path: Path)
     (commands / "curl").write_text(
         "#!/bin/sh\nwhile [ \"$#\" -gt 0 ]; do if [ \"$1\" = -o ]; then cp \"$TEST_ARTIFACT\" \"$2\"; exit 0; fi; shift; done; exit 1\n"
     )
-    (commands / "uv").write_text("#!/bin/sh\nprintf '%s\\n' \"$*\" > \"$TEST_UV_LOG\"\n")
+    (commands / "uv").write_text("#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$TEST_UV_LOG\"\n")
     for command in commands.iterdir():
         command.chmod(0o755)
     log = tmp_path / "uv.log"
@@ -25,7 +25,9 @@ def test_install_script_verifies_artifact_before_fake_uv_install(tmp_path: Path)
                    "TEST_UV_LOG": str(log), "MCP_DATA_RELEASE_URL": "https://example.invalid/package.whl",
                    "MCP_DATA_RELEASE_SHA256": hashlib.sha256(artifact.read_bytes()).hexdigest()}
     subprocess.run(["bash", str(root / "install.sh")], check=True, cwd=root, env=environment)
-    assert log.read_text().strip().startswith("tool install ")
+    commands_run = log.read_text().splitlines()
+    assert commands_run[0].startswith("tool install --force ")
+    assert commands_run[1].startswith("tool run --from ")
 
 
 def test_install_script_refuses_invalid_checksum_before_install(tmp_path: Path) -> None:
@@ -49,3 +51,10 @@ def test_install_script_refuses_invalid_checksum_before_install(tmp_path: Path) 
     )
     assert result.returncode != 0
     assert not log.exists()
+
+
+def test_install_script_defaults_to_repository_install_and_project_init_contract() -> None:
+    script = (Path(__file__).parents[1] / "install.sh").read_text()
+    assert 'repository_url="${MCP_DATA_REPOSITORY_URL:-https://github.com/hassanvfx/mcp-data-analysis-agent.git}"' in script
+    assert 'uv tool install --force "$install_source"' in script
+    assert 'uv tool run --from "$install_source" mcp-data-cli init --yes' in script

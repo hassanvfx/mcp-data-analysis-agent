@@ -7,7 +7,7 @@ tags: [engineering, onboarding, mcp, sqlite, postgresql]
 status: stable
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T01:20:00Z
+  at: 2026-08-21T01:40:00Z
 ---
 
 # Goal
@@ -80,19 +80,26 @@ Deliver an explicit, confirmation-gated project bootstrap that generates an igno
 - Added MCP initialization instructions and a `welcome` tool with immediate playground steps plus the one-variable `MCP_DATA_SOURCE_URL` handoff to SQLite/PostgreSQL.
 - Preserved the explicit `init` command for materializing the project policy and private `.env`; the automatically generated database remains ignored and is never overwritten.
 
+## 2026-08-21 01:40 UTC - Current-folder repository installer
+
+- Changed `install.sh` from a release-wheel-only installer into the explicit current-project bootstrap. With no release variables it installs from the public Git repository; with both release URL and checksum variables it retains checksum-verified wheel installation.
+- In either mode the script runs `mcp-data-cli init --yes` in the caller's directory, generating the deterministic playground, one private source URL, source policy, and merge-safe configuration for every detected supported MCP client.
+- Documented why bare `uv tool install` cannot do these writes: it intentionally installs a user-level executable and does not run project-mutating post-install hooks. Added agent-facing repository instructions to prevent substitution of the bare tool install path.
+
 # Decisions
 
 - `mcp-data-cli init` is the explicit project mutation boundary; installation alone never modifies an arbitrary working directory.
 - New projects use the fixed `data` source and `MCP_DATA_SOURCE_URL`; dialect is inferred at connection time.
 - The generated SQLite playground is local, ignored, deterministic, and never overwritten.
+- Running `install.sh` is the explicit authorization for scoped project initialization; interactive `mcp-data-cli init` remains confirmation-gated for direct use.
 
 # Testing
 
-- `uv run ruff check src tests scripts` — passed.
-- `uv run mypy src` — passed.
-- `uv run pytest --cov=mcp_data_agent --cov-branch --cov-report=json` — 88 passed, 5 skipped; the local PostgreSQL server required unavailable password authentication.
-- `uv run python scripts/check_coverage.py coverage.json` — 92.41% lines, 85.33% branches; all safety-critical modules at 100% lines and branches.
-- `./validate-okf` and `git diff --check` — passed. Strict OKF validation was unavailable because optional PyYAML is not installed.
+- `bash -n install.sh` — passed.
+- `uv run ruff check src tests scripts` and `uv run mypy src` — passed.
+- `MCP_DATA_TEST_POSTGRES_URL='postgresql://mcp_data_test@localhost:5432/mcp_data_parity' uv run pytest --cov=mcp_data_agent --cov-branch --cov-report=json` — 101 passed; one third-party Pydantic forward-reference warning.
+- `uv run python scripts/check_coverage.py coverage.json` — 94.19% lines, 87.11% branches; all safety-critical modules at 100% line and branch coverage.
+- `./validate-okf` and `git diff --check` — passed. Strict OKF validation remains unavailable because optional PyYAML is not installed.
 
 # Open Issues
 

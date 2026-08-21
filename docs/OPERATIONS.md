@@ -1,5 +1,17 @@
 # Operations
 
+For a GitHub-repository installation that configures the current project, run this from that project
+directory:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/main/install.sh | bash
+```
+
+This is the standard installation instruction for every supported MCP client. It installs the tool,
+creates the local retail playground, writes `.env` with the one `MCP_DATA_SOURCE_URL` value, and
+merges only the `mcp-data-analysis` stdio entry into every detected client configuration. A bare
+`uv tool install` is intentionally user-level only and cannot initialize an arbitrary project.
+
 On first MCP-server use, an ignored deterministic retail SQLite playground is created automatically
 for the current project and exposed as source alias `data`; every supported client receives the same
 `welcome` MCP tool and startup instructions. Run `mcp-data-cli init` from the target project to
