@@ -60,6 +60,8 @@
 
 * **End-to-end evidence checkpoint**: Added full governed evidence-chain tests for retail, SaaS, and support analysis tasks. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Data classification checkpoint**: Added validated field classifications, result metadata propagation, and restricted-field policy enforcement. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

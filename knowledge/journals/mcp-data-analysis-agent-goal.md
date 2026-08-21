@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T00:30:00Z
+  at: 2026-08-21T00:45:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 00:45 UTC - Data classification checkpoint
+
+- Added public/internal/confidential/restricted column classification configuration with validation and legacy restricted-column compatibility.
+- Typed query column metadata now includes classification; restricted classified fields are rejected by SQL policy before execution.
 
 ## 2026-08-21 00:30 UTC - End-to-end evidence checkpoint
 
@@ -240,6 +245,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-21): package-build checkpoint passed `uv build`, `uv run mcp-data-cli --help`, MCP package initialization, `./validate-okf`, and `git diff --check`.
 - Checkpoint validation (2026-08-21): release/security checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (54 tests), overall/critical coverage verification, OKF, and whitespace validation.
 - Checkpoint validation (2026-08-21): end-to-end evidence checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (57 tests), with overall/critical coverage verification, OKF, and whitespace validation.
+- Checkpoint validation (2026-08-21): data-classification checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (59 tests); coverage verifier passed at 95.79% statements, 89.36% branches, and all critical module gates.
 
 # Open Issues
 

@@ -30,6 +30,7 @@ class Settings:
     timeout_seconds: int = 30
     max_concurrent_queries: int = 4
     restricted_columns: frozenset[str] = field(default_factory=frozenset)
+    column_classifications: dict[str, str] = field(default_factory=dict)
     sources: dict[str, SourcePolicy] = field(default_factory=dict)
 
     def source_url(self, alias: str) -> str:
@@ -40,6 +41,10 @@ class Settings:
         if not value:
             raise AgentError("SOURCE_UNAVAILABLE", "The selected source has no private credential.")
         return value
+
+    def column_classification(self, column: str) -> str:
+        normalized = column.lower()
+        return "restricted" if normalized in self.restricted_columns else self.column_classifications.get(normalized, "internal")
 
 
 def load_settings(root: Path) -> Settings:
@@ -62,7 +67,14 @@ def load_settings(root: Path) -> Settings:
         )
         for alias, item in source_data.items()
     }
-    restricted = frozenset(str(c).lower() for c in data.get("classification", {}).get("restricted_columns", []))
+    classification_data = data.get("classification", {})
+    configured = {str(name).lower(): str(value).lower() for name, value in classification_data.get("columns", {}).items()}
+    allowed = {"public", "internal", "confidential", "restricted"}
+    invalid = {name: value for name, value in configured.items() if value not in allowed}
+    if invalid:
+        raise AgentError("CLASSIFICATION_INVALID", "A column classification is invalid.", ", ".join(sorted(invalid)))
+    restricted = frozenset(str(c).lower() for c in classification_data.get("restricted_columns", []))
+    configured.update({column: "restricted" for column in restricted})
     return Settings(
         root=root,
         default_row_limit=int(agent.get("default_row_limit", 500)),
@@ -70,5 +82,6 @@ def load_settings(root: Path) -> Settings:
         timeout_seconds=int(agent.get("query_timeout_seconds", 30)),
         max_concurrent_queries=int(agent.get("max_concurrent_queries", 4)),
         restricted_columns=restricted,
+        column_classifications=configured,
         sources=sources,
     )

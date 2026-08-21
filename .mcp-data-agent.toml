@@ -14,3 +14,7 @@ max_concurrent_queries = 4
 
 [classification]
 restricted_columns = []
+
+# [classification.columns]
+# email = "confidential"
+# ssn = "restricted"

@@ -239,7 +239,7 @@ class AnalyticsService:
                 cursor = db.cursor()
                 cursor.execute(wrapped, parameters)
                 raw_rows = cursor.fetchall()
-                columns = [{"name": desc[0], "type": "unknown"} for desc in cursor.description or []]
+                columns = [{"name": desc[0], "type": "unknown", "classification": self.settings.column_classification(desc[0])} for desc in cursor.description or []]
         except AgentError as exc:
             duration = round((time.monotonic() - started) * 1000)
             self.ledger.run(task_id, "query.execute", exc.code, duration, correlation)

@@ -15,6 +15,7 @@ def test_retail_query_creates_task_and_receipt(tmp_path: Path, monkeypatch) -> N
     monkeypatch.setenv("TEST_RETAIL_PATH", str(database))
     result = AnalyticsService(tmp_path).execute("retail", "SELECT name, stock FROM products WHERE id = :id", {"id": 1})
     assert result.rows and result.task_id.startswith("task-")
+    assert result.columns[0]["classification"] == "internal"
     assert list((tmp_path / "observability" / "queries").rglob("*.json"))
     assert (tmp_path / "knowledge" / "journals" / "data-analysis" / f"{result.task_id}.md").exists()
     task_record = (tmp_path / "observability" / "tasks" / f"{result.task_id}.md").read_text()

@@ -55,7 +55,7 @@ def validate_sql(sql: str, parameters: dict[str, Any], source: SourcePolicy, set
     if blocked_functions:
         raise AgentError("SQL_FUNCTION_BLOCKED", "A side-effecting or unsafe SQL function is blocked.", ", ".join(sorted(blocked_functions)))
     columns = {column.name.lower() for column in statement.find_all(exp.Column)}
-    denied = columns & settings.restricted_columns
+    denied = {column for column in columns if settings.column_classification(column) == "restricted"}
     if denied:
         raise AgentError("FIELD_RESTRICTED", "A restricted field was requested.", ", ".join(sorted(denied)))
     tables = {table.name for table in statement.find_all(exp.Table)}

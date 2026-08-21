@@ -8,7 +8,7 @@ from typer.testing import CliRunner
 from mcp_data_agent.adapters import connection, describe_schema
 from mcp_data_agent.cli import app
 from mcp_data_agent.clients import ClientTemplate, templates, write_template
-from mcp_data_agent.config import Settings, SourcePolicy
+from mcp_data_agent.config import Settings, SourcePolicy, load_settings
 from mcp_data_agent.context import load_context
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import generate
@@ -93,6 +93,17 @@ def test_source_url_requires_known_configured_private_value(tmp_path: Path, monk
         settings.source_url("source")
     monkeypatch.setenv("MISSING_URL", "configured")
     assert settings.source_url("source") == "configured"
+
+
+def test_column_classifications_load_validate_and_preserve_restricted_compatibility(tmp_path: Path) -> None:
+    (tmp_path / ".mcp-data-agent.toml").write_text("[classification.columns]\nemail='confidential'\nssn='restricted'\n")
+    settings = load_settings(tmp_path)
+    assert settings.column_classification("email") == "confidential"
+    assert settings.column_classification("ssn") == "restricted"
+    assert Settings(tmp_path, restricted_columns=frozenset({"legacy"})).column_classification("legacy") == "restricted"
+    (tmp_path / ".mcp-data-agent.toml").write_text("[classification.columns]\nemail='unknown'\n")
+    with pytest.raises(AgentError):
+        load_settings(tmp_path)
 
 
 def test_client_templates_do_not_overwrite(tmp_path: Path) -> None:
