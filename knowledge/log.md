@@ -66,6 +66,8 @@
 
 * **Wildcard projection precision checkpoint**: Preserved approved aggregate queries while enforcing restricted-field wildcard protection. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Auditable cancellation-request checkpoint**: Added pre-dispatch task cancellation with immutable cancellation evidence. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

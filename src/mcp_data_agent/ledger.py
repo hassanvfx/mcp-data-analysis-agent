@@ -75,12 +75,13 @@ class Ledger:
         self.event(task_id, "query_recorded", {"query_id": query_id})
         return path
 
-    def run(self, task_id: str, tool_name: str, status: str, duration_ms: int, correlation_id: str) -> Path:
+    def run(self, task_id: str, tool_name: str, status: str, duration_ms: int, correlation_id: str,
+            cancelled: bool = False) -> Path:
         stamp = _now()
         run_id = self.identifier("run")
         payload = {"version": "v1", "run_id": run_id, "task_id": task_id, "tool_name": tool_name,
                    "status": status, "duration_ms": duration_ms, "correlation_id": correlation_id,
-                   "retry": False, "cancelled": False, "recorded_at": stamp.isoformat()}
+                   "retry": False, "cancelled": cancelled, "recorded_at": stamp.isoformat()}
         path = self.base / "runs" / str(stamp.year) / f"{stamp.month:02d}" / f"{run_id}.json"
         _write_atomic(path, json.dumps(payload, indent=2, sort_keys=True) + "\n")
         self.link_task_value(task_id, "run_ids", run_id)
@@ -126,6 +127,20 @@ class Ledger:
             content = content.replace("# Next Steps\n\nRun the approved analysis and complete this task.", f"# Next Steps\n\n{next_steps or 'None.'}", 1)
             _write_atomic(journal, content)
         self.event(task_id, "task_completed", {"findings": findings})
+
+    def request_cancellation(self, task_id: str) -> None:
+        """Persist a local cancellation request for a task without deleting evidence."""
+        path = self.base / "tasks" / f"{task_id}.md"
+        if not path.exists():
+            raise FileNotFoundError(f"Task {task_id} does not exist")
+        original = path.read_text(encoding="utf-8")
+        if "status: cancellation_requested" not in original:
+            _write_atomic(path, original.replace("status: active", "status: cancellation_requested", 1))
+            self.event(task_id, "cancellation_requested", {})
+
+    def cancellation_requested(self, task_id: str) -> bool:
+        path = self.base / "tasks" / f"{task_id}.md"
+        return path.is_file() and "status: cancellation_requested" in path.read_text(encoding="utf-8")
 
     def evaluate(self, task_id: str) -> dict[str, object]:
         timeline = [entry for entry in self._timeline(task_id)]

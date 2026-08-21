@@ -11,6 +11,9 @@ class FakeService:
     def begin_task(self, title: str, objective: str) -> SimpleNamespace:
         return SimpleNamespace(model_dump=lambda: {"title": title, "objective": objective})
 
+    def cancel_task(self, task_id: str) -> dict[str, str]:
+        return {"task_id": task_id, "status": "cancellation_requested"}
+
     def schema(self, source: str) -> list[dict[str, object]]:
         return [{"table": source}]
 
@@ -58,6 +61,7 @@ def test_all_mcp_tool_contracts(monkeypatch) -> None:
     monkeypatch.setattr(server, "service", lambda: FakeService())
     assert server.begin_analysis_task("title", "objective")["title"] == "title"
     assert server.complete_analysis_task("task", "findings")["status"] == "complete"
+    assert server.cancel_analysis_task("task")["status"] == "cancellation_requested"
     assert server.get_schema("source") == [{"table": "source"}]
     assert server.schema_state("source")["source_alias"] == "source"
     assert server.list_sources() == [{"alias": "demo"}]

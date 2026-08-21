@@ -39,6 +39,10 @@ class AnalyticsService:
         item = self.ledger.begin_task(title, objective)
         return TaskResult(task_id=item["task_id"], status="active", journal_path=item["journal_path"])
 
+    def cancel_task(self, task_id: str) -> dict[str, str]:
+        self.ledger.request_cancellation(task_id)
+        return {"task_id": task_id, "status": "cancellation_requested"}
+
     def schema(self, source_alias: str) -> list[dict[str, Any]]:
         source = self.settings.sources.get(source_alias)
         if not source:
@@ -233,6 +237,8 @@ class AnalyticsService:
         correlation = uuid4().hex
         started = time.monotonic()
         try:
+            if self.ledger.cancellation_requested(task_id):
+                raise AgentError("QUERY_CANCELLED", "The task was cancelled before query execution.")
             validated = validate_sql(sql, parameters, source, self.settings)
             wrapped = f"SELECT * FROM ({validated.sql}) AS bounded_query LIMIT {bounded_limit + 1}"
             with self.query_gate, connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
@@ -242,8 +248,10 @@ class AnalyticsService:
                 columns = [{"name": desc[0], "type": "unknown", "classification": self.settings.column_classification(desc[0])} for desc in cursor.description or []]
         except AgentError as exc:
             duration = round((time.monotonic() - started) * 1000)
-            self.ledger.run(task_id, "query.execute", exc.code, duration, correlation)
-            self.ledger.event(task_id, "query_failed", {"code": exc.code, "correlation_id": correlation})
+            cancelled = exc.code == "QUERY_CANCELLED"
+            self.ledger.run(task_id, "query.execute", exc.code, duration, correlation, cancelled=cancelled)
+            self.ledger.event(task_id, "query_cancelled" if cancelled else "query_failed",
+                              {"code": exc.code, "correlation_id": correlation})
             raise
         truncated = len(raw_rows) > bounded_limit
         rows = [list(row) for row in raw_rows[:bounded_limit]]

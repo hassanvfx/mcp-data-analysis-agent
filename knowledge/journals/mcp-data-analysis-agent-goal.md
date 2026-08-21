@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T01:15:00Z
+  at: 2026-08-21T01:30:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 01:30 UTC - Auditable cancellation-request checkpoint
+
+- Added durable task cancellation requests through CLI and MCP. A requested cancellation blocks the next governed query before dispatch and records cancellation-requested, query-cancelled, and immutable cancelled-run evidence.
+- Live in-flight cancellation remains an adapter-specific follow-up; this checkpoint deliberately does not claim interruption after a query has started.
 
 ## 2026-08-21 01:15 UTC - Wildcard projection precision checkpoint
 
@@ -256,11 +261,12 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-21): data-classification checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (59 tests); coverage verifier passed at 95.79% statements, 89.36% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): wildcard-restricted-field checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (59 tests); coverage verifier passed at 95.80% statements, 89.47% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): wildcard-projection precision checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (59 tests); coverage verifier passed at 95.83% statements, 89.90% branches, and all critical module gates.
+- Checkpoint validation (2026-08-21): cancellation-request checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (60 tests); coverage verifier passed at 95.25% statements, 90.20% branches, and all critical module gates.
 
 # Open Issues
 
 - Live PostgreSQL parity is configured for CI with a disposable service; it requires the first hosted CI run as external verification evidence.
-- Typst PDF rendering, detailed metric/comparison/change-detection operations, full recipe metadata, and the remaining golden report scenarios require subsequent checkpoints.
+- Typst PDF rendering, detailed metric/comparison/change-detection operations, full recipe metadata, live in-flight adapter cancellation, and the remaining golden report scenarios require subsequent checkpoints.
 - Overall and designated safety-critical module coverage gates are enforced. Remaining production-readiness evidence is primarily live CI/release validation and full product-operation completion.
 
 # References

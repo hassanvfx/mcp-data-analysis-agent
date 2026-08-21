@@ -75,6 +75,27 @@ def test_task_completion_closes_journal_and_evaluates(tmp_path: Path) -> None:
     assert "query_recorded" in evaluation["missing"]
 
 
+def test_cancellation_is_persisted_and_blocks_execution(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 15, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='CANCEL_RETAIL_PATH'\n")
+    monkeypatch.setenv("CANCEL_RETAIL_PATH", str(database))
+    service = AnalyticsService(tmp_path)
+    task = service.begin_task("cancel", "cancel a query")
+    assert service.cancel_task(task.task_id)["status"] == "cancellation_requested"
+    with pytest.raises(AgentError, match="cancelled"):
+        service.execute("retail", "SELECT id FROM products", {}, task.task_id)
+    assert any(event["kind"] == "cancellation_requested" for event in service.timeline(task.task_id))
+    assert any(event["kind"] == "query_cancelled" for event in service.timeline(task.task_id))
+    run = next((tmp_path / "observability" / "runs").rglob("*.json"))
+    assert '"cancelled": true' in run.read_text()
+    service.cancel_task(task.task_id)
+    assert sum(event["kind"] == "cancellation_requested" for event in service.timeline(task.task_id)) == 1
+    assert service.ledger.cancellation_requested("missing") is False
+    with pytest.raises(FileNotFoundError):
+        service.cancel_task("missing")
+
+
 def test_ledger_integrity_detects_tampered_receipt(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 8, database)

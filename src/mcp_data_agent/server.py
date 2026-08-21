@@ -30,6 +30,14 @@ def complete_analysis_task(task_id: str, findings: str, next_steps: str = "") ->
 
 
 @mcp.tool()
+def cancel_analysis_task(task_id: str) -> dict[str, str]:
+    try:
+        return service().cancel_task(task_id)
+    except FileNotFoundError:
+        return {"error": "TASK_UNKNOWN"}
+
+
+@mcp.tool()
 def get_schema(source_alias: str) -> list[dict[str, object]]:
     return service().schema(source_alias)
 

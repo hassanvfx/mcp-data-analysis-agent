@@ -209,6 +209,16 @@ def task_complete(task_id: str, findings: str, next_steps: str = "") -> None:
     emit({"task_id": task_id, "status": "complete"})
 
 
+@app.command("task-cancel")
+def task_cancel(task_id: str) -> None:
+    """Request cancellation of a task before its next governed query."""
+    try:
+        emit(AnalyticsService(root()).cancel_task(task_id))
+    except FileNotFoundError:
+        emit({"code": "TASK_UNKNOWN", "message": "The selected task is not available."})
+        raise typer.Exit(2)
+
+
 @app.command()
 def context(query: str = "") -> None:
     emit(load_context(root(), query))
