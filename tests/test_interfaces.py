@@ -12,6 +12,7 @@ from mcp_data_agent.context import load_context
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import create_local_postgres_database, generate, local_postgres_url
 from mcp_data_agent.onboarding import _merge_env, apply_init, init_plan
+from mcp_data_agent.service import AnalyticsService
 
 
 def test_sqlite_adapter_schema_and_read_only(tmp_path: Path) -> None:
@@ -97,6 +98,28 @@ def test_single_source_infers_dialect_from_private_url(tmp_path: Path, monkeypat
         infer_dialect("mysql://localhost/data")
     with pytest.raises(AgentError, match="must be absolute"), connection(source, "relative.sqlite", 1):
         pass
+
+
+def test_fresh_project_gets_a_deterministic_playground_and_welcome(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("MCP_DATA_SOURCE_URL", raising=False)
+    analytics = AnalyticsService(tmp_path)
+    playground = tmp_path / ".mcp-data" / "playground.sqlite"
+    assert playground.is_file()
+    assert analytics.sources() == [{"alias": "data", "dialect": "sqlite", "classification": "internal",
+                                    "configured": True, "origin": "playground"}]
+    welcome = analytics.welcome()
+    assert welcome["status"] == "playground_ready"
+    assert welcome["source_alias"] == "data"
+    assert welcome["switch_to_your_database"]["current_playground_path"] == str(playground)
+    assert analytics.execute("data", "SELECT COUNT(*) AS products FROM products", {}).rows == [[20]]
+
+
+def test_fresh_project_rejects_an_unsafe_playground_symlink(tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (tmp_path / ".mcp-data").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(AgentError, match="symbolic link"):
+        load_settings(tmp_path)
 
 
 def test_source_contract_rejects_mismatches_and_invalid_single_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

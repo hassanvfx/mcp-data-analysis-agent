@@ -54,7 +54,7 @@ To install the current repository version before a package release, replace the 
 uv tool install git+https://github.com/hassanvfx/mcp-data-analysis-agent.git
 ```
 
-`init` previews and, after one explicit confirmation, creates a deterministic development-only retail playground, the one private source setting, and merge-safe MCP client entries. It runs only in the current project; package installation never modifies an arbitrary directory. The generated playground lives at `.mcp-data/playground.sqlite` and is ignored by Git.
+On first server use in any supported MCP client, the agent creates and opens a deterministic development-only retail SQLite playground at `.mcp-data/playground.sqlite`. The shared MCP `welcome` tool explains how to explore it and how to switch to a real source. `init` materializes the same playground into the explicit project policy and private `.env`, then merges safe MCP client entries after one confirmation.
 
 Use `setup --all` to preview client configuration only, or `setup --all --apply` to merge only the `mcp-data-analysis` stdio entry after one explicit confirmation. It preserves unrelated servers and settings. Use `setup --status` to inspect detection and current configuration state.
 
@@ -84,13 +84,13 @@ The bootstrap requires `curl` and `uv`, verifies the artifact with `sha256sum` o
 
 The standard installation uses exactly one active source, named `data`, and exactly one private value in `.env`: `MCP_DATA_SOURCE_URL`. It is not a package constant or a test value—it is the one value the operator changes to point at their own read-only database. Keep `.env` private; it is ignored by Git.
 
-After `mcp-data-cli init`, that value points to the generated retail playground:
+On first use, `data` automatically points to the generated retail playground. Run `mcp-data-cli init` when you are ready to materialize that choice in the project `.env`; it writes:
 
 ```bash
 MCP_DATA_SOURCE_URL='/absolute/path/to/your-project/.mcp-data/playground.sqlite'
 ```
 
-The playground is development-only synthetic data. It lets a new installation run schema discovery, governed queries, receipts, and reports immediately; it is never production data and is never overwritten by a later `init` run.
+The playground is development-only synthetic data. It lets a new installation run schema discovery, governed queries, receipts, and reports immediately; it is never production data and is never overwritten by a later `init` run. All supported clients receive the same stdio-server welcome instructions and `welcome` MCP tool.
 
 ```toml
 # .mcp-data-agent.toml

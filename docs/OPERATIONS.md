@@ -1,8 +1,10 @@
 # Operations
 
-Use `mcp-data-cli preflight`, then run `mcp-data-cli init` from the target project. It previews and,
-after one confirmation, creates an ignored deterministic retail playground, `.env`, the one-source
-policy, and detected MCP client entries. The only setting an operator normally changes is
+On first MCP-server use, an ignored deterministic retail SQLite playground is created automatically
+for the current project and exposed as source alias `data`; every supported client receives the same
+`welcome` MCP tool and startup instructions. Run `mcp-data-cli init` from the target project to
+materialize this into `.env`, the one-source policy, and detected MCP client entries after one
+confirmation. The only setting an operator normally changes is
 `MCP_DATA_SOURCE_URL` in `.env`; SQLite paths/URLs and PostgreSQL URLs select their dialect
 automatically. Use a dedicated database-level read-only PostgreSQL account in production, then run
 `mcp-data-cli doctor --require-source` in CI. The generated playground is development-only;

@@ -83,14 +83,38 @@ class AnalyticsService:
         for item in self.settings.sources.values():
             configured = bool(__import__("os").environ.get(item.env))
             dialect = item.dialect
-            if configured:
+            playground = item.alias in self.settings.default_source_urls
+            if configured or playground:
                 try:
                     dialect = self.settings.resolved_source(item.alias)[0].dialect
                 except AgentError:
                     dialect = "unsupported"
             values.append({"alias": item.alias, "dialect": dialect or "inferred", "classification": item.classification,
-                           "configured": configured})
+                           "configured": configured or playground,
+                           "origin": "playground" if playground else "private_url"})
         return values
+
+    def welcome(self) -> dict[str, object]:
+        """Return first-run guidance without exposing a production source URL."""
+        source, location = self._source("data")
+        playground = "data" in self.settings.default_source_urls
+        return {
+            "status": "playground_ready" if playground else "source_ready",
+            "message": "Welcome to MCP Data Analysis. Start by exploring the deterministic retail playground.",
+            "source_alias": "data",
+            "dialect": source.dialect,
+            "playground": playground,
+            "quickstart": [
+                "List the data source and inspect its schema.",
+                "Run a bounded SELECT against products, orders, or order_items.",
+                "Create a task before a multi-step analysis to retain receipts and a timeline.",
+            ],
+            "switch_to_your_database": {
+                "environment_variable": "MCP_DATA_SOURCE_URL",
+                "action": "Run mcp-data-cli init once to write the project .env, then replace only this value with an absolute SQLite path or PostgreSQL URL.",
+                "current_playground_path": location if playground else None,
+            },
+        }
 
     def validate(self, source_alias: str, sql: str, parameters: dict[str, Any]) -> dict[str, object]:
         source, _ = self._source(source_alias)

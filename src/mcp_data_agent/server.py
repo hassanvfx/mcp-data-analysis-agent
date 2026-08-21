@@ -11,7 +11,14 @@ from .context import load_context
 from .errors import AgentError
 from .service import AnalyticsService
 
-mcp = FastMCP("MCP Data Analysis Agent")
+mcp = FastMCP(
+    "MCP Data Analysis Agent",
+    instructions=(
+        "Welcome to local governed analytics. On first run a deterministic SQLite retail playground is available as "
+        "source alias `data`; call `welcome` first, then inspect the schema or run bounded analysis. To use a real "
+        "database, run `mcp-data-cli init` in the project and replace only MCP_DATA_SOURCE_URL in its private .env."
+    ),
+)
 
 
 def service() -> AnalyticsService:
@@ -50,6 +57,12 @@ def schema_state(source_alias: str) -> dict[str, object]:
 @mcp.tool()
 def list_sources() -> list[dict[str, object]]:
     return service().sources()
+
+
+@mcp.tool()
+def welcome() -> dict[str, object]:
+    """Explain the first-run playground and the one-variable production handoff."""
+    return service().welcome()
 
 
 @mcp.tool()

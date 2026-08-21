@@ -6,6 +6,7 @@ import os
 import tomllib
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
@@ -33,12 +34,13 @@ class Settings:
     restricted_columns: frozenset[str] = field(default_factory=frozenset)
     column_classifications: dict[str, str] = field(default_factory=dict)
     sources: dict[str, SourcePolicy] = field(default_factory=dict)
+    default_source_urls: dict[str, str] = field(default_factory=dict)
 
     def source_url(self, alias: str) -> str:
         source = self.sources.get(alias)
         if not source:
             raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
-        value = os.getenv(source.env)
+        value = os.getenv(source.env) or self.default_source_urls.get(alias)
         if not value:
             raise AgentError("SOURCE_UNAVAILABLE", "The selected source has no private credential.")
         return value
@@ -63,9 +65,10 @@ def load_settings(root: Path) -> Settings:
     load_dotenv(root / ".env", override=False)
     path = root / ".mcp-data-agent.toml"
     if not path.exists():
-        return Settings(root=root)
-    with path.open("rb") as file:
-        data = tomllib.load(file)
+        data: dict[str, Any] = {}
+    else:
+        with path.open("rb") as file:
+            data = tomllib.load(file)
     agent = data.get("agent", {})
     source_data = data.get("sources", {})
     allowed = {"public", "internal", "confidential", "restricted"}
@@ -109,6 +112,12 @@ def load_settings(root: Path) -> Settings:
         raise AgentError("CLASSIFICATION_INVALID", "A column classification is invalid.", ", ".join(sorted(invalid)))
     restricted = frozenset(str(c).lower() for c in classification_data.get("restricted_columns", []))
     configured.update({column: "restricted" for column in restricted})
+    default_source_urls: dict[str, str] = {}
+    if not sources:
+        from .onboarding import ensure_playground
+
+        sources = {"data": SourcePolicy(alias="data", dialect=None, env="MCP_DATA_SOURCE_URL")}
+        default_source_urls = {"data": str(ensure_playground(root))}
     return Settings(
         root=root,
         default_row_limit=int(agent.get("default_row_limit", 500)),
@@ -118,6 +127,7 @@ def load_settings(root: Path) -> Settings:
         restricted_columns=restricted,
         column_classifications=configured,
         sources=sources,
+        default_source_urls=default_source_urls,
     )
 
 

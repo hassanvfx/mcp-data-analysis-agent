@@ -23,6 +23,9 @@ class FakeService:
     def sources(self) -> list[dict[str, object]]:
         return [{"alias": "demo"}]
 
+    def welcome(self) -> dict[str, object]:
+        return {"status": "playground_ready", "source_alias": "data"}
+
     def recipes(self) -> list[dict[str, object]]:
         return [{"name": "demo", "version": "v1"}]
 
@@ -73,6 +76,7 @@ def test_all_mcp_tool_contracts(monkeypatch) -> None:
     assert server.get_schema("source") == [{"table": "source"}]
     assert server.schema_state("source")["source_alias"] == "source"
     assert server.list_sources() == [{"alias": "demo"}]
+    assert server.welcome()["status"] == "playground_ready"
     assert server.list_recipes() == [{"name": "demo", "version": "v1"}]
     assert server.run_metric("mrr", "task")["name"] == "mrr"
     assert server.suggest_joins("source") == [{"from_table": "source"}]

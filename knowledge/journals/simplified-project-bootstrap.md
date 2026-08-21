@@ -7,7 +7,7 @@ tags: [engineering, onboarding, mcp, sqlite, postgresql]
 status: stable
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T01:00:00Z
+  at: 2026-08-21T01:20:00Z
 ---
 
 # Goal
@@ -73,6 +73,12 @@ Deliver an explicit, confirmation-gated project bootstrap that generates an igno
 
 - Applied the one-confirmation project bootstrap after a Git-based tool install. The project now has the non-secret single-source policy and generated ignored playground; Codex, Cline, and VS Code/Copilot receive MCP definitions containing only `mcp-data-mcp`.
 - Verified `doctor --require-source` and Codex setup status pass. No source URL, credential, or database path was committed.
+
+## 2026-08-21 01:20 UTC - Shared first-run playground
+
+- Changed the server-level first-run contract for every supported stdio MCP client: if no source policy or private URL exists, it atomically creates the deterministic retail SQLite playground in the current project and exposes it as `data`.
+- Added MCP initialization instructions and a `welcome` tool with immediate playground steps plus the one-variable `MCP_DATA_SOURCE_URL` handoff to SQLite/PostgreSQL.
+- Preserved the explicit `init` command for materializing the project policy and private `.env`; the automatically generated database remains ignored and is never overwritten.
 
 # Decisions
 

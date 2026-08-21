@@ -63,6 +63,26 @@ def project_config_template() -> str:
     return PROJECT_CONFIG
 
 
+def ensure_playground(project: Path) -> Path:
+    """Create the deterministic first-run SQLite playground without replacing it."""
+    playground = project / PLAYGROUND
+    if playground.parent.is_symlink() or playground.is_symlink():
+        raise AgentError("PATH_UNSAFE", "The playground path cannot traverse a symbolic link.")
+    if playground.exists():
+        if not playground.is_file():
+            raise AgentError("PATH_UNSAFE", "The playground path must be a regular SQLite file.")
+        return playground
+    playground.parent.mkdir(parents=True, exist_ok=True)
+    temporary = playground.with_suffix(".pending")
+    try:
+        generate("retail", "unit", 1, temporary)
+        os.replace(temporary, playground)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return playground
+
+
 def init_plan(project: Path, home: Path) -> InitPlan:
     config = project / ".mcp-data-agent.toml"
     _check_config(config)
@@ -93,15 +113,7 @@ def apply_init(plan: InitPlan, apply_clients: Callable[[list[SetupPlan]], list[P
     example = plan.project / ".env.example"
     if not example.exists():
         _write_atomic(example, ENV_EXAMPLE)
-    if not plan.playground.exists():
-        plan.playground.parent.mkdir(parents=True, exist_ok=True)
-        temporary = plan.playground.with_suffix(".pending")
-        try:
-            generate("retail", "unit", 1, temporary)
-            os.replace(temporary, plan.playground)
-        finally:
-            if temporary.exists():
-                temporary.unlink()
+    ensure_playground(plan.project)
     writable = [item for item in plan.clients if item.action in {"add", "update"}]
     return apply_clients(writable)
 
