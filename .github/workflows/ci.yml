@@ -11,3 +11,24 @@ jobs:
       - run: uv run mypy src
       - run: uv run pytest --cov=mcp_data_agent --cov-branch
       - run: ./validate-okf
+  postgres-contract:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mcp_contract
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mcp_contract"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - run: uv run pytest tests/test_postgres_contract.py -q
+        env:
+          MCP_DATA_TEST_POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/mcp_contract

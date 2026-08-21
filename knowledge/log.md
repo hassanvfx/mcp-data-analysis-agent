@@ -20,6 +20,8 @@
 
 * **Safety coverage checkpoint**: Added adapter, SQL-policy, artifact, CLI, and MCP path coverage; the test suite now reaches 90% combined coverage. The separate branch-coverage gate remains documented as unfinished in the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **PostgreSQL CI parity checkpoint**: Added a disposable PostgreSQL 16 Actions service and an opt-in adapter contract test that stays locally safe by requiring an explicit disposable URL. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T19:30:00Z
+  at: 2026-08-20T19:45:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 19:45 UTC - PostgreSQL CI parity checkpoint
+
+- Added a disposable-PostgreSQL contract test that creates a CI-only fixture table, verifies parameterized read-only service execution, and confirms mutation SQL is rejected before database execution.
+- Added a PostgreSQL 16 GitHub Actions service job. The destructive fixture setup is intentionally skipped locally unless `MCP_DATA_TEST_POSTGRES_URL` explicitly identifies a disposable test database.
 
 ## 2026-08-20 19:30 UTC - Safety coverage checkpoint
 
@@ -130,10 +135,11 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): task-evaluation checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (25 tests), `./validate-okf`, and `git diff --check`.
 - Checkpoint validation (2026-08-20): interface-coverage checkpoint passed `uv run ruff check src tests`, `uv run pytest -q` (27 tests), and coverage measurement (83% overall).
 - Checkpoint validation (2026-08-20): safety-coverage checkpoint passed `uv run ruff check src tests` and `uv run pytest --cov=mcp_data_agent --cov-branch` (35 tests; 90% combined coverage).
+- Checkpoint validation (2026-08-20): PostgreSQL CI checkpoint passed local `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (35 tests); the live PostgreSQL test is reserved for CI's disposable service.
 
 # Open Issues
 
-- PostgreSQL parity needs a live disposable PostgreSQL contract-test service in CI; the adapter uses read-only connection settings but has not yet run against a server.
+- Live PostgreSQL parity is configured for CI with a disposable service; it requires the first hosted CI run as external verification evidence.
 - Typst PDF rendering, detailed metric/comparison/change-detection operations, full recipe metadata, and the remaining golden report scenarios require subsequent checkpoints.
 - Coverage gates are not enforced yet; the current suite is intentionally incremental and will be expanded before production readiness.
 - The required distinct 85% branch-coverage gate is not yet separately enforced; combined coverage is 90% but insufficient proof for the final release threshold.
