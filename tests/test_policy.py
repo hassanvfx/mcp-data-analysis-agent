@@ -44,6 +44,11 @@ def test_blocks_restricted_column(source: SourcePolicy, tmp_path: Path) -> None:
         validate_sql("SELECT ssn FROM people", {}, source, Settings(root=tmp_path, restricted_columns=frozenset({"ssn"})))
 
 
+def test_blocks_restricted_source(tmp_path: Path) -> None:
+    with pytest.raises(AgentError, match="source is restricted"):
+        validate_sql("SELECT id FROM people", {}, SourcePolicy("test", "sqlite", "URL", classification="restricted"), Settings(root=tmp_path))
+
+
 def test_blocks_configured_restricted_classification(source: SourcePolicy, tmp_path: Path) -> None:
     settings = Settings(root=tmp_path, column_classifications={"tax_id": "restricted"})
     with pytest.raises(AgentError):

@@ -50,6 +50,8 @@ def redact_value(name: str, value: Any, restricted: bool = False) -> Any:
 
 
 def validate_sql(sql: str, parameters: dict[str, Any], source: SourcePolicy, settings: Settings) -> ValidatedQuery:
+    if source.classification == "restricted":
+        raise AgentError("SOURCE_RESTRICTED", "The selected source is restricted by policy.")
     try:
         statements = sqlglot.parse(sql, read=source.dialect)
     except Exception as exc:

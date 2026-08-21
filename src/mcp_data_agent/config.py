@@ -56,6 +56,12 @@ def load_settings(root: Path) -> Settings:
         data = tomllib.load(file)
     agent = data.get("agent", {})
     source_data = data.get("sources", {})
+    allowed = {"public", "internal", "confidential", "restricted"}
+    invalid_sources = {alias: str(item.get("classification", "internal")).lower()
+                       for alias, item in source_data.items()
+                       if str(item.get("classification", "internal")).lower() not in allowed}
+    if invalid_sources:
+        raise AgentError("CLASSIFICATION_INVALID", "A source classification is invalid.", ", ".join(sorted(invalid_sources)))
     sources = {
         alias: SourcePolicy(
             alias=alias,
@@ -69,7 +75,6 @@ def load_settings(root: Path) -> Settings:
     }
     classification_data = data.get("classification", {})
     configured = {str(name).lower(): str(value).lower() for name, value in classification_data.get("columns", {}).items()}
-    allowed = {"public", "internal", "confidential", "restricted"}
     invalid = {name: value for name, value in configured.items() if value not in allowed}
     if invalid:
         raise AgentError("CLASSIFICATION_INVALID", "A column classification is invalid.", ", ".join(sorted(invalid)))

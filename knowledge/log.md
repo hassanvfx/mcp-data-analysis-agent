@@ -78,6 +78,8 @@
 
 * **Governed semantic metric checkpoint**: Added approved revenue and MRR execution through the shared safe-query and receipt path. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Restricted source classification checkpoint**: Enforced source-level policy denial before parsing or connecting. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
