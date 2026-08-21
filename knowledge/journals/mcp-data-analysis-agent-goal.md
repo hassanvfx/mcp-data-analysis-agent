@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T08:20:00Z
+  at: 2026-08-21T08:35:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 08:35 UTC - Single-source onboarding checkpoint
+
+- Simplified the public distribution README to one standard active source (`data`) and one private operator-supplied `.env` value (`MCP_DATA_SOURCE_URL`). PostgreSQL uses a read-only URL; SQLite uses the same variable for a file path.
+- Existing multi-source policy remains compatible for advanced deployments, but is no longer part of first-time onboarding.
 
 ## 2026-08-21 08:00 UTC - Open-source distribution preparation
 

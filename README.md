@@ -62,9 +62,9 @@ MCP_DATA_RELEASE_SHA256='published-sha256' \
 
 The bootstrap requires `curl` and `uv`, verifies the artifact with `sha256sum` or `shasum`, and installs only after the checksum matches. It does not use `sudo`, create data, or contact a database.
 
-## Configure a source
+## Configure one active source
 
-Keep source locations private in `.env` and source policy in `.mcp-data-agent.toml`. Both files are project-local; `.env` is ignored by Git.
+The standard installation uses exactly one active source, named `data`, and exactly one private value in `.env`: `MCP_DATA_SOURCE_URL`. It is not a package constant or a test value—it is the one value the operator changes to point at their own read-only database. Keep `.env` private; it is ignored by Git.
 
 ```toml
 # .mcp-data-agent.toml
@@ -73,15 +73,10 @@ default_row_limit = 500
 max_row_limit = 5000
 query_timeout_seconds = 30
 
-[sources.retail]
-dialect = "sqlite"
-env = "MCP_DATA_RETAIL_PATH"
-allowed_tables = ["products", "orders", "order_items"]
-classification = "internal"
-
-[sources.analytics]
+# Change only `dialect` and policy restrictions as needed for your source.
+[sources.data]
 dialect = "postgres"
-env = "MCP_DATA_ANALYTICS_URL"
+env = "MCP_DATA_SOURCE_URL"
 allowed_schemas = ["analytics"]
 classification = "internal"
 
@@ -90,10 +85,17 @@ email = "restricted"
 ```
 
 ```bash
-# .env — never commit this file
-MCP_DATA_RETAIL_PATH=/absolute/path/to/retail.sqlite
-MCP_DATA_ANALYTICS_URL='postgresql://readonly_user:password@localhost:5432/analytics'
+# .env — never commit this file. Change this single value for your own source.
+MCP_DATA_SOURCE_URL='postgresql://readonly_user:password@localhost:5432/analytics'
 ```
+
+For SQLite, set `dialect = "sqlite"` and make the same single variable a file path instead:
+
+```bash
+MCP_DATA_SOURCE_URL=/absolute/path/to/your.sqlite
+```
+
+Use `data` as the source argument in CLI calls, for example `mcp-data-cli schema data`. Advanced multi-source policy remains available for established deployments, but it is intentionally outside the standard onboarding path.
 
 For PostgreSQL, use a dedicated least-privilege account with no write or DDL privileges. The agent also enables a read-only session and applies the configured schema search path, but database-side access control remains mandatory.
 
@@ -102,9 +104,9 @@ For PostgreSQL, use a dedicated least-privilege account with no write or DDL pri
 Validate before execution, then inspect the plan and run a bounded query:
 
 ```bash
-mcp-data-cli sql retail 'SELECT id, name, stock FROM products WHERE id = :id' --params '{"id": 1}'
-mcp-data-cli explain retail 'SELECT id, name, stock FROM products WHERE id = :id' --params '{"id": 1}'
-mcp-data-cli query retail 'SELECT id, name, stock FROM products ORDER BY id' --limit 25 --offset 0
+mcp-data-cli sql data 'SELECT id, name, stock FROM products WHERE id = :id' --params '{"id": 1}'
+mcp-data-cli explain data 'SELECT id, name, stock FROM products WHERE id = :id' --params '{"id": 1}'
+mcp-data-cli query data 'SELECT id, name, stock FROM products ORDER BY id' --limit 25 --offset 0
 ```
 
 Create an explicit task when several operations belong to one analysis:
@@ -119,7 +121,7 @@ mcp-data-cli evaluate-task <task-id>
 Generate reports in a new, caller-selected directory. Existing directories and symlink traversal are refused.
 
 ```bash
-mcp-data-cli report retail 'SELECT id, name, stock FROM products' outputs/inventory --pdf --parquet
+mcp-data-cli report data 'SELECT id, name, stock FROM products' outputs/inventory --pdf --parquet
 ```
 
 Each report contains offline HTML, CSV, optional Parquet/PDF artifacts, receipt metadata, paths, and content hashes. Generated artifacts, sources, and credentials must not be committed.
