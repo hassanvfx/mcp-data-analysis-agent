@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, specification, observability]
 status: stable
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T02:58:38Z
+  at: 2026-08-21T06:20:00Z
 ---
 
 # Goal
@@ -34,7 +34,7 @@ Success means a user can install the package, configure a read-only local data s
   ```
 
 - The installer is sudo-free, installs at user scope, downloads a versioned release, verifies its published checksum, and never contacts a user database.
-- It checks Git, a writable target project, `uv`, Python 3.11+, ClineFlow, and optional report tooling. Missing Python tooling is installed through `uv`; non-Python tooling such as Typst is detected and installed only with explicit confirmation or leaves HTML-only reporting available.
+- It checks Git, a writable target project, `uv`, Python 3.11+, ClineFlow, required Typst, and PostgreSQL command-line tooling for local parity. Missing Python tooling is installed through `uv`; Typst and PostgreSQL tooling are installed through an available user-scope package manager or reported as required actions.
 - ClineFlow is a prerequisite. The installer runs `./clineflow-doctor`; if ClineFlow is absent, it installs the official ClineFlow workflow from <https://github.com/hassanvfx/clineflow>, then runs `./clineflow-doctor` and `./validate-okf`. If an existing ClineFlow installation is unhealthy, installation stops with repair guidance rather than overwriting knowledge artifacts.
 - A TTY setup wizard creates configuration templates, catalog/recipe/observability folders, and optionally prints or adds a local MCP client configuration after confirmation. It never asks for production secrets in the terminal.
 - `mcp-data-cli setup`, `mcp-data-cli preflight [--fix]`, `mcp-data-cli doctor`, and `mcp-data-cli uninstall` support repeatable setup, validation, and removal. Uninstall never removes ClineFlow.
@@ -43,7 +43,7 @@ Success means a user can install the package, configure a read-only local data s
 ### Preflight contract
 
 - Required checks: supported operating system, Bash/curl/Git, writable project root, `uv`, Python 3.11+, locked package dependencies, ClineFlow files, `clineflow-doctor`, `validate-okf`, and MCP executable startup.
-- Conditional checks: Typst is required only for PDF output; a source connection is required only when the user configures a real source; a demo database is required only when a demo is explicitly started.
+- Conditional checks: a source connection is required only when the user configures a real source; a demo database is required only when a demo is explicitly started. Typst and local PostgreSQL command-line tooling are prerequisites checked by default.
 - `preflight` reports each check as pass, warning, required action, or blocked. `preflight --fix` may install missing `uv`, Python, Python dependencies, and the official ClineFlow bundle only after presenting the planned change and receiving confirmation where interaction is available.
 - `doctor` must treat "no source configured" as an install-complete, configuration-pending state rather than a broken installation. `doctor --require-source` turns that condition into a failure for CI or a ready-to-use validation.
 

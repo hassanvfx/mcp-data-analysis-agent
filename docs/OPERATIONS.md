@@ -8,4 +8,4 @@ For local PostgreSQL parity without supplying a URL, use
 `mcp-data-cli dataset-postgres retail mcp_data_parity`. The command uses `createdb`, refuses to
 replace an existing database, and copies the fixture into the `mcp_parity` schema.
 
-PDF generation requires Typst and is intentionally optional; HTML and CSV remain available without it.
+Typst is a required preflight prerequisite for the supported installation. HTML and CSV remain independently usable after installation.

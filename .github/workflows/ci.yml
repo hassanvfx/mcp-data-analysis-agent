@@ -6,6 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      - uses: typst-community/setup-typst@v4
       - run: uv sync --extra dev --extra parquet
       - run: uv run ruff check src tests
       - run: uv run mypy src

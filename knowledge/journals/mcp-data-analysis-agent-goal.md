@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T06:10:00Z
+  at: 2026-08-21T06:20:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 06:20 UTC - Required tooling contract alignment
+
+- Aligned the stable specification and operations guide with the agreed required Typst and local PostgreSQL CLI prerequisites.
+- CI now installs Typst before the real renderer test, ensuring the required-tooling contract is exercised outside the developer machine.
 
 ## 2026-08-21 06:10 UTC - Required Typst rendering checkpoint
 
