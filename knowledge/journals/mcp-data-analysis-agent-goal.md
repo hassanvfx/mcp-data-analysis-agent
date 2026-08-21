@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T08:00:00Z
+  at: 2026-08-21T08:20:00Z
 ---
 
 # Goal
@@ -66,7 +66,7 @@ Each representative use case is complete only when it:
 ## 2026-08-21 08:00 UTC - Open-source distribution preparation
 
 - Replaced the minimal README with a self-contained public distribution guide covering the problem, governed operating contract, installation, private source configuration, CLI/MCP workflows, reports, deterministic fixtures, local PostgreSQL parity, development gates, security, and release behavior.
-- Repository publication is pending GitHub device-flow authentication for `hassanvfx`; it will preserve all existing commits and annotated checkpoint tags.
+- Published the public [hassanvfx/mcp-data-analysis-agent](https://github.com/hassanvfx/mcp-data-analysis-agent) repository after GitHub device-flow authentication. `main`, all annotated checkpoint tags, the README, repository topics, and CI/release workflows are present; no GitHub Release or PyPI publication was created.
 
 ## 2026-08-21 07:20 UTC - Governed pagination checkpoint
 
