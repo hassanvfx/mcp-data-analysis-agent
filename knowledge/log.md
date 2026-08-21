@@ -12,6 +12,8 @@
 
 * **Full-domain fixture checkpoint**: Expanded deterministic development fixtures to represent all documented retail, SaaS, and support relationships used by the six target scenarios. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md) for the tested evidence.
 
+* **Six golden workflow checkpoint**: Added fixture-backed, governed golden queries for all six retail, SaaS, and support delivery scenarios. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md) for results.
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

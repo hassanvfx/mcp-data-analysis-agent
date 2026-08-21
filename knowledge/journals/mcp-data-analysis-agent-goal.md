@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T18:30:00Z
+  at: 2026-08-20T18:45:00Z
 ---
 
 # Goal
@@ -63,6 +63,11 @@ Each representative use case is complete only when it:
 
 # Work Log
 
+## 2026-08-20 18:45 UTC - Six golden workflow checkpoint
+
+- Added fixture-backed golden queries for both retail scenarios, both SaaS scenarios, and both support scenarios.
+- Each workflow now verifies safe bounded execution, nonempty deterministic evidence, a result checksum, and a permitted validation outcome against its documented relational fixture.
+
 ## 2026-08-20 18:30 UTC - Full-domain fixture checkpoint
 
 - Expanded deterministic retail fixtures with categories, customers, warehouses, snapshots, orders, returns, and promotions; preserved intentionally sparse returns for quality scenarios.
@@ -106,6 +111,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): `./validate-okf` and `git diff --check` passed.
 - Checkpoint validation (2026-08-20): report/policy checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (21 tests), `./validate-okf`, and `git diff --check`.
 - Checkpoint validation (2026-08-20): expanded fixture checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (21 tests), `./validate-okf`, and `git diff --check`.
+- Checkpoint validation (2026-08-20): six-workflow checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest tests/test_golden_scenarios.py -q` (6 tests), `./validate-okf`, and `git diff --check`.
 
 # Open Issues
 
