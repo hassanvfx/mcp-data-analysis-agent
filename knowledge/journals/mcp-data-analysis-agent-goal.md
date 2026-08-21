@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T21:45:00Z
+  at: 2026-08-20T22:00:00Z
 ---
 
 # Goal
@@ -62,6 +62,10 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 22:00 UTC - Artifact path-safety checkpoint
+
+- Output creation now rejects traversal through any symlinked path component, while preserving project-root containment and non-overwrite guarantees. Added a symlink traversal regression test.
 
 ## 2026-08-20 21:45 UTC - Version-controlled observability correction
 
@@ -180,6 +184,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): schema-drift checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (39 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): PostgreSQL schema-isolation checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (39 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): observability-retention checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (39 tests), plus OKF and whitespace validation.
+- Checkpoint validation (2026-08-20): artifact path-safety checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (40 tests), plus OKF and whitespace validation.
 
 # Open Issues
 

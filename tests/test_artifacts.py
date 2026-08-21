@@ -30,6 +30,12 @@ def test_output_cannot_escape_project(tmp_path: Path) -> None:
         create_output_directory(tmp_path, Path("/tmp/outside-agent-output"))
 
 
+def test_output_cannot_traverse_symlink(tmp_path: Path) -> None:
+    (tmp_path / "linked").symlink_to(tmp_path, target_is_directory=True)
+    with pytest.raises(AgentError, match="symlinks"):
+        create_output_directory(tmp_path, tmp_path / "linked" / "output")
+
+
 def test_pdf_requires_typst(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("mcp_data_agent.artifacts.shutil.which", lambda _: None)
     with pytest.raises(AgentError, match="Typst"):

@@ -18,14 +18,26 @@ from .errors import AgentError
 
 def create_output_directory(root: Path, selected: Path) -> Path:
     root = root.resolve()
-    selected = selected.expanduser().resolve()
-    if root not in selected.parents and selected != root:
+    raw = selected.expanduser()
+    if not raw.is_absolute():
+        raw = root / raw
+    resolved = raw.resolve()
+    if root not in resolved.parents and resolved != root:
         raise AgentError("OUTPUT_PATH_UNSAFE", "Output must be inside the project root.")
-    if selected.exists() or selected.is_symlink():
+    try:
+        relative = raw.relative_to(root)
+    except ValueError as exc:
+        raise AgentError("OUTPUT_PATH_UNSAFE", "Output must be inside the project root.") from exc
+    candidate = root
+    for part in relative.parts:
+        candidate = candidate / part
+        if candidate.is_symlink():
+            raise AgentError("OUTPUT_PATH_UNSAFE", "Output paths cannot traverse symlinks.")
+    if raw.exists() or raw.is_symlink():
         raise AgentError("OUTPUT_EXISTS", "Refusing to overwrite an existing output directory.")
-    selected.parent.mkdir(parents=True, exist_ok=True)
-    selected.mkdir(mode=0o700)
-    return selected
+    raw.parent.mkdir(parents=True, exist_ok=True)
+    raw.mkdir(mode=0o700)
+    return raw
 
 
 def export_csv(directory: Path, columns: list[str], rows: list[list[Any]]) -> dict[str, str]:

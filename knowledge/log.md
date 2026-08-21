@@ -38,6 +38,8 @@
 
 * **Observability retention correction**: Made durable audit ledger records Git-versionable while retaining exclusions for credentials, databases, caches, and generated artifacts. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Artifact path-safety checkpoint**: Hardened generated-output paths against symlink traversal. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
