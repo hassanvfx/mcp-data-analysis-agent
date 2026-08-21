@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T04:00:00Z
+  at: 2026-08-21T04:15:00Z
 ---
 
 # Goal
@@ -62,6 +62,10 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 04:15 UTC - Cross-platform installer coverage checkpoint
+
+- Added deterministic Windows/Winget Typst provisioning coverage alongside existing Homebrew, existing-install, and unsupported-manager paths; global branch coverage increased while critical safety modules remain fully covered.
 
 ## 2026-08-21 04:00 UTC - Installation-enforcing preflight checkpoint
 
@@ -316,6 +320,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-21): transactional-export cleanup checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (67 tests); coverage verifier passed at 94.25% statements, 86.55% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): safe-preflight repair checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (68 tests); coverage verifier passed at 94.29% statements, 86.48% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): installation-enforcing preflight checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests); coverage verifier passed at 94.02% statements, 86.11% branches, and all critical module gates.
+- Checkpoint validation (2026-08-21): cross-platform installer coverage checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests); coverage verifier passed at 94.20% statements, 86.51% branches, and all critical module gates.
 
 # Open Issues
 

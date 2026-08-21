@@ -166,6 +166,11 @@ def test_typst_install_detection_uses_existing_user_tools(monkeypatch: pytest.Mo
     assert cli._install_typst() is None
     assert calls == [["brew", "install", "typst"]]
 
+    monkeypatch.setattr(cli.sys, "platform", "win32")
+    monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda name: "winget" if name == "winget" else None)
+    assert cli._install_typst() is None
+    assert calls[-1] == ["winget", "install", "--id", "Typst.Typst", "--exact"]
+
     monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda name: None)
     assert cli._install_typst() is not None
 

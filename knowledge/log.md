@@ -88,6 +88,8 @@
 
 * **Installation-enforcing preflight checkpoint**: Default preflight now syncs required extras and provisions Typst through a non-privileged supported package manager. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Cross-platform installer coverage checkpoint**: Added deterministic Windows Typst installer coverage and raised global branch evidence. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
