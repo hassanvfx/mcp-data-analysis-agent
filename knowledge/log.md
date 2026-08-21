@@ -36,6 +36,8 @@
 
 * **PostgreSQL schema isolation checkpoint**: Added configured schema search-path enforcement for unqualified PostgreSQL queries. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Observability retention correction**: Made durable audit ledger records Git-versionable while retaining exclusions for credentials, databases, caches, and generated artifacts. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

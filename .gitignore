@@ -12,9 +12,5 @@ __pycache__/
 dist/
 *.egg-info/
 outputs/
-observability/events/
-observability/queries/
-observability/runs/
-observability/tasks/
 *.sqlite
 *.sqlite3
