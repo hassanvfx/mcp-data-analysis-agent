@@ -131,6 +131,11 @@ def observe(task_id: str) -> None:
     emit(AnalyticsService(root()).timeline(task_id))
 
 
+@app.command("evaluate-task")
+def evaluate_task(task_id: str) -> None:
+    emit(AnalyticsService(root()).evaluate_task(task_id))
+
+
 @app.command()
 def benchmark(domain: str, output: Path, seed: int = 1) -> None:
     """Generate a benchmark-tier fixture for local performance verification."""

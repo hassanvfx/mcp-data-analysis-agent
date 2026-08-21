@@ -51,3 +51,14 @@ def test_service_explain_join_profile_recipe_and_timeline(tmp_path: Path, monkey
     assert service.profile("retail", "products")["row_count"] == 20
     assert service.run_recipe("top-products", {"id": 1}, task.task_id).rows
     assert service.timeline(task.task_id)
+
+
+def test_task_completion_closes_journal_and_evaluates(tmp_path: Path) -> None:
+    service = AnalyticsService(tmp_path)
+    task = service.begin_task("completed", "Verify task lifecycle")
+    service.ledger.complete_task(task.task_id, "Done", "None")
+    journal = tmp_path / task.journal_path
+    assert "status: stable" in journal.read_text()
+    evaluation = service.evaluate_task(task.task_id)
+    assert evaluation["status"] == "incomplete"
+    assert "query_recorded" in evaluation["missing"]

@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T18:45:00Z
+  at: 2026-08-20T19:00:00Z
 ---
 
 # Goal
@@ -63,6 +63,11 @@ Each representative use case is complete only when it:
 
 # Work Log
 
+## 2026-08-20 19:00 UTC - Task completion and evaluation checkpoint
+
+- Task completion now atomically closes the linked ClineFlow journal with findings and next steps as well as marking the ledger task complete.
+- Added deterministic task evaluation based on required lifecycle evidence, exposed through CLI and MCP interfaces.
+
 ## 2026-08-20 18:45 UTC - Six golden workflow checkpoint
 
 - Added fixture-backed golden queries for both retail scenarios, both SaaS scenarios, and both support scenarios.
@@ -112,6 +117,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): report/policy checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (21 tests), `./validate-okf`, and `git diff --check`.
 - Checkpoint validation (2026-08-20): expanded fixture checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (21 tests), `./validate-okf`, and `git diff --check`.
 - Checkpoint validation (2026-08-20): six-workflow checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest tests/test_golden_scenarios.py -q` (6 tests), `./validate-okf`, and `git diff --check`.
+- Checkpoint validation (2026-08-20): task-evaluation checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (25 tests), `./validate-okf`, and `git diff --check`.
 
 # Open Issues
 

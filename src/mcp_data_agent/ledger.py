@@ -91,7 +91,33 @@ class Ledger:
         original = path.read_text(encoding="utf-8")
         completed = original.replace("status: active", "status: complete") + f"\n## Completion\n\n{findings}\n\n{next_steps}\n"
         _write_atomic(path, completed)
+        journal = self.root / "knowledge" / "journals" / "data-analysis" / f"{task_id}.md"
+        if journal.exists():
+            content = journal.read_text(encoding="utf-8")
+            content = content.replace("status: draft", "status: stable", 1)
+            content = content.replace("- [ ] Complete", "- [x] Complete", 1)
+            content = content.replace("# Findings\n\nPending.", f"# Findings\n\n{findings}", 1)
+            content = content.replace("# Next Steps\n\nRun the approved analysis and complete this task.", f"# Next Steps\n\n{next_steps or 'None.'}", 1)
+            _write_atomic(journal, content)
         self.event(task_id, "task_completed", {"findings": findings})
+
+    def evaluate(self, task_id: str) -> dict[str, object]:
+        timeline = [entry for entry in self._timeline(task_id)]
+        kinds = {str(entry["kind"]) for entry in timeline}
+        required = {"task_started", "query_recorded", "run_recorded"}
+        missing = sorted(required - kinds)
+        completed = "task_completed" in kinds
+        score = 100 - (25 * len(missing)) - (25 if not completed else 0)
+        return {"task_id": task_id, "score": max(score, 0), "status": "pass" if score == 100 else "incomplete", "missing": missing + ([] if completed else ["task_completed"])}
+
+    def _timeline(self, task_id: str) -> list[dict[str, object]]:
+        output: list[dict[str, object]] = []
+        for path in sorted((self.base / "events").rglob("*.jsonl")) if (self.base / "events").exists() else []:
+            for line in path.read_text(encoding="utf-8").splitlines():
+                item = json.loads(line)
+                if item["task_id"] == task_id:
+                    output.append(item)
+        return output
 
     @staticmethod
     def checksum(rows: list[list[object]]) -> str:

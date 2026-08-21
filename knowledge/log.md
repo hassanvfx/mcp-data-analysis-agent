@@ -14,6 +14,8 @@
 
 * **Six golden workflow checkpoint**: Added fixture-backed, governed golden queries for all six retail, SaaS, and support delivery scenarios. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md) for results.
 
+* **Task evaluation checkpoint**: Task completion now closes linked ClineFlow journals and a deterministic evaluator assesses lifecycle receipt completeness. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md) for validation evidence.
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

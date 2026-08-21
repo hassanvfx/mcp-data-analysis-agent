@@ -81,14 +81,10 @@ class AnalyticsService:
         return self.execute(str(recipe["source_alias"]), str(recipe["sql"]), parameters, task_id)
 
     def timeline(self, task_id: str) -> list[dict[str, object]]:
-        events = self.settings.root / "observability" / "events"
-        output: list[dict[str, object]] = []
-        for path in sorted(events.rglob("*.jsonl")) if events.exists() else []:
-            for line in path.read_text(encoding="utf-8").splitlines():
-                item = __import__("json").loads(line)
-                if item["task_id"] == task_id:
-                    output.append(item)
-        return output
+        return self.ledger._timeline(task_id)
+
+    def evaluate_task(self, task_id: str) -> dict[str, object]:
+        return self.ledger.evaluate(task_id)
 
     def metrics(self) -> list[dict[str, Any]]:
         path = self.settings.root / "catalog" / "metrics.toml"
