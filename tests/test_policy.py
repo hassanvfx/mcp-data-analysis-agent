@@ -24,6 +24,12 @@ def test_blocks_unsafe_sql(source: SourcePolicy, tmp_path: Path, sql: str) -> No
         validate_sql(sql, {}, source, Settings(root=tmp_path))
 
 
+@pytest.mark.parametrize("sql", ["SELECT * INTO temp generated FROM products", "SELECT pg_sleep(1)"])
+def test_blocks_select_write_and_side_effecting_function(tmp_path: Path, sql: str) -> None:
+    with pytest.raises(AgentError):
+        validate_sql(sql, {}, SourcePolicy("test", "postgres", "URL"), Settings(root=tmp_path))
+
+
 def test_blocks_restricted_column(source: SourcePolicy, tmp_path: Path) -> None:
     with pytest.raises(AgentError, match="restricted"):
         validate_sql("SELECT ssn FROM people", {}, source, Settings(root=tmp_path, restricted_columns=frozenset({"ssn"})))

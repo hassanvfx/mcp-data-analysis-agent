@@ -40,6 +40,8 @@
 
 * **Artifact path-safety checkpoint**: Hardened generated-output paths against symlink traversal. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **SQL bypass hardening checkpoint**: Blocked PostgreSQL `SELECT INTO` and targeted unsafe function bypasses in the read-only SQL policy. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

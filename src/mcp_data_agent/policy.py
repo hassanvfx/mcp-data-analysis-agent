@@ -15,6 +15,8 @@ from .errors import AgentError
 from .models import ValidationResult
 
 SECRET_NAME = re.compile(r"(pass(word)?|secret|token|api[_-]?key|credential)", re.IGNORECASE)
+UNSAFE_FUNCTIONS = frozenset({"pg_sleep", "pg_read_file", "pg_read_binary_file", "pg_ls_dir", "dblink",
+                              "lo_export", "set_config", "pg_advisory_lock", "pg_advisory_xact_lock"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,9 +45,15 @@ def validate_sql(sql: str, parameters: dict[str, Any], source: SourcePolicy, set
     # SQLGlot represents a WITH query as a Select/Union with a `with_` argument.
     if not isinstance(statement, (exp.Select, exp.Union)):
         raise AgentError("SQL_NOT_READ_ONLY", "Only SELECT or WITH queries are allowed.")
+    if statement.args.get("into"):
+        raise AgentError("SQL_NOT_READ_ONLY", "SELECT INTO is blocked because it creates a table.")
     forbidden = (exp.Insert, exp.Update, exp.Delete, exp.Create, exp.Drop, exp.Alter, exp.Command, exp.Attach)
     if any(statement.find(kind) for kind in forbidden):
         raise AgentError("SQL_NOT_READ_ONLY", "Write, DDL, command, and attachment operations are blocked.")
+    functions = {str(function.name).lower() for function in statement.find_all(exp.Anonymous)}
+    blocked_functions = functions & UNSAFE_FUNCTIONS
+    if blocked_functions:
+        raise AgentError("SQL_FUNCTION_BLOCKED", "A side-effecting or unsafe SQL function is blocked.", ", ".join(sorted(blocked_functions)))
     columns = {column.name.lower() for column in statement.find_all(exp.Column)}
     denied = columns & settings.restricted_columns
     if denied:
