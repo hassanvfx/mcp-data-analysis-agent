@@ -154,6 +154,7 @@ def test_preflight_fix_creates_only_non_secret_templates(tmp_path: Path, monkeyp
     assert (tmp_path / ".env.example").exists()
     assert (tmp_path / ".mcp-data-agent.toml").exists()
     assert not (tmp_path / ".env").exists()
+    assert '"sqlalchemy_core": true' in result.output
 
 
 def test_typst_install_detection_uses_existing_user_tools(monkeypatch: pytest.MonkeyPatch) -> None:

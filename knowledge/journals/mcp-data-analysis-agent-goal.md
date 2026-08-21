@@ -63,6 +63,10 @@ Each representative use case is complete only when it:
 
 # Work Log
 
+## 2026-08-21 04:30 UTC - SQLAlchemy Core migration journal
+
+- Created the active [SQLAlchemy Core adapter migration journal](sqlalchemy-core-adapter-migration.md) for the platform-agnostic SQLite/PostgreSQL access work.
+
 ## 2026-08-21 04:15 UTC - Cross-platform installer coverage checkpoint
 
 - Added deterministic Windows/Winget Typst provisioning coverage alongside existing Homebrew, existing-install, and unsupported-manager paths; global branch coverage increased while critical safety modules remain fully covered.

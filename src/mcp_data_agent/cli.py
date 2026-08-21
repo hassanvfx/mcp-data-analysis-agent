@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import shutil
 import subprocess
@@ -88,7 +89,8 @@ def preflight(fix: bool = typer.Option(True, "--fix/--no-fix")) -> None:
     checks = {"project_writable": project.exists() and project.is_dir(), "git": shutil.which("git") is not None,
               "uv": shutil.which("uv") is not None, "python_3_11": sys.version_info >= (3, 11),
               "clineflow": (project / "clineflow-doctor").is_file(), "okf": (project / "validate-okf").is_file(),
-              "mcp_executable": shutil.which("mcp-data-mcp") is not None, "typst": shutil.which("typst") is not None}
+              "mcp_executable": shutil.which("mcp-data-mcp") is not None, "typst": shutil.which("typst") is not None,
+              "sqlalchemy_core": importlib.util.find_spec("sqlalchemy") is not None}
     emit({"checks": checks, "repaired": repaired, "required_action": required_action,
           "status": "pass" if all(checks.values()) else "required_action"})
 
