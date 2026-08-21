@@ -1,5 +1,6 @@
 # ClineFlow - per-developer config
 .clineflow.local
+.DS_Store
 .env
 .venv/
 __pycache__/
