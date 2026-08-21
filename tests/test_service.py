@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import pytest
+
+from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import generate
 from mcp_data_agent.service import AnalyticsService
 
@@ -76,3 +79,17 @@ def test_ledger_integrity_detects_tampered_receipt(tmp_path: Path, monkeypatch) 
     receipt = next((tmp_path / "observability" / "queries").rglob("*.json"))
     receipt.write_text(receipt.read_text().replace("SELECT", "SELECT /* tampered */", 1))
     assert service.verify_observability()["status"] == "failed"
+
+
+def test_invalid_limit_and_failed_query_are_bounded_and_audited(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 9, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='FAILED_RETAIL_PATH'\n")
+    monkeypatch.setenv("FAILED_RETAIL_PATH", str(database))
+    service = AnalyticsService(tmp_path)
+    with pytest.raises(AgentError, match="positive"):
+        service.execute("retail", "SELECT id FROM products", {}, limit=0)
+    task = service.begin_task("failure", "capture policy failure")
+    with pytest.raises(AgentError):
+        service.execute("retail", "DELETE FROM products", {}, task.task_id)
+    assert any(event["kind"] == "query_failed" for event in service.timeline(task.task_id))

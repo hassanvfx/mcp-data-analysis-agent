@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 import tomllib
 from pathlib import Path
+from threading import BoundedSemaphore
 from typing import Any
 from uuid import uuid4
 
@@ -28,6 +29,7 @@ class AnalyticsService:
     def __init__(self, root: Path) -> None:
         self.settings: Settings = load_settings(root)
         self.ledger = Ledger(root)
+        self.query_gate = BoundedSemaphore(self.settings.max_concurrent_queries)
 
     def begin_task(self, title: str, objective: str) -> TaskResult:
         item = self.ledger.begin_task(title, objective)
@@ -150,19 +152,26 @@ class AnalyticsService:
         source = self.settings.sources.get(source_alias)
         if not source:
             raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
-        bounded_limit = min(limit or self.settings.default_row_limit, self.settings.max_row_limit)
+        requested_limit = self.settings.default_row_limit if limit is None else limit
+        bounded_limit = min(requested_limit, self.settings.max_row_limit)
         if bounded_limit < 1:
             raise AgentError("LIMIT_INVALID", "The row limit must be positive.")
         task_id = task_id or self.begin_task("Ad hoc analysis", "Automatically created for an ungrouped query.").task_id
         correlation = uuid4().hex
         started = time.monotonic()
-        validated = validate_sql(sql, parameters, source, self.settings)
-        wrapped = f"SELECT * FROM ({validated.sql}) AS bounded_query LIMIT {bounded_limit + 1}"
-        with connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
-            cursor = db.cursor()
-            cursor.execute(wrapped, parameters)
-            raw_rows = cursor.fetchall()
-            columns = [{"name": desc[0], "type": "unknown"} for desc in cursor.description or []]
+        try:
+            validated = validate_sql(sql, parameters, source, self.settings)
+            wrapped = f"SELECT * FROM ({validated.sql}) AS bounded_query LIMIT {bounded_limit + 1}"
+            with self.query_gate, connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
+                cursor = db.cursor()
+                cursor.execute(wrapped, parameters)
+                raw_rows = cursor.fetchall()
+                columns = [{"name": desc[0], "type": "unknown"} for desc in cursor.description or []]
+        except AgentError as exc:
+            duration = round((time.monotonic() - started) * 1000)
+            self.ledger.run(task_id, "query.execute", exc.code, duration, correlation)
+            self.ledger.event(task_id, "query_failed", {"code": exc.code, "correlation_id": correlation})
+            raise
         truncated = len(raw_rows) > bounded_limit
         rows = [list(row) for row in raw_rows[:bounded_limit]]
         duration = round((time.monotonic() - started) * 1000)

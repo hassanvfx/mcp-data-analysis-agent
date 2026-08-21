@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T20:15:00Z
+  at: 2026-08-20T20:30:00Z
 ---
 
 # Goal
@@ -62,6 +62,10 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 20:30 UTC - Bounded execution checkpoint
+
+- Execution now treats zero/negative limits as errors instead of silently substituting defaults, uses a configured bounded semaphore for concurrent query execution, and records correlated failed-run and failed-query events for `AgentError` outcomes.
 
 ## 2026-08-20 20:15 UTC - Receipt-backed report checkpoint
 
@@ -148,6 +152,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): PostgreSQL CI checkpoint passed local `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (35 tests); the live PostgreSQL test is reserved for CI's disposable service.
 - Checkpoint validation (2026-08-20): observability-integrity checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (36 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): receipt-backed-report checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (36 tests), plus OKF and whitespace validation.
+- Checkpoint validation (2026-08-20): bounded-execution checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (37 tests), plus OKF and whitespace validation.
 
 # Open Issues
 
