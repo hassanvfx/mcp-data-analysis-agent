@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T06:45:00Z
+  at: 2026-08-21T06:55:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 06:55 UTC - Checksum bootstrap checkpoint
+
+- Hardened the release bootstrap with portable `sha256sum`/`shasum` selection and explicit `curl`/`uv` prerequisite messages.
+- Added isolated installer tests that prove a verified artifact reaches `uv tool install` and a mismatched checksum does not.
 
 ## 2026-08-21 06:45 UTC - Hosted cross-dialect parity checkpoint
 
