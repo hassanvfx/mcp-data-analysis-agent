@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -16,7 +17,12 @@ from .clients import apply as apply_client_plans
 from .clients import plans as client_plans
 from .context import load_context
 from .errors import AgentError
-from .fixtures import clone_sqlite_to_postgres, create_local_postgres_database, generate
+from .fixtures import (
+    clone_sqlite_to_postgres,
+    create_local_postgres_database,
+    generate,
+    seed_postgres,
+)
 from .onboarding import ENV_EXAMPLE, apply_init, init_plan, project_config_template
 from .service import AnalyticsService
 
@@ -352,6 +358,21 @@ def dataset_postgres(domain: str, database: str, tier: str = "unit", seed: int =
               "schema": "mcp_parity", **generated, **copied})
     except (FileExistsError, RuntimeError, ValueError) as exc:
         emit({"code": "LOCAL_POSTGRES_SETUP_FAILED", "message": str(exc)})
+        raise typer.Exit(2) from exc
+
+
+@app.command("seed-postgres")
+def seed_postgres_dataset(domain: str, tier: str = "unit", seed: int = 1) -> None:
+    """Seed the configured disposable PostgreSQL test database with one domain."""
+    postgres_url = os.getenv("MCP_DATA_TEST_POSTGRES_URL")
+    if not postgres_url:
+        emit({"code": "LOCAL_POSTGRES_URL_REQUIRED",
+              "message": "Set MCP_DATA_TEST_POSTGRES_URL to an isolated local test database first."})
+        raise typer.Exit(2)
+    try:
+        emit({"status": "seeded", "domain": domain, **seed_postgres(domain, postgres_url, tier, seed)})
+    except (RuntimeError, ValueError) as exc:
+        emit({"code": "LOCAL_POSTGRES_SEED_FAILED", "message": str(exc)})
         raise typer.Exit(2) from exc
 
 

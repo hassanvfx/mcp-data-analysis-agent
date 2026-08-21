@@ -159,9 +159,14 @@ Each report contains offline HTML, CSV, optional Parquet/PDF artifacts, receipt 
 ```bash
 mcp-data-cli dataset retail /tmp/retail.sqlite --tier unit --seed 1
 mcp-data-cli dataset-postgres retail mcp_data_parity --tier unit --seed 1
+# Seed an already-created disposable test database; creates only mcp_seed_<domain>.
+MCP_DATA_TEST_POSTGRES_URL='postgresql://mcp_data_test@localhost:5432/mcp_data_parity' \
+  mcp-data-cli seed-postgres retail --seed 1
 ```
 
 `dataset-postgres` uses local `createdb`, refuses an existing database name, creates SQLite data only in a temporary directory, then copies it to the new PostgreSQL database under the `mcp_parity` schema. It does not require a manually supplied disposable PostgreSQL URL.
+
+`seed-postgres` is for an already-provisioned isolated test database. It reads the private test URL from the environment and replaces only its reserved `mcp_seed_retail`, `mcp_seed_saas`, or `mcp_seed_support` schema. It never touches public/application schemas.
 
 Run the full local quality suite with an isolated PostgreSQL instance when developing adapter behavior. CI covers linting, typing, tests, coverage gates, real Typst rendering, SQLite/PostgreSQL parity, secret scanning, dependency auditing, SBOM generation, and trusted-publishing release automation.
 

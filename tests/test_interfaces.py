@@ -405,6 +405,23 @@ def test_local_postgres_fixture_command_uses_generated_sqlite_copy(
     assert '"schema": "mcp_parity"' in result.output
 
 
+def test_seed_postgres_command_uses_private_test_url(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MCP_DATA_TEST_POSTGRES_URL", "postgresql://test@localhost/parity")
+    captured: dict[str, object] = {}
+
+    def seed(domain: str, url: str, tier: str, seed: int) -> dict[str, int | str]:
+        captured.update({"domain": domain, "url": url, "tier": tier, "seed": seed})
+        return {"schema": "mcp_seed_retail", "tables": 2, "rows": 3, "seed": seed}
+
+    monkeypatch.setattr("mcp_data_agent.cli.seed_postgres", seed)
+    result = CliRunner().invoke(app, ["seed-postgres", "retail", "--seed", "7"])
+    assert result.exit_code == 0, result.output
+    assert captured == {"domain": "retail", "url": "postgresql://test@localhost/parity", "tier": "unit", "seed": 7}
+    monkeypatch.delenv("MCP_DATA_TEST_POSTGRES_URL")
+    assert CliRunner().invoke(app, ["seed-postgres", "retail"]).exit_code == 2
+
+
 def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 4, database)

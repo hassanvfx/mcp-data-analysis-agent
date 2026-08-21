@@ -6,6 +6,7 @@ import re
 import shutil
 import sqlite3
 import subprocess
+import tempfile
 from pathlib import Path
 from random import Random
 
@@ -13,6 +14,7 @@ from sqlalchemy import create_engine, text
 
 DOMAINS = {"retail", "saas", "support"}
 POSTGRES_DATABASE = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,62}$")
+POSTGRES_SEED_SCHEMA = re.compile(r"mcp_seed_[a-z]+$")
 
 
 def local_postgres_url(database: str) -> str:
@@ -70,6 +72,20 @@ def clone_sqlite_to_postgres(source: Path, postgres_url: str, schema: str = "mcp
         sqlite.close()
         engine.dispose()
     return {"tables": len(tables), "rows": rows_copied}
+
+
+def seed_postgres(domain: str, postgres_url: str, tier: str = "unit", seed: int = 1) -> dict[str, int | str]:
+    """Seed one deterministic domain into its reserved disposable PostgreSQL schema."""
+    if domain not in DOMAINS:
+        raise ValueError("domain must be retail, saas, or support")
+    schema = f"mcp_seed_{domain}"
+    if not POSTGRES_SEED_SCHEMA.fullmatch(schema):
+        raise ValueError("seed schema is invalid")
+    with tempfile.TemporaryDirectory(prefix="mcp-data-postgres-seed-") as temporary:
+        fixture = Path(temporary) / f"{domain}.sqlite"
+        generated = generate(domain, tier, seed, fixture)
+        copied = clone_sqlite_to_postgres(fixture, postgres_url, schema)
+    return {"schema": schema, **generated, **copied}
 
 
 def generate(domain: str, tier: str, seed: int, output: Path) -> dict[str, int]:

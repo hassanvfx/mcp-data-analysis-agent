@@ -11,7 +11,7 @@ from sqlalchemy import text
 from mcp_data_agent.adapters import connection
 from mcp_data_agent.config import SourcePolicy
 from mcp_data_agent.errors import AgentError
-from mcp_data_agent.fixtures import local_postgres_url
+from mcp_data_agent.fixtures import local_postgres_url, seed_postgres
 from mcp_data_agent.service import AnalyticsService
 
 
@@ -70,3 +70,15 @@ def test_postgres_adapter_enforces_read_only_session_and_server_timeout() -> Non
             readonly_db.execute(text("INSERT INTO mcp_contract_items VALUES (3, 'blocked', now())"))
         with pytest.raises(Exception, match="statement timeout"):
             timeout_db.execute(text("SELECT COUNT(*) FROM generate_series(1, 1000000000)"))
+
+
+@pytest.mark.parametrize(("domain", "table"), [("retail", "products"), ("saas", "subscriptions"), ("support", "tickets")])
+def test_postgres_seed_data_is_deterministic_and_schema_isolated(domain: str, table: str) -> None:
+    import psycopg
+
+    assert POSTGRES_URL
+    seeded = seed_postgres(domain, POSTGRES_URL, seed=7)
+    assert seeded["schema"] == f"mcp_seed_{domain}"
+    with psycopg.connect(POSTGRES_URL) as db, db.cursor() as cursor:
+        cursor.execute(f'SELECT COUNT(*) FROM "mcp_seed_{domain}"."{table}"')
+        assert cursor.fetchone() == (20,)
