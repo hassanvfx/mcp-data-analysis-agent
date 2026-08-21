@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T06:55:00Z
+  at: 2026-08-21T07:05:00Z
 ---
 
 # Goal
@@ -368,6 +368,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-21): cross-platform installer coverage checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests); coverage verifier passed at 94.20% statements, 86.51% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): SQLAlchemy Core engine migration checkpoint passed `uv run ruff check src tests scripts`, `uv run mypy src`, and `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests); coverage verifier passed at 94.33% statements, 87.01% branches, and all critical module gates.
 - Checkpoint validation (2026-08-21): local PostgreSQL parity checkpoint passed Ruff, strict mypy, 79 tests including live SQLite/PostgreSQL contract parity, coverage verification (94.53% lines; 87.41% branches), OKF, and whitespace validation.
+- Consolidated validation (2026-08-21): Ruff, strict mypy, 84 tests with isolated PostgreSQL fixture parity and real Typst rendering, coverage verification (94.52% lines; 88.03% branches), OKF, and whitespace validation passed. Configuration, context, ledger, and policy retain 100% line/branch coverage.
 
 # Open Issues
 
