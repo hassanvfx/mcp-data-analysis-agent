@@ -58,6 +58,11 @@ def validate_sql(sql: str, parameters: dict[str, Any], source: SourcePolicy, set
     denied = {column for column in columns if settings.column_classification(column) == "restricted"}
     if denied:
         raise AgentError("FIELD_RESTRICTED", "A restricted field was requested.", ", ".join(sorted(denied)))
+    if any(statement.find_all(exp.Star)) and any(
+        settings.column_classification(column) == "restricted"
+        for column in set(settings.restricted_columns) | set(settings.column_classifications)
+    ):
+        raise AgentError("FIELD_RESTRICTED", "Wildcard projections are blocked while restricted fields are configured.")
     tables = {table.name for table in statement.find_all(exp.Table)}
     if source.allowed_tables and not tables.issubset(set(source.allowed_tables)):
         blocked = tables - set(source.allowed_tables)

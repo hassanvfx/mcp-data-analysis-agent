@@ -48,6 +48,8 @@ def test_blocks_configured_restricted_classification(source: SourcePolicy, tmp_p
     settings = Settings(root=tmp_path, column_classifications={"tax_id": "restricted"})
     with pytest.raises(AgentError):
         validate_sql("SELECT tax_id FROM people", {}, source, settings)
+    with pytest.raises(AgentError, match="Wildcard"):
+        validate_sql("SELECT * FROM people", {}, source, settings)
 
 
 def test_blocks_table_outside_source_policy(source: SourcePolicy, tmp_path: Path) -> None:
