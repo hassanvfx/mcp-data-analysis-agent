@@ -24,6 +24,8 @@
 
 * **Observability integrity checkpoint**: Added immutable receipt and event-timeline verification with a tampering regression test, exposed to CLI and MCP users. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Receipt-backed report checkpoint**: Added receipt metadata and escaped evidence embedding to generated dashboards and exports. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

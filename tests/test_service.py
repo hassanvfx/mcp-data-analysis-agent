@@ -33,7 +33,8 @@ def test_service_quality_metrics_and_artifacts(tmp_path: Path, monkeypatch) -> N
     assert service.metrics()[0]["name"] == "revenue"
     result = service.execute("retail", "SELECT id, name FROM products", {})
     artifacts = service.export(result, tmp_path / "outputs" / "run")
-    assert len(artifacts) == 2
+    assert len(artifacts) == 3
+    assert Path(artifacts[0]["path"]).name == "receipt.json"
     assert service.suggest_chart(result.columns, len(result.rows))["type"] == "bar"
 
 

@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T20:00:00Z
+  at: 2026-08-20T20:15:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 20:15 UTC - Receipt-backed report checkpoint
+
+- Exports now include immutable `receipt.json` metadata with query/task IDs, normalized SQL hash, source alias, correlation ID, duration, truncation state, and result checksum.
+- HTML dashboards embed the same receipt and escape all titles, column names, and result values to prevent hostile source values from being rendered as markup.
 
 ## 2026-08-20 20:00 UTC - Observability integrity checkpoint
 
@@ -142,6 +147,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): safety-coverage checkpoint passed `uv run ruff check src tests` and `uv run pytest --cov=mcp_data_agent --cov-branch` (35 tests; 90% combined coverage).
 - Checkpoint validation (2026-08-20): PostgreSQL CI checkpoint passed local `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (35 tests); the live PostgreSQL test is reserved for CI's disposable service.
 - Checkpoint validation (2026-08-20): observability-integrity checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (36 tests), plus OKF and whitespace validation.
+- Checkpoint validation (2026-08-20): receipt-backed-report checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (36 tests), plus OKF and whitespace validation.
 
 # Open Issues
 

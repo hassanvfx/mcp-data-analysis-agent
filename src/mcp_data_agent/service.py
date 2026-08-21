@@ -9,7 +9,14 @@ from typing import Any
 from uuid import uuid4
 
 from .adapters import connection, describe_schema
-from .artifacts import create_output_directory, export_csv, export_parquet, render_html, render_pdf
+from .artifacts import (
+    create_output_directory,
+    export_csv,
+    export_parquet,
+    render_html,
+    render_pdf,
+    write_receipt_metadata,
+)
 from .config import Settings, load_settings
 from .errors import AgentError
 from .ledger import Ledger
@@ -109,11 +116,16 @@ class AnalyticsService:
                parquet: bool = False, pdf: bool = False) -> list[dict[str, str]]:
         directory = create_output_directory(self.settings.root, output)
         names = [column["name"] for column in result.columns]
-        artifacts: list[dict[str, str]] = []
+        receipt = {"version": result.version, "query_id": result.query_id, "task_id": result.task_id,
+                   "source_alias": result.source_alias, "normalized_sql": result.normalized_sql,
+                   "sql_hash": result.sql_hash, "correlation_id": result.correlation_id,
+                   "result_checksum": result.result_checksum, "truncated": result.truncated,
+                   "duration_ms": result.duration_ms}
+        artifacts: list[dict[str, str]] = [write_receipt_metadata(directory, receipt)]
         if csv:
             artifacts.append(export_csv(directory, names, result.rows))
         if html:
-            artifacts.append(render_html(directory, "MCP Data Analysis", names, result.rows))
+            artifacts.append(render_html(directory, "MCP Data Analysis", names, result.rows, receipt))
         if parquet:
             artifacts.append(export_parquet(directory, names, result.rows))
         if pdf:

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import html
+import json
 import os
 import shutil
 import subprocess
@@ -37,10 +39,21 @@ def export_csv(directory: Path, columns: list[str], rows: list[list[Any]]) -> di
     return {"path": str(destination), "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()}
 
 
-def render_html(directory: Path, title: str, columns: list[str], rows: list[list[Any]]) -> dict[str, str]:
-    cells = "".join("<tr>" + "".join(f"<td>{value!s}</td>" for value in row) + "</tr>" for row in rows)
-    header = "".join(f"<th>{name}</th>" for name in columns)
-    document = f"<!doctype html><meta charset=utf-8><title>{title}</title><h1>{title}</h1><table><thead><tr>{header}</tr></thead><tbody>{cells}</tbody></table>"
+def write_receipt_metadata(directory: Path, receipt: dict[str, Any]) -> dict[str, str]:
+    destination = directory / "receipt.json"
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=directory, delete=False) as handle:
+        json.dump(receipt, handle, indent=2, sort_keys=True, default=str)
+        handle.write("\n")
+        temporary = Path(handle.name)
+    os.replace(temporary, destination)
+    return {"path": str(destination), "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()}
+
+
+def render_html(directory: Path, title: str, columns: list[str], rows: list[list[Any]], receipt: dict[str, Any] | None = None) -> dict[str, str]:
+    cells = "".join("<tr>" + "".join(f"<td>{html.escape(str(value))}</td>" for value in row) + "</tr>" for row in rows)
+    header = "".join(f"<th>{html.escape(name)}</th>" for name in columns)
+    receipt_text = html.escape(json.dumps(receipt, sort_keys=True, default=str)) if receipt else ""
+    document = f"<!doctype html><meta charset=utf-8><title>{html.escape(title)}</title><h1>{html.escape(title)}</h1><table><thead><tr>{header}</tr></thead><tbody>{cells}</tbody></table><details><summary>Query receipt</summary><pre>{receipt_text}</pre></details>"
     destination = directory / "dashboard.html"
     destination.write_text(document, encoding="utf-8")
     return {"path": str(destination), "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()}

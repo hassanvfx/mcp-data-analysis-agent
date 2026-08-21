@@ -9,6 +9,7 @@ from mcp_data_agent.artifacts import (
     export_parquet,
     render_html,
     render_pdf,
+    write_receipt_metadata,
 )
 from mcp_data_agent.errors import AgentError
 
@@ -16,7 +17,10 @@ from mcp_data_agent.errors import AgentError
 def test_outputs_are_atomic_and_non_overwriting(tmp_path: Path) -> None:
     output = create_output_directory(tmp_path, tmp_path / "outputs" / "run-1")
     assert Path(export_csv(output, ["id"], [[1]])["path"]).exists()
-    assert Path(render_html(output, "Test", ["id"], [[1]])["path"]).exists()
+    assert Path(write_receipt_metadata(output, {"query_id": "query-1"})["path"]).exists()
+    dashboard = Path(render_html(output, "<Test>", ["id"], [["<unsafe>"]], {"query_id": "query-1"})["path"])
+    assert "&lt;unsafe&gt;" in dashboard.read_text()
+    assert "query-1" in dashboard.read_text()
     with pytest.raises(AgentError):
         create_output_directory(tmp_path, output)
 
