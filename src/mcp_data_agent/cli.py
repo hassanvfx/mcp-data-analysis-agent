@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -24,6 +25,19 @@ def root() -> Path:
 
 def emit(value: object) -> None:
     typer.echo(json.dumps(value, default=str, indent=2))
+
+
+def _install_typst() -> str | None:
+    """Install Typst through an existing user package manager, never sudo."""
+    if shutil.which("typst"):
+        return None
+    if shutil.which("brew"):
+        subprocess.run(["brew", "install", "typst"], check=True)
+        return None
+    if sys.platform == "win32" and shutil.which("winget"):
+        subprocess.run(["winget", "install", "--id", "Typst.Typst", "--exact"], check=True)
+        return None
+    return "Install Typst with your platform package manager, then rerun preflight."
 
 
 @app.command()
@@ -50,10 +64,11 @@ def setup(client: str = "codex", apply: bool = False) -> None:
 
 
 @app.command()
-def preflight(fix: bool = False) -> None:
-    """Report installation readiness without connecting to a source."""
+def preflight(fix: bool = typer.Option(True, "--fix/--no-fix")) -> None:
+    """Ensure required local tooling is installed without connecting to a source."""
     project = root()
     repaired: list[str] = []
+    required_action: list[str] = []
     if fix:
         for name, content in {".env.example": "# Do not commit .env. Add private source values here.\n",
                               ".mcp-data-agent.toml": "[agent]\ndefault_row_limit = 500\nmax_row_limit = 5000\nquery_timeout_seconds = 30\n"}.items():
@@ -61,13 +76,21 @@ def preflight(fix: bool = False) -> None:
             if not target.exists():
                 target.write_text(content, encoding="utf-8")
                 repaired.append(name)
+        if shutil.which("uv"):
+            subprocess.run(["uv", "sync", "--extra", "dev", "--extra", "parquet"], check=True, cwd=project)
+        else:
+            required_action.append("Install uv through its official installer.")
+        try:
+            if action := _install_typst():
+                required_action.append(action)
+        except subprocess.CalledProcessError:
+            required_action.append("Typst installation failed; install it with your platform package manager.")
     checks = {"project_writable": project.exists() and project.is_dir(), "git": shutil.which("git") is not None,
               "uv": shutil.which("uv") is not None, "python_3_11": sys.version_info >= (3, 11),
               "clineflow": (project / "clineflow-doctor").is_file(), "okf": (project / "validate-okf").is_file(),
-              "mcp_executable": shutil.which("mcp-data-mcp") is not None}
-    if fix and not checks["uv"]:
-        typer.echo("uv is missing; install it through the official uv installer after confirmation.")
-    emit({"checks": checks, "repaired": repaired, "status": "pass" if all(checks.values()) else "required_action"})
+              "mcp_executable": shutil.which("mcp-data-mcp") is not None, "typst": shutil.which("typst") is not None}
+    emit({"checks": checks, "repaired": repaired, "required_action": required_action,
+          "status": "pass" if all(checks.values()) else "required_action"})
 
 
 @app.command()

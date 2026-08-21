@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
 
+from mcp_data_agent import cli
 from mcp_data_agent.adapters import connection, describe_schema
 from mcp_data_agent.cli import app
 from mcp_data_agent.clients import ClientTemplate, templates, write_template
@@ -146,11 +147,27 @@ def test_cli_setup_and_doctor(tmp_path: Path, monkeypatch) -> None:
 
 def test_preflight_fix_creates_only_non_secret_templates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("mcp_data_agent.cli.subprocess.run", lambda *args, **kwargs: None)
+    monkeypatch.setattr("mcp_data_agent.cli._install_typst", lambda: "Install Typst manually.")
     result = CliRunner().invoke(app, ["preflight", "--fix"])
     assert result.exit_code == 0
     assert (tmp_path / ".env.example").exists()
     assert (tmp_path / ".mcp-data-agent.toml").exists()
     assert not (tmp_path / ".env").exists()
+
+
+def test_typst_install_detection_uses_existing_user_tools(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda name: "/bin/typst" if name == "typst" else None)
+    assert cli._install_typst() is None
+
+    calls: list[list[str]] = []
+    monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda name: "/bin/brew" if name == "brew" else None)
+    monkeypatch.setattr("mcp_data_agent.cli.subprocess.run", lambda command, **kwargs: calls.append(command))
+    assert cli._install_typst() is None
+    assert calls == [["brew", "install", "typst"]]
+
+    monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda name: None)
+    assert cli._install_typst() is not None
 
 
 def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
@@ -168,7 +185,7 @@ def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
     commands = [
-        ["preflight"],
+        ["preflight", "--no-fix"],
         ["sources"], ["schema", "retail"], ["schema-state", "retail"], ["joins", "retail"], ["profile", "retail", "products"],
         ["quality", "retail", "products"], ["metrics"], ["metric", "revenue"], ["recipes"], ["chart", "name,stock", "2"],
         ["sql", "retail", "SELECT id FROM products"],

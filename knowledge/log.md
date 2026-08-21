@@ -86,6 +86,8 @@
 
 * **Safe preflight repair checkpoint**: Added idempotent non-secret template repair without touching private credentials or knowledge. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Installation-enforcing preflight checkpoint**: Default preflight now syncs required extras and provisions Typst through a non-privileged supported package manager. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
