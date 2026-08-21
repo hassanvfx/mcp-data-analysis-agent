@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T19:00:00Z
+  at: 2026-08-20T19:15:00Z
 ---
 
 # Goal
@@ -63,6 +63,11 @@ Each representative use case is complete only when it:
 
 # Work Log
 
+## 2026-08-20 19:15 UTC - CLI and MCP contract coverage checkpoint
+
+- Added direct contract tests for every MCP tool wrapper and fixture-backed CLI command coverage for setup, discovery, query, explain, recipe, report-adjacent operations, datasets, demos, and benchmarks.
+- Measured 83% overall line/branch coverage; remaining coverage work is concentrated in PostgreSQL and optional PDF/Parquet error paths, which will be exercised in subsequent readiness work.
+
 ## 2026-08-20 19:00 UTC - Task completion and evaluation checkpoint
 
 - Task completion now atomically closes the linked ClineFlow journal with findings and next steps as well as marking the ledger task complete.
@@ -118,6 +123,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): expanded fixture checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (21 tests), `./validate-okf`, and `git diff --check`.
 - Checkpoint validation (2026-08-20): six-workflow checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest tests/test_golden_scenarios.py -q` (6 tests), `./validate-okf`, and `git diff --check`.
 - Checkpoint validation (2026-08-20): task-evaluation checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, `uv run pytest -q` (25 tests), `./validate-okf`, and `git diff --check`.
+- Checkpoint validation (2026-08-20): interface-coverage checkpoint passed `uv run ruff check src tests`, `uv run pytest -q` (27 tests), and coverage measurement (83% overall).
 
 # Open Issues
 

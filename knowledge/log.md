@@ -16,6 +16,8 @@
 
 * **Task evaluation checkpoint**: Task completion now closes linked ClineFlow journals and a deterministic evaluator assesses lifecycle receipt completeness. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md) for validation evidence.
 
+* **Interface coverage checkpoint**: Added direct MCP and fixture-backed CLI contract tests, raising measured coverage to 83% while identifying the remaining PostgreSQL and optional-renderer paths. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

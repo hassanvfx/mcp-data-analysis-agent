@@ -40,3 +40,25 @@ def test_cli_setup_and_doctor(tmp_path: Path, monkeypatch) -> None:
     assert runner.invoke(app, ["setup", "--client", "codex"]).exit_code == 0
     assert (tmp_path / ".mcp-data-agent.toml").exists()
     assert runner.invoke(app, ["doctor"]).exit_code == 0
+
+
+def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 4, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='CLI_RETAIL_PATH'\n")
+    (tmp_path / "recipes").mkdir()
+    (tmp_path / "recipes" / "one.toml").write_text("source_alias='retail'\nsql='SELECT id FROM products WHERE id = :id'\nparameters=['id']\n")
+    monkeypatch.setenv("CLI_RETAIL_PATH", str(database))
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    commands = [
+        ["sources"], ["schema", "retail"], ["joins", "retail"], ["profile", "retail", "products"],
+        ["quality", "retail", "products"], ["metrics"], ["chart", "name,stock", "2"],
+        ["explain", "retail", "SELECT id FROM products"], ["query", "retail", "SELECT id FROM products"],
+        ["recipe", "one", "--params", '{"id": 1}'], ["context"], ["dataset", "saas", "data.sqlite"],
+        ["demo", "start", "--domain", "support", "--output", "demo.sqlite"], ["demo", "stop", "--output", "demo.sqlite"],
+        ["benchmark", "support", "benchmark.sqlite"],
+    ]
+    for command in commands:
+        result = runner.invoke(app, command)
+        assert result.exit_code == 0, result.output

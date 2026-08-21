@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import sys
 from pathlib import Path
 
 import typer
@@ -53,7 +54,7 @@ def preflight(fix: bool = False) -> None:
     """Report installation readiness without connecting to a source."""
     project = root()
     checks = {"project_writable": project.exists() and project.is_dir(), "git": shutil.which("git") is not None,
-              "uv": shutil.which("uv") is not None, "python_3_11": True,
+              "uv": shutil.which("uv") is not None, "python_3_11": sys.version_info >= (3, 11),
               "clineflow": (project / "clineflow-doctor").is_file(), "okf": (project / "validate-okf").is_file(),
               "mcp_executable": shutil.which("mcp-data-mcp") is not None}
     if fix and not checks["uv"]:
