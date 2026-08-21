@@ -17,6 +17,9 @@ def test_retail_query_creates_task_and_receipt(tmp_path: Path, monkeypatch) -> N
     assert result.rows and result.task_id.startswith("task-")
     assert list((tmp_path / "observability" / "queries").rglob("*.json"))
     assert (tmp_path / "knowledge" / "journals" / "data-analysis" / f"{result.task_id}.md").exists()
+    task_record = (tmp_path / "observability" / "tasks" / f"{result.task_id}.md").read_text()
+    assert result.query_id in task_record
+    assert "run-" in task_record
 
 
 def test_all_development_domains_generate(tmp_path: Path) -> None:
@@ -157,6 +160,20 @@ def test_ledger_atomic_failure_cleans_temporary_file(tmp_path: Path, monkeypatch
     assert not list(tmp_path.glob(".pending-*"))
 
 
+def test_task_reference_linking_rejects_invalid_missing_and_duplicate_values(tmp_path: Path) -> None:
+    service = AnalyticsService(tmp_path)
+    with pytest.raises(ValueError):
+        service.ledger.link_task_value("missing", "invalid", "value")
+    service.ledger.link_task_value("missing", "query_ids", "query-1")
+    service.ledger.begin_task("links", "test", task_id="task-links")
+    service.ledger.link_task_value("task-links", "query_ids", "query-1")
+    service.ledger.link_task_value("task-links", "query_ids", "query-1")
+    task = tmp_path / "observability" / "tasks" / "task-links.md"
+    assert task.read_text().count("query-1") == 1
+    task.write_text("---\nother: []\n---\n")
+    service.ledger.link_task_value("task-links", "query_ids", "query-2")
+
+
 def test_task_completion_tolerates_missing_linked_journal(tmp_path: Path) -> None:
     service = AnalyticsService(tmp_path)
     task = service.begin_task("missing journal", "test")
@@ -195,3 +212,6 @@ def test_service_export_selected_formats(tmp_path: Path, monkeypatch) -> None:
     artifacts = service.export(result, tmp_path / "outputs" / "parquet", html=False, csv=False, parquet=True)
     assert len(artifacts) == 2
     assert artifacts[1]["path"].endswith(".parquet")
+    task_record = (tmp_path / "observability" / "tasks" / f"{result.task_id}.md").read_text()
+    assert "source_aliases:" in task_record
+    assert "artifacts:" in task_record

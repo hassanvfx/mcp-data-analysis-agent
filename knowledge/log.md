@@ -50,6 +50,8 @@
 
 * **Pre-execution SQL validation checkpoint**: Added a safe SQL-validation CLI/MCP interface that returns policy evidence before source access. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Task-audit linkage checkpoint**: Task records now accumulate source, receipt, run, and artifact references as a complete audit index. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

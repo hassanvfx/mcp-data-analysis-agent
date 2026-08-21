@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -46,7 +47,7 @@ class Ledger:
         journal_content = f'''---\ntype: Engineering Journal\ntitle: "{title}"\ndescription: "Data-analysis task {task_id}"\ntags: [data-analysis]\nstatus: draft\ngenerated:\n  by: mcp-data-analysis-agent\n  at: {_now().isoformat()}\n---\n\n# Goal\n\n{objective}\n\n# Status\n\n- [ ] Complete\n\n# Findings\n\nPending.\n\n# Verification\n\nPending.\n\n# Next Steps\n\nRun the approved analysis and complete this task.\n'''
         _write_atomic(journal, journal_content)
         task = self.base / "tasks" / f"{task_id}.md"
-        task_content = f'''---\ntask_id: {task_id}\ntitle: "{title}"\nobjective: "{objective}"\nstatus: active\njournal: {journal.relative_to(self.root)}\nquery_ids: []\nrun_ids: []\nartifacts: []\ncreated_at: {_now().isoformat()}\n---\n\n# Findings\n\nPending.\n\n# Next steps\n\nComplete the linked analysis journal.\n'''
+        task_content = f'''---\ntask_id: {task_id}\ntitle: "{title}"\nobjective: "{objective}"\nstatus: active\njournal: {journal.relative_to(self.root)}\nsource_aliases: []\nquery_ids: []\nrun_ids: []\nartifacts: []\ncreated_at: {_now().isoformat()}\n---\n\n# Findings\n\nPending.\n\n# Next steps\n\nComplete the linked analysis journal.\n'''
         _write_atomic(task, task_content)
         self.event(task_id, "task_started", {"title": title})
         return {"task_id": task_id, "journal_path": str(journal.relative_to(self.root))}
@@ -70,6 +71,7 @@ class Ledger:
         text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
         path = self.base / "queries" / str(stamp.year) / f"{stamp.month:02d}" / f"{query_id}.json"
         _write_atomic(path, text)
+        self.link_task_value(task_id, "query_ids", query_id)
         self.event(task_id, "query_recorded", {"query_id": query_id})
         return path
 
@@ -81,8 +83,32 @@ class Ledger:
                    "retry": False, "cancelled": False, "recorded_at": stamp.isoformat()}
         path = self.base / "runs" / str(stamp.year) / f"{stamp.month:02d}" / f"{run_id}.json"
         _write_atomic(path, json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        self.link_task_value(task_id, "run_ids", run_id)
         self.event(task_id, "run_recorded", {"run_id": run_id, "tool": tool_name, "status": status})
         return path
+
+    def link_task_value(self, task_id: str, key: str, value: str) -> None:
+        """Atomically append a quoted scalar to a known task-frontmatter list."""
+        if key not in {"source_aliases", "query_ids", "run_ids", "artifacts"}:
+            raise ValueError(f"Unsupported task reference key: {key}")
+        path = self.base / "tasks" / f"{task_id}.md"
+        if not path.exists():
+            return
+        original = path.read_text(encoding="utf-8")
+        encoded = json.dumps(value)
+        empty = f"{key}: []\n"
+        if empty in original:
+            updated = original.replace(empty, f"{key}:\n  - {encoded}\n", 1)
+        else:
+            pattern = rf"^{re.escape(key)}:\n((?:  - .*\n)*)"
+            match = re.search(pattern, original, flags=re.MULTILINE)
+            if not match:
+                return
+            existing = match.group(1)
+            if encoded in existing:
+                return
+            updated = original[:match.end()] + f"  - {encoded}\n" + original[match.end():]
+        _write_atomic(path, updated)
 
     def complete_task(self, task_id: str, findings: str, next_steps: str = "") -> None:
         path = self.base / "tasks" / f"{task_id}.md"

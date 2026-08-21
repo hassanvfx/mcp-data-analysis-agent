@@ -182,6 +182,9 @@ class AnalyticsService:
             artifacts.append(export_parquet(directory, names, result.rows))
         if pdf:
             artifacts.append(render_pdf(directory, "MCP Data Analysis", names, result.rows))
+        self.ledger.link_task_value(result.task_id, "source_aliases", result.source_alias)
+        for artifact in artifacts:
+            self.ledger.link_task_value(result.task_id, "artifacts", f"{artifact['path']}#{artifact['sha256']}")
         self.ledger.event(result.task_id, "artifacts_created", {"artifacts": artifacts})
         return artifacts
 
