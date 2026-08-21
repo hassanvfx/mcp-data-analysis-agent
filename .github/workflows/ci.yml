@@ -1,0 +1,13 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev --extra parquet
+      - run: uv run ruff check src tests
+      - run: uv run mypy src
+      - run: uv run pytest --cov=mcp_data_agent --cov-branch
+      - run: ./validate-okf

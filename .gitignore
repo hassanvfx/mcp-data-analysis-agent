@@ -1,2 +1,17 @@
 # ClineFlow - per-developer config
 .clineflow.local
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+outputs/
+observability/events/
+observability/queries/
+observability/runs/
+observability/tasks/
+*.sqlite
+*.sqlite3

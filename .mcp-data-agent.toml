@@ -1,0 +1,16 @@
+[agent]
+version = 1
+default_row_limit = 500
+max_row_limit = 5000
+query_timeout_seconds = 30
+max_concurrent_queries = 4
+
+# Sources contain policy only. Put database paths and URLs in ignored .env.
+# [sources.analytics]
+# dialect = "postgres"
+# env = "MCP_DATA_SOURCE_ANALYTICS_URL"
+# allowed_schemas = ["public"]
+# classification = "internal"
+
+[classification]
+restricted_columns = []

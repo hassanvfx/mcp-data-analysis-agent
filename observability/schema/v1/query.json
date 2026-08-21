@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","title":"MCP Data Query Record v1","type":"object","required":["version","query_id","task_id","normalized_sql","sql_hash","correlation_id"]}

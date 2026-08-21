@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","title":"MCP Data Run Record v1","type":"object","required":["version","run_id","task_id","tool_name","status","correlation_id"]}

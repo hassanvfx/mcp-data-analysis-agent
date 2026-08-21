@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, specification, observability]
 status: stable
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T02:53:11Z
+  at: 2026-08-21T02:58:38Z
 ---
 
 # Goal
@@ -149,6 +149,23 @@ For the request "Show this month's highest-revenue products, their current stock
 - A successful scenario produces correct bounded data, requested valid artifacts, complete linked ClineFlow and observability records, an expected audit timeline, and an end-to-end benchmark duration below 60 seconds.
 - CI runs formatting, linting, typing, unit/integration/benchmark tests, ClineFlow OKF validation, secret scanning, dependency vulnerability scanning, SBOM generation, semantic release, trusted PyPI publishing, and security disclosure processes.
 
+### Representative synthetic-data use cases
+
+The generators must create deterministic data and seeded expected answers for the following representative workflows. Each workflow is a reusable golden scenario that exercises schema discovery, semantic context, query validation/explain, safe execution, result quality, receipt/ledger linkage, and requested chart/report artifacts.
+
+| Domain | Synthetic schema focus | Representative question | Required evidence |
+| --- | --- | --- | --- |
+| Retail and inventory | customers, categories, products, warehouses, inventory snapshots, orders, order items, returns, promotions | "Which products led revenue this month, what stock remains, and which SKUs have material stockout risk?" | Revenue and stock aggregation; order/product/warehouse joins; bounded bar/table output; receipt and dashboard/PDF. |
+| Retail and inventory | orders, order items, returns, categories, promotions | "Which categories have the highest return rate, and did promotions increase returns?" | Correct return-rate denominator; date filtering; comparison output; quality warning when intentionally incomplete return data is present. |
+| SaaS analytics | organizations, users, plans, subscriptions, invoices, product events, feature flags | "What are current MRR, net MRR movement, and churn drivers by plan?" | Approved MRR definition from catalog; subscription/invoice joins; period comparison; metric receipt. |
+| SaaS analytics | users, organizations, product events, subscriptions | "Which cohorts retain users after 30 days, and which feature adoption signals predict retention?" | Cohort/date logic; event aggregation; line/table chart recommendation; planned cost/explain evidence. |
+| Support operations | customers, agents, tickets, ticket events, tags, SLA targets | "What is the SLA breach rate by priority and which queues are growing?" | Time-to-resolution calculation; priority and queue grouping; freshness/volume checks; alert-quality findings. |
+| Support operations | tickets, events, agents, CSAT responses, escalations | "Which teams have the lowest CSAT, highest reopen rate, and largest backlog?" | Safe multi-table joins; data-quality checks for missing surveys; ranked table/chart; report and export receipt. |
+
+- Unit-tier fixtures use small, exact rows to assert query outputs, joins, classifications, redaction, and error handling.
+- Benchmark-tier fixtures scale each domain while preserving seed-determined expected aggregates and date boundaries for the under-60-second end-to-end SLA.
+- Generator inputs include domain, tier, fixed seed, and output path; every scenario records those inputs so a failed result can be reproduced exactly.
+
 ### Acceptance criteria and failure behavior
 
 - Installation is successful when the bootstrap/preflight completes, ClineFlow validates, the CLI/MCP executable starts, and the user receives safe next-step instructions without creating data or requiring a credential.
@@ -178,6 +195,11 @@ For the request "Show this month's highest-revenue products, their current stock
 
 - Revalidated the expanded OKF bundle and whitespace before the initial project commit.
 - Prepared the ClineFlow setup, source requirements PDF, and stable product specification for version control; excluded unrelated macOS `.DS_Store` files.
+
+## 2026-08-21 02:58 UTC - Representative use cases added
+
+- Added the representative synthetic-data scenario matrix for retail/inventory, SaaS analytics, and support operations.
+- Bound each use case to deterministic generated fixtures and explicit analytical, safety, receipt, observability, and artifact evidence.
 
 # Decisions
 

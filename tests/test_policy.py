@@ -1,0 +1,33 @@
+from pathlib import Path
+
+import pytest
+
+from mcp_data_agent.config import Settings, SourcePolicy
+from mcp_data_agent.errors import AgentError
+from mcp_data_agent.policy import redact_value, validate_sql
+
+
+@pytest.fixture
+def source() -> SourcePolicy:
+    return SourcePolicy("test", "sqlite", "URL")
+
+
+def test_permits_parameterized_select(source: SourcePolicy, tmp_path: Path) -> None:
+    result = validate_sql("SELECT * FROM products WHERE id = :id", {"id": 1}, source, Settings(root=tmp_path))
+    assert result.validation.outcome == "permitted"
+    assert result.sql_hash
+
+
+@pytest.mark.parametrize("sql", ["DELETE FROM products", "SELECT 1; SELECT 2", "PRAGMA journal_mode=WAL"])
+def test_blocks_unsafe_sql(source: SourcePolicy, tmp_path: Path, sql: str) -> None:
+    with pytest.raises(AgentError):
+        validate_sql(sql, {}, source, Settings(root=tmp_path))
+
+
+def test_blocks_restricted_column(source: SourcePolicy, tmp_path: Path) -> None:
+    with pytest.raises(AgentError, match="restricted"):
+        validate_sql("SELECT ssn FROM people", {}, source, Settings(root=tmp_path, restricted_columns=frozenset({"ssn"})))
+
+
+def test_redacts_secret_values() -> None:
+    assert redact_value("api_token", "value")["redacted"] is True

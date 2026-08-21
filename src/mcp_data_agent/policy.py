@@ -1,0 +1,62 @@
+"""Dialect-aware read-only SQL validation."""
+
+from __future__ import annotations
+
+import hashlib
+import re
+from dataclasses import dataclass
+from typing import Any
+
+import sqlglot
+from sqlglot import exp
+
+from .config import Settings, SourcePolicy
+from .errors import AgentError
+from .models import ValidationResult
+
+SECRET_NAME = re.compile(r"(pass(word)?|secret|token|api[_-]?key|credential)", re.IGNORECASE)
+
+
+@dataclass(frozen=True, slots=True)
+class ValidatedQuery:
+    sql: str
+    sql_hash: str
+    parameters: dict[str, Any]
+    validation: ValidationResult
+
+
+def redact_value(name: str, value: Any, restricted: bool = False) -> Any:
+    if restricted or SECRET_NAME.search(name):
+        digest = hashlib.sha256(repr(value).encode()).hexdigest()[:16]
+        return {"redacted": True, "stable_hash": digest}
+    return value
+
+
+def validate_sql(sql: str, parameters: dict[str, Any], source: SourcePolicy, settings: Settings) -> ValidatedQuery:
+    try:
+        statements = sqlglot.parse(sql, read=source.dialect)
+    except Exception as exc:
+        raise AgentError("SQL_INVALID", "SQL could not be parsed.", str(exc)) from exc
+    if len(statements) != 1:
+        raise AgentError("SQL_MULTI_STATEMENT", "Exactly one SQL statement is allowed.")
+    statement = statements[0]
+    # SQLGlot represents a WITH query as a Select/Union with a `with_` argument.
+    if not isinstance(statement, (exp.Select, exp.Union)):
+        raise AgentError("SQL_NOT_READ_ONLY", "Only SELECT or WITH queries are allowed.")
+    forbidden = (exp.Insert, exp.Update, exp.Delete, exp.Create, exp.Drop, exp.Alter, exp.Command, exp.Attach)
+    if any(statement.find(kind) for kind in forbidden):
+        raise AgentError("SQL_NOT_READ_ONLY", "Write, DDL, command, and attachment operations are blocked.")
+    columns = {column.name.lower() for column in statement.find_all(exp.Column)}
+    denied = columns & settings.restricted_columns
+    if denied:
+        raise AgentError("FIELD_RESTRICTED", "A restricted field was requested.", ", ".join(sorted(denied)))
+    placeholders = {node.name for node in statement.find_all(exp.Placeholder) if node.name}
+    missing = placeholders - parameters.keys()
+    if missing:
+        raise AgentError("PARAMETER_MISSING", "A bound parameter is missing.", ", ".join(sorted(missing)))
+    if not placeholders and parameters:
+        raise AgentError("PARAMETER_UNUSED", "Parameters must be bound by the query.")
+    normalized = statement.sql(dialect=source.dialect, pretty=False)
+    digest = hashlib.sha256(normalized.encode()).hexdigest()
+    validation = ValidationResult(outcome="permitted", normalized_sql=normalized, sql_hash=digest)
+    return ValidatedQuery(normalized, digest, parameters, validation)

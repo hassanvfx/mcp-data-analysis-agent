@@ -1,0 +1,14 @@
+# Version-controlled approved semantic definitions.
+[[metric]]
+name = "revenue"
+description = "Sum of recognized order-item revenue."
+classification = "internal"
+owner = "analytics"
+sql_fragment = "SUM(order_items.revenue)"
+
+[[metric]]
+name = "mrr"
+description = "Sum of active subscription monthly recurring revenue."
+classification = "internal"
+owner = "analytics"
+sql_fragment = "SUM(subscriptions.mrr)"
