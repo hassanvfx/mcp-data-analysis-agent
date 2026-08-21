@@ -70,6 +70,8 @@
 
 * **SQLite in-flight cancellation and timeout checkpoint**: Added deterministic SQLite query interruption for running cancellation requests and elapsed deadlines. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **PostgreSQL typed timeout checkpoint**: Normalized server-side statement timeouts into the governed query result error model. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

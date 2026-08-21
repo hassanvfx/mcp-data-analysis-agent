@@ -176,6 +176,10 @@ class AnalyticsService:
             if interrupt_reason == "QUERY_TIMEOUT":
                 raise AgentError("QUERY_TIMEOUT", "The running SQLite query exceeded its timeout.") from exc
             raise AgentError("QUERY_EXECUTION_FAILED", "The query could not be executed safely.") from exc
+        except Exception as exc:
+            if getattr(exc, "sqlstate", None) == "57014":
+                raise AgentError("QUERY_TIMEOUT", "The PostgreSQL query exceeded its server-side timeout.") from exc
+            raise AgentError("QUERY_EXECUTION_FAILED", "The query could not be executed safely.") from exc
         finally:
             if use_progress_handler:
                 db.set_progress_handler(None, 0)

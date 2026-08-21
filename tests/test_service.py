@@ -139,6 +139,30 @@ def test_sqlite_progress_handler_interrupts_an_inflight_cancellation(tmp_path: P
     assert database.progress_handler is None
 
 
+def test_postgres_execution_errors_are_typed(tmp_path: Path) -> None:
+    service = AnalyticsService(tmp_path)
+    task = service.begin_task("postgres", "normalize database failures")
+
+    class TimeoutError(Exception):
+        sqlstate = "57014"
+
+    class Cursor:
+        description = None
+
+        def execute(self, sql: str, parameters: dict[str, object]) -> None:
+            raise TimeoutError()
+
+        def fetchall(self) -> list[object]:
+            return []
+
+    class Database:
+        def cursor(self) -> Cursor:
+            return Cursor()
+
+    with pytest.raises(AgentError, match="server-side timeout"):
+        service._execute_bounded(Database(), "postgres", task.task_id, "SELECT 1", {})
+
+
 def test_ledger_integrity_detects_tampered_receipt(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 8, database)
