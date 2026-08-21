@@ -123,12 +123,25 @@ def test_context_without_knowledge_is_empty(tmp_path: Path) -> None:
 
 def test_cli_setup_and_doctor(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "clineflow-doctor").write_text("#!/bin/sh\n")
-    (tmp_path / "validate-okf").write_text("#!/bin/sh\n")
+    for name in ("clineflow-doctor", "validate-okf"):
+        path = tmp_path / name
+        path.write_text("#!/bin/sh\nexit 0\n")
+        path.chmod(0o755)
     runner = CliRunner()
     assert runner.invoke(app, ["setup", "--client", "codex"]).exit_code == 0
     assert (tmp_path / ".mcp-data-agent.toml").exists()
     assert runner.invoke(app, ["doctor"]).exit_code == 0
+
+
+def test_doctor_rejects_an_unhealthy_clineflow_check(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    for name, status in (("clineflow-doctor", 1), ("validate-okf", 0)):
+        path = tmp_path / name
+        path.write_text(f"#!/bin/sh\nexit {status}\n")
+        path.chmod(0o755)
+    result = CliRunner().invoke(app, ["doctor"])
+    assert result.exit_code == 1
+    assert '"clineflow": false' in result.output
 
 
 def test_preflight_fix_creates_only_non_secret_templates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -29,6 +29,21 @@ def emit(value: object) -> None:
     typer.echo(json.dumps(value, default=str, indent=2))
 
 
+def _clineflow_healthy(project: Path) -> bool:
+    """Run the project-owned ClineFlow health checks without changing knowledge."""
+    commands = [project / "clineflow-doctor", project / "validate-okf"]
+    if not all(command.is_file() for command in commands):
+        return False
+    try:
+        for command in commands:
+            completed = subprocess.run([str(command)], cwd=project, capture_output=True, text=True, check=False)
+            if completed is not None and completed.returncode != 0:
+                return False
+    except OSError:
+        return False
+    return True
+
+
 def _install_typst() -> str | None:
     """Install Typst through an existing user package manager, never sudo."""
     if shutil.which("typst"):
@@ -104,7 +119,7 @@ def preflight(fix: bool = typer.Option(True, "--fix/--no-fix")) -> None:
             required_action.append("PostgreSQL tooling installation failed; install PostgreSQL client tools.")
     checks = {"project_writable": project.exists() and project.is_dir(), "git": shutil.which("git") is not None,
               "uv": shutil.which("uv") is not None, "python_3_11": sys.version_info >= (3, 11),
-              "clineflow": (project / "clineflow-doctor").is_file(), "okf": (project / "validate-okf").is_file(),
+              "clineflow": _clineflow_healthy(project),
               "mcp_executable": shutil.which("mcp-data-mcp") is not None, "typst": shutil.which("typst") is not None,
               "sqlalchemy_core": importlib.util.find_spec("sqlalchemy") is not None,
               "postgres_local_cli": shutil.which("createdb") is not None}
@@ -116,7 +131,7 @@ def preflight(fix: bool = typer.Option(True, "--fix/--no-fix")) -> None:
 def doctor(require_source: bool = False) -> None:
     """Validate local setup; no configured source is configuration-pending."""
     service = AnalyticsService(root())
-    healthy = (root() / "clineflow-doctor").is_file() and (root() / "validate-okf").is_file()
+    healthy = _clineflow_healthy(root())
     source_ready = bool(service.settings.sources)
     emit({"status": "pass" if healthy and (source_ready or not require_source) else "failed",
           "clineflow": healthy, "source": "configured" if source_ready else "configuration_pending"})

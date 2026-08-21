@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T06:25:00Z
+  at: 2026-08-21T06:35:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 06:35 UTC - ClineFlow health-enforcement checkpoint
+
+- Preflight and doctor now execute the project-owned `clineflow-doctor` and `validate-okf` checks rather than accepting their mere file presence.
+- Added unhealthy-check regression coverage; the real project preflight and doctor both pass while correctly reporting no configured source as configuration-pending.
 
 ## 2026-08-21 06:25 UTC - CI secret-scanning checkpoint
 
