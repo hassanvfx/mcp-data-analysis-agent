@@ -1,0 +1,9 @@
+version = "v1"
+title = "Support SLA by priority"
+description = "Summarizes ticket volume against the declared SLA target by priority."
+source_alias = "support"
+parameters = []
+classification = "internal"
+chart = "bar"
+owner = "analytics"
+sql = "SELECT tickets.priority, COUNT(*) AS tickets, MAX(sla_targets.hours) AS sla_hours FROM tickets JOIN sla_targets ON sla_targets.priority = tickets.priority GROUP BY tickets.priority ORDER BY tickets DESC"

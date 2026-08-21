@@ -53,6 +53,11 @@ def list_sources() -> list[dict[str, object]]:
 
 
 @mcp.tool()
+def list_recipes() -> list[dict[str, object]]:
+    return service().recipes()
+
+
+@mcp.tool()
 def suggest_joins(source_alias: str) -> list[dict[str, str]]:
     return service().joins(source_alias)
 

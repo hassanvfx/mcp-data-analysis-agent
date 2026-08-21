@@ -1,0 +1,9 @@
+version = "v1"
+title = "Retail top products by revenue"
+description = "Ranks products by recognized synthetic order-item revenue."
+source_alias = "retail"
+parameters = []
+classification = "internal"
+chart = "bar"
+owner = "analytics"
+sql = "SELECT products.name, SUM(order_items.revenue) AS revenue FROM order_items JOIN products ON products.id = order_items.product_id GROUP BY products.name ORDER BY revenue DESC"

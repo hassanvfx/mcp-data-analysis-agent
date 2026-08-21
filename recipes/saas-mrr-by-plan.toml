@@ -1,0 +1,9 @@
+version = "v1"
+title = "SaaS MRR by plan"
+description = "Uses the approved MRR definition to aggregate active subscription value by plan."
+source_alias = "saas"
+parameters = []
+classification = "internal"
+chart = "bar"
+owner = "analytics"
+sql = "SELECT organizations.plan, SUM(subscriptions.mrr) AS mrr FROM subscriptions JOIN organizations ON organizations.id = subscriptions.organization_id WHERE subscriptions.status = 'active' GROUP BY organizations.plan ORDER BY mrr DESC"

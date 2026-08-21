@@ -62,6 +62,7 @@ def test_service_explain_join_profile_recipe_and_timeline(tmp_path: Path, monkey
     task = service.begin_task("test", "test")
     assert service.explain("retail", "SELECT id FROM products WHERE id = :id", {"id": 1})["plan"]
     assert service.profile("retail", "products")["row_count"] == 20
+    assert service.recipes()[0]["version"] == "v1"
     assert service.run_recipe("top-products", {"id": 1}, task.task_id).rows
     assert service.timeline(task.task_id)
 
@@ -222,6 +223,13 @@ def test_schema_state_fingerprints_and_detects_drift(tmp_path: Path, monkeypatch
 def test_recipe_name_cannot_traverse_project(tmp_path: Path) -> None:
     with pytest.raises(AgentError, match="Recipe names"):
         AnalyticsService(tmp_path).run_recipe("../outside", {})
+
+
+def test_recipe_metadata_is_validated(tmp_path: Path) -> None:
+    (tmp_path / "recipes").mkdir()
+    (tmp_path / "recipes" / "broken.toml").write_text("source_alias='retail'\nparameters='id'\n")
+    with pytest.raises(AgentError, match="required metadata"):
+        AnalyticsService(tmp_path).recipe("broken")
 
 
 def test_ledger_invalid_records_and_missing_completion_are_detected(tmp_path: Path) -> None:

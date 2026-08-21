@@ -114,6 +114,13 @@ class AnalyticsService:
         return {"table": table, "columns": schema["columns"], **quality}
 
     def run_recipe(self, name: str, parameters: dict[str, Any], task_id: str | None = None) -> QueryResult:
+        recipe = self.recipe(name)
+        allowed = set(recipe["parameters"])
+        if set(parameters) - allowed:
+            raise AgentError("RECIPE_PARAMETER_DENIED", "A recipe parameter is not approved.")
+        return self.execute(str(recipe["source_alias"]), str(recipe["sql"]), parameters, task_id)
+
+    def recipe(self, name: str) -> dict[str, Any]:
         if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", name):
             raise AgentError("RECIPE_NAME_INVALID", "Recipe names may contain lowercase letters, numbers, underscores, and hyphens only.")
         path = self.settings.root / "recipes" / f"{name}.toml"
@@ -121,10 +128,26 @@ class AnalyticsService:
             raise AgentError("RECIPE_UNKNOWN", "The requested recipe is not available.")
         with path.open("rb") as file:
             recipe = tomllib.load(file)
-        allowed = set(recipe.get("parameters", []))
-        if set(parameters) - allowed:
-            raise AgentError("RECIPE_PARAMETER_DENIED", "A recipe parameter is not approved.")
-        return self.execute(str(recipe["source_alias"]), str(recipe["sql"]), parameters, task_id)
+        required = {"source_alias", "sql"}
+        if missing := required - recipe.keys():
+            raise AgentError("RECIPE_INVALID", "A recipe is missing required metadata.", ", ".join(sorted(missing)))
+        parameters = recipe.get("parameters", [])
+        if not isinstance(parameters, list) or not all(isinstance(item, str) for item in parameters):
+            raise AgentError("RECIPE_INVALID", "Recipe parameters must be a list of names.")
+        if len(parameters) != len(set(parameters)):
+            raise AgentError("RECIPE_INVALID", "Recipe parameters may not repeat names.")
+        classification = str(recipe.get("classification", "internal"))
+        if classification not in {"public", "internal", "confidential", "restricted"}:
+            raise AgentError("RECIPE_INVALID", "Recipe classification is invalid.")
+        return {"version": str(recipe.get("version", "v1")), "name": name,
+                "title": str(recipe.get("title", name.replace("-", " ").title())),
+                "description": str(recipe.get("description", "")), "source_alias": str(recipe["source_alias"]),
+                "sql": str(recipe["sql"]), "parameters": parameters, "classification": classification,
+                "chart": str(recipe.get("chart", "table")), "owner": str(recipe.get("owner", "analytics"))}
+
+    def recipes(self) -> list[dict[str, Any]]:
+        directory = self.settings.root / "recipes"
+        return [self.recipe(path.stem) for path in sorted(directory.glob("*.toml"))] if directory.is_dir() else []
 
     def timeline(self, task_id: str) -> list[dict[str, object]]:
         return self.ledger._timeline(task_id)

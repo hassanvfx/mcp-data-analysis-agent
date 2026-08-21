@@ -134,6 +134,12 @@ def recipe(name: str, params: str = "{}", task_id: str | None = None) -> None:
     emit(AnalyticsService(root()).run_recipe(name, json.loads(params), task_id).model_dump())
 
 
+@app.command("recipes")
+def recipes() -> None:
+    """List approved, versioned Git-native analysis recipes."""
+    emit(AnalyticsService(root()).recipes())
+
+
 @app.command()
 def report(source: str, sql: str, output: Path, params: str = "{}", task_id: str | None = None,
            parquet: bool = False, pdf: bool = False) -> None:

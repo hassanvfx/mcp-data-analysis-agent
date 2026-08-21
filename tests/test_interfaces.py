@@ -151,7 +151,7 @@ def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
     commands = [
         ["preflight"],
         ["sources"], ["schema", "retail"], ["schema-state", "retail"], ["joins", "retail"], ["profile", "retail", "products"],
-        ["quality", "retail", "products"], ["metrics"], ["chart", "name,stock", "2"],
+        ["quality", "retail", "products"], ["metrics"], ["recipes"], ["chart", "name,stock", "2"],
         ["sql", "retail", "SELECT id FROM products"],
         ["explain", "retail", "SELECT id FROM products"], ["query", "retail", "SELECT id FROM products"],
         ["recipe", "one", "--params", '{"id": 1}'], ["context"], ["dataset", "saas", "data.sqlite"],

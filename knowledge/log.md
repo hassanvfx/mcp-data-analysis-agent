@@ -72,6 +72,8 @@
 
 * **PostgreSQL typed timeout checkpoint**: Normalized server-side statement timeouts into the governed query result error model. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Approved recipe catalog checkpoint**: Added validated, versioned recipes for the three synthetic domains with CLI/MCP discovery. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

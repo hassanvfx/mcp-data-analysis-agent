@@ -23,6 +23,9 @@ class FakeService:
     def sources(self) -> list[dict[str, object]]:
         return [{"alias": "demo"}]
 
+    def recipes(self) -> list[dict[str, object]]:
+        return [{"name": "demo", "version": "v1"}]
+
     def joins(self, source: str) -> list[dict[str, str]]:
         return [{"from_table": source}]
 
@@ -65,6 +68,7 @@ def test_all_mcp_tool_contracts(monkeypatch) -> None:
     assert server.get_schema("source") == [{"table": "source"}]
     assert server.schema_state("source")["source_alias"] == "source"
     assert server.list_sources() == [{"alias": "demo"}]
+    assert server.list_recipes() == [{"name": "demo", "version": "v1"}]
     assert server.suggest_joins("source") == [{"from_table": "source"}]
     assert server.explain_sql("source", "SELECT 1", '{"id": 1}')["parameters"] == {"id": 1}
     assert server.explain_sql("source", "bad")["error"]["code"] == "SQL_INVALID"
