@@ -84,6 +84,8 @@
 
 * **Transactional export cleanup checkpoint**: Failed report/export renders now leave no partial final output directory. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Safe preflight repair checkpoint**: Added idempotent non-secret template repair without touching private credentials or knowledge. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

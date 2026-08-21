@@ -53,13 +53,21 @@ def setup(client: str = "codex", apply: bool = False) -> None:
 def preflight(fix: bool = False) -> None:
     """Report installation readiness without connecting to a source."""
     project = root()
+    repaired: list[str] = []
+    if fix:
+        for name, content in {".env.example": "# Do not commit .env. Add private source values here.\n",
+                              ".mcp-data-agent.toml": "[agent]\ndefault_row_limit = 500\nmax_row_limit = 5000\nquery_timeout_seconds = 30\n"}.items():
+            target = project / name
+            if not target.exists():
+                target.write_text(content, encoding="utf-8")
+                repaired.append(name)
     checks = {"project_writable": project.exists() and project.is_dir(), "git": shutil.which("git") is not None,
               "uv": shutil.which("uv") is not None, "python_3_11": sys.version_info >= (3, 11),
               "clineflow": (project / "clineflow-doctor").is_file(), "okf": (project / "validate-okf").is_file(),
               "mcp_executable": shutil.which("mcp-data-mcp") is not None}
     if fix and not checks["uv"]:
         typer.echo("uv is missing; install it through the official uv installer after confirmation.")
-    emit({"checks": checks, "status": "pass" if all(checks.values()) else "required_action"})
+    emit({"checks": checks, "repaired": repaired, "status": "pass" if all(checks.values()) else "required_action"})
 
 
 @app.command()

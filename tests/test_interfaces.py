@@ -144,6 +144,15 @@ def test_cli_setup_and_doctor(tmp_path: Path, monkeypatch) -> None:
     assert runner.invoke(app, ["doctor"]).exit_code == 0
 
 
+def test_preflight_fix_creates_only_non_secret_templates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(app, ["preflight", "--fix"])
+    assert result.exit_code == 0
+    assert (tmp_path / ".env.example").exists()
+    assert (tmp_path / ".mcp-data-agent.toml").exists()
+    assert not (tmp_path / ".env").exists()
+
+
 def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 4, database)
