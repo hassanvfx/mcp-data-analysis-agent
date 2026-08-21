@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import os
 import time
 import tomllib
 from pathlib import Path
@@ -41,6 +44,25 @@ class AnalyticsService:
             raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
         with connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
             return describe_schema(db, source.dialect)
+
+    def schema_state(self, source_alias: str) -> dict[str, object]:
+        """Discover schema and atomically update the ignored fingerprint cache."""
+        schema = self.schema(source_alias)
+        canonical = json.dumps(schema, sort_keys=True, separators=(",", ":"))
+        fingerprint = hashlib.sha256(canonical.encode()).hexdigest()
+        path = self.settings.root / ".mcp-data" / "schema-cache" / f"{source_alias}.json"
+        previous: str | None = None
+        if path.exists():
+            try:
+                previous = str(json.loads(path.read_text(encoding="utf-8")).get("fingerprint"))
+            except (OSError, json.JSONDecodeError):
+                previous = None
+        changed = previous is not None and previous != fingerprint
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(".pending")
+        temporary.write_text(json.dumps({"fingerprint": fingerprint, "schema": schema}, sort_keys=True) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+        return {"source_alias": source_alias, "fingerprint": fingerprint, "changed": changed, "schema": schema}
 
     def sources(self) -> list[dict[str, object]]:
         return [{"alias": item.alias, "dialect": item.dialect, "classification": item.classification,

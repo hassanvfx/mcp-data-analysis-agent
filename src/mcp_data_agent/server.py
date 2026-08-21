@@ -29,6 +29,11 @@ def get_schema(source_alias: str) -> list[dict[str, object]]:
 
 
 @mcp.tool()
+def schema_state(source_alias: str) -> dict[str, object]:
+    return service().schema_state(source_alias)
+
+
+@mcp.tool()
 def list_sources() -> list[dict[str, object]]:
     return service().sources()
 

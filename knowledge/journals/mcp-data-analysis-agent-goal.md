@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T21:00:00Z
+  at: 2026-08-20T21:15:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 21:15 UTC - Schema drift checkpoint
+
+- Added ignored, atomic local schema fingerprint caching. Schema discovery now returns a stable fingerprint and reports when a subsequent source schema differs, invalidating stale discovery state without committing cached metadata.
+- Exposed schema state through CLI and MCP, with a regression test that performs a fixture schema alteration.
 
 ## 2026-08-20 21:00 UTC - Period comparison and change-detection checkpoint
 
@@ -164,6 +169,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): bounded-execution checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (37 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): data-quality checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (37 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): period-comparison checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (38 tests), plus OKF and whitespace validation.
+- Checkpoint validation (2026-08-20): schema-drift checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (39 tests), plus OKF and whitespace validation.
 
 # Open Issues
 

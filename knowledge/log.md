@@ -32,6 +32,8 @@
 
 * **Period comparison checkpoint**: Added receipt-backed governed period comparisons and deterministic result change detection through CLI and MCP. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Schema drift checkpoint**: Added atomic local schema fingerprints and drift detection for safe discovery-cache invalidation. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

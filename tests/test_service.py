@@ -108,3 +108,19 @@ def test_period_comparison_and_change_detection(tmp_path: Path, monkeypatch) -> 
     assert comparison["changed"] is True
     detection = service.detect_change("retail", sql, {"maximum": 10}, {"maximum": 20})
     assert detection["changed"] is True
+
+
+def test_schema_state_fingerprints_and_detects_drift(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "retail.sqlite"
+    generate("retail", "unit", 12, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='SCHEMA_RETAIL_PATH'\n")
+    monkeypatch.setenv("SCHEMA_RETAIL_PATH", str(database))
+    service = AnalyticsService(tmp_path)
+    first = service.schema_state("retail")
+    assert first["changed"] is False
+    second = service.schema_state("retail")
+    assert second["changed"] is False
+    import sqlite3
+    with sqlite3.connect(database) as db:
+        db.execute("ALTER TABLE products ADD COLUMN drift_marker TEXT")
+    assert service.schema_state("retail")["changed"] is True

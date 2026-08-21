@@ -79,6 +79,11 @@ def schema(source: str) -> None:
     emit(AnalyticsService(root()).schema(source))
 
 
+@app.command("schema-state")
+def schema_state(source: str) -> None:
+    emit(AnalyticsService(root()).schema_state(source))
+
+
 @app.command()
 def sources() -> None:
     emit(AnalyticsService(root()).sources())
