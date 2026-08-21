@@ -42,6 +42,8 @@
 
 * **SQL bypass hardening checkpoint**: Blocked PostgreSQL `SELECT INTO` and targeted unsafe function bypasses in the read-only SQL policy. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Recipe path-safety checkpoint**: Hardened Git-native recipe lookup against caller-supplied path traversal. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.

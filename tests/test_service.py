@@ -124,3 +124,8 @@ def test_schema_state_fingerprints_and_detects_drift(tmp_path: Path, monkeypatch
     with sqlite3.connect(database) as db:
         db.execute("ALTER TABLE products ADD COLUMN drift_marker TEXT")
     assert service.schema_state("retail")["changed"] is True
+
+
+def test_recipe_name_cannot_traverse_project(tmp_path: Path) -> None:
+    with pytest.raises(AgentError, match="Recipe names"):
+        AnalyticsService(tmp_path).run_recipe("../outside", {})

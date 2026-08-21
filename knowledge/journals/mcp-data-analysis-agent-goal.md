@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-20T22:15:00Z
+  at: 2026-08-20T22:30:00Z
 ---
 
 # Goal
@@ -62,6 +62,10 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-20 22:30 UTC - Recipe path-safety checkpoint
+
+- Recipe execution now permits only normalized lowercase slug names, preventing caller-supplied path traversal outside the Git-native recipe directory.
 
 ## 2026-08-20 22:15 UTC - SQL bypass hardening checkpoint
 
@@ -190,6 +194,7 @@ Each representative use case is complete only when it:
 - Checkpoint validation (2026-08-20): observability-retention checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (39 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): artifact path-safety checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (40 tests), plus OKF and whitespace validation.
 - Checkpoint validation (2026-08-20): SQL bypass-hardening checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (42 tests), plus OKF and whitespace validation.
+- Checkpoint validation (2026-08-20): recipe path-safety checkpoint passed `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q --ignore=tests/test_postgres_contract.py` (43 tests), plus OKF and whitespace validation.
 
 # Open Issues
 

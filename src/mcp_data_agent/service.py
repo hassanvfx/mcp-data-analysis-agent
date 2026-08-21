@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import time
 import tomllib
 from pathlib import Path
@@ -101,6 +102,8 @@ class AnalyticsService:
         return {"table": table, "columns": schema["columns"], **quality}
 
     def run_recipe(self, name: str, parameters: dict[str, Any], task_id: str | None = None) -> QueryResult:
+        if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", name):
+            raise AgentError("RECIPE_NAME_INVALID", "Recipe names may contain lowercase letters, numbers, underscores, and hyphens only.")
         path = self.settings.root / "recipes" / f"{name}.toml"
         if not path.is_file():
             raise AgentError("RECIPE_UNKNOWN", "The requested recipe is not available.")
