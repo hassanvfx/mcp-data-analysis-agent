@@ -318,7 +318,7 @@ class AnalyticsService:
                 "freshness_column": freshness_column, "freshest_value": freshness, "warnings": warnings}
 
     def execute(self, source_alias: str, sql: str, parameters: dict[str, Any], task_id: str | None = None,
-                limit: int | None = None) -> QueryResult:
+                limit: int | None = None, offset: int = 0) -> QueryResult:
         source = self.settings.sources.get(source_alias)
         if not source:
             raise AgentError("SOURCE_UNKNOWN", "The selected source is not configured.")
@@ -326,12 +326,14 @@ class AnalyticsService:
         bounded_limit = min(requested_limit, self.settings.max_row_limit)
         if bounded_limit < 1:
             raise AgentError("LIMIT_INVALID", "The row limit must be positive.")
+        if offset < 0:
+            raise AgentError("OFFSET_INVALID", "The row offset cannot be negative.")
         task_id = task_id or self.begin_task("Ad hoc analysis", "Automatically created for an ungrouped query.").task_id
         correlation = uuid4().hex
         started = time.monotonic()
         try:
             validated = validate_sql(sql, parameters, source, self.settings)
-            wrapped = f"SELECT * FROM ({validated.sql}) AS bounded_query LIMIT {bounded_limit + 1}"
+            wrapped = f"SELECT * FROM ({validated.sql}) AS bounded_query LIMIT {bounded_limit + 1} OFFSET {offset}"
             with self.query_gate, connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
                 raw_rows, columns = self._execute_bounded(db, source.dialect, task_id, wrapped, parameters)
         except AgentError as exc:
@@ -354,7 +356,7 @@ class AnalyticsService:
                                     "normalized_sql": validated.sql, "sql_hash": validated.sql_hash,
                                     "dialect": source.dialect, "parameter_names": list(parameters),
                                     "parameter_values": parameters, "validation_outcome": "permitted",
-                                    "execution_metadata": {"duration_ms": duration, "row_count": len(rows), "limit": bounded_limit},
+                                    "execution_metadata": {"duration_ms": duration, "row_count": len(rows), "limit": bounded_limit, "offset": offset},
                                     "result_checksum": checksum, "correlation_id": correlation})
         self.ledger.run(task_id, "query.execute", "success", duration, correlation)
         return result

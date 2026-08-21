@@ -42,10 +42,12 @@ class FakeService:
             raise AgentError("SQL_INVALID", "Invalid")
         return {"source": source, "parameters": parameters, "outcome": "permitted"}
 
-    def execute(self, source: str, sql: str, parameters: dict[str, object], task_id: str | None, limit: int | None) -> SimpleNamespace:
+    def execute(self, source: str, sql: str, parameters: dict[str, object], task_id: str | None, limit: int | None,
+                offset: int = 0) -> SimpleNamespace:
         if sql == "bad":
             raise AgentError("SQL_INVALID", "Invalid")
-        return SimpleNamespace(model_dump=lambda: {"source": source, "task": task_id, "limit": limit, "parameters": parameters})
+        return SimpleNamespace(model_dump=lambda: {"source": source, "task": task_id, "limit": limit,
+                                                   "offset": offset, "parameters": parameters})
 
     def timeline(self, task_id: str) -> list[dict[str, object]]:
         return [{"task_id": task_id}]
@@ -79,6 +81,7 @@ def test_all_mcp_tool_contracts(monkeypatch) -> None:
     assert server.validate_sql("source", "SELECT 1", '{"id": 1}')["outcome"] == "permitted"
     assert server.validate_sql("source", "bad")["error"]["code"] == "SQL_INVALID"
     assert server.validate_and_execute("source", "SELECT 1", '{"id": 1}', "task", 3)["limit"] == 3
+    assert server.validate_and_execute("source", "SELECT 1", "{}", "task", 3, 4)["offset"] == 4
     assert server.validate_and_execute("source", "bad")["error"]["code"] == "SQL_INVALID"
     assert server.task_timeline("task") == [{"task_id": "task"}]
     assert server.evaluate_analysis_task("task")["score"] == 100

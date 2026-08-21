@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T07:05:00Z
+  at: 2026-08-21T07:20:00Z
 ---
 
 # Goal
@@ -62,6 +62,11 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 07:20 UTC - Governed pagination checkpoint
+
+- Added validated non-negative offsets to service, CLI, and MCP query execution. The offset is applied only by the bounded outer query and is retained in receipt execution metadata.
+- Added service and MCP contract coverage for offset validation and propagation.
 
 ## 2026-08-21 06:55 UTC - Checksum bootstrap checkpoint
 

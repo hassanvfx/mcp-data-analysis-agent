@@ -176,6 +176,8 @@ def test_invalid_limit_and_failed_query_are_bounded_and_audited(tmp_path: Path, 
     service = AnalyticsService(tmp_path)
     with pytest.raises(AgentError, match="positive"):
         service.execute("retail", "SELECT id FROM products", {}, limit=0)
+    with pytest.raises(AgentError, match="offset"):
+        service.execute("retail", "SELECT id FROM products", {}, offset=-1)
     task = service.begin_task("failure", "capture policy failure")
     with pytest.raises(AgentError):
         service.execute("retail", "DELETE FROM products", {}, task.task_id)

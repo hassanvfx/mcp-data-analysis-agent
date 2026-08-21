@@ -267,9 +267,10 @@ def demo(action: str, domain: str = "retail", output: Path = Path("demo.sqlite")
 
 
 @app.command()
-def query(source: str, sql: str, params: str = "{}", task_id: str | None = None, limit: int | None = None) -> None:
+def query(source: str, sql: str, params: str = "{}", task_id: str | None = None, limit: int | None = None,
+          offset: int = 0) -> None:
     try:
-        emit(AnalyticsService(root()).execute(source, sql, json.loads(params), task_id, limit).model_dump())
+        emit(AnalyticsService(root()).execute(source, sql, json.loads(params), task_id, limit, offset).model_dump())
     except AgentError as exc:
         emit(exc.as_dict())
         raise typer.Exit(2)
