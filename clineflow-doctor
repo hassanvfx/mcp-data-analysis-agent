@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Diagnose the dependency-free ClineFlow and Codex integration.
+
+set -u
+
+STRICT=false
+
+usage() {
+    cat <<'EOF'
+Usage: ./clineflow-doctor [--strict]
+
+Checks the ClineFlow installation, shared AGENTS.md instructions, native OKF
+bundle, and Git repository. --strict uses PyYAML only when it is already
+available; it never installs dependencies.
+EOF
+}
+
+case "${1:-}" in
+    --strict)
+        STRICT=true
+        shift
+        ;;
+    --help|-h)
+        usage
+        exit 0
+        ;;
+    "")
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac
+
+if [ "$#" -ne 0 ]; then
+    usage >&2
+    exit 2
+fi
+
+ERRORS=0
+WARNINGS=0
+
+pass() {
+    echo "PASS: $1"
+}
+
+warn() {
+    echo "WARN: $1" >&2
+    WARNINGS=$((WARNINGS + 1))
+}
+
+fail() {
+    echo "ERROR: $1" >&2
+    ERRORS=$((ERRORS + 1))
+}
+
+check_file() {
+    local path=$1
+    local description=$2
+    if [ -f "$path" ]; then
+        pass "$description ($path)"
+    else
+        fail "Missing $description: $path"
+    fi
+}
+
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    pass "Git repository"
+else
+    fail "Run this command from the root of a Git repository."
+fi
+
+check_file "AGENTS.md" "shared Codex and agent instructions"
+check_file "knowledge/index.md" "OKF bundle index"
+check_file "knowledge/log.md" "OKF bundle log"
+check_file "knowledge/journals/index.md" "journal index"
+check_file "knowledge/journals/TASK_TEMPLATE.md" "Engineering Journal template"
+check_file "validate-okf" "OKF validator"
+
+if [ -x "validate-okf" ]; then
+    pass "OKF validator is executable"
+else
+    fail "Make validate-okf executable: chmod +x validate-okf"
+fi
+
+if [ -x "validate-okf" ]; then
+    if ./validate-okf; then
+        pass "OKF structural validation"
+    else
+        fail "OKF structural validation failed; fix the errors above and run ./validate-okf."
+    fi
+fi
+
+if [ "$STRICT" = true ]; then
+    if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
+        if ./validate-okf --strict; then
+            pass "OKF strict validation"
+        else
+            fail "OKF strict validation failed; fix the errors above and run ./validate-okf --strict."
+        fi
+    else
+        warn "Strict validation skipped because optional PyYAML is unavailable. Install it only if you need --strict: python3 -m pip install PyYAML"
+    fi
+fi
+
+if [ "$ERRORS" -gt 0 ]; then
+    echo "ClineFlow doctor found $ERRORS issue(s)." >&2
+    exit 1
+fi
+
+if [ "$WARNINGS" -gt 0 ]; then
+    echo "ClineFlow doctor passed with $WARNINGS warning(s)."
+else
+    echo "ClineFlow doctor: healthy."
+fi

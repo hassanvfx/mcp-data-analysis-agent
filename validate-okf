@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Validate ClineFlow's dependency-free OKF structural contract.
+
+set -u
+
+STRICT=false
+if [ "${1:-}" = "--strict" ]; then STRICT=true; shift; fi
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+    echo "Usage: ./validate-okf [--strict] [BUNDLE_PATH]"
+    echo "--strict parses concept frontmatter with optional PyYAML."
+    exit 0
+fi
+BUNDLE="${1:-knowledge}"
+ERRORS=0
+error() { echo "ERROR: $1: $2" >&2; ERRORS=$((ERRORS + 1)); }
+
+if [ ! -d "$BUNDLE" ]; then error "$BUNDLE" "bundle directory does not exist"; exit 1; fi
+
+while IFS= read -r -d '' path; do
+    name=$(basename "$path")
+    first_line=$(sed -n '1p' "$path")
+    if [ "$name" = "index.md" ]; then
+        if [ "$first_line" = "---" ]; then
+            closing=$(awk 'NR > 1 && $0 == "---" { print NR; exit }' "$path")
+            if [ -z "$closing" ]; then error "$path" "has an unclosed YAML frontmatter block"
+            elif [ "$(dirname "$path")" != "$BUNDLE" ]; then error "$path" "nested index.md files must not contain frontmatter"
+            elif ! awk -v closing="$closing" 'NR > 1 && NR < closing { value=$0; gsub(/[[:space:]]/, "", value); if (value == "okf_version:0.2" || value == "okf_version:\"0.2\"" || value == sprintf("okf_version:%c0.2%c",39,39)) found=1; else if ($0 !~ /^[[:space:]]*$/) invalid=1 } END { exit !(found && !invalid) }' "$path"; then error "$path" 'bundle-root index.md frontmatter must contain only okf_version: "0.2"'; fi
+        fi
+        continue
+    fi
+    if [ "$name" = "log.md" ]; then
+        if [ "$first_line" = "---" ]; then error "$path" "log.md must not contain frontmatter"; fi
+        previous=""
+        while IFS= read -r date; do
+            if [ -n "$previous" ] && [[ "$date" > "$previous" ]]; then error "$path" "log.md date headings must be newest first in YYYY-MM-DD form"; break; fi
+            previous="$date"
+        done < <(sed -nE 's/^## ([0-9]{4}-[0-9]{2}-[0-9]{2})[[:space:]]*$/\1/p' "$path")
+        continue
+    fi
+    if [ "$first_line" != "---" ]; then error "$path" "must start with a YAML frontmatter delimiter (---)"; continue; fi
+    closing=$(awk 'NR > 1 && $0 == "---" { print NR; exit }' "$path")
+    if [ -z "$closing" ]; then error "$path" "has an unclosed YAML frontmatter block"
+    elif ! awk -v closing="$closing" 'NR > 1 && NR < closing && $0 ~ /^type:[[:space:]]*[^[:space:]#]/ { found=1 } END { exit !found }' "$path"; then error "$path" "frontmatter must contain a non-empty type"; fi
+done < <(find "$BUNDLE" -type f -name '*.md' -print0)
+
+if [ "$ERRORS" -gt 0 ]; then exit 1; fi
+if [ "$STRICT" = true ]; then
+    if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import yaml' >/dev/null 2>&1; then
+        echo "ERROR: --strict requires optional PyYAML. Install it with: python3 -m pip install PyYAML" >&2
+        exit 2
+    fi
+    python3 - "$BUNDLE" <<'PY'
+from pathlib import Path
+import re
+import sys
+import yaml
+bundle = Path(sys.argv[1])
+errors = []
+for path in sorted(bundle.rglob("*.md")):
+    if path.name in {"index.md", "log.md"}: continue
+    text = path.read_text(encoding="utf-8")
+    closing = re.search(r"^---\s*$", text[4:], re.MULTILINE)
+    if closing is None: continue
+    try: metadata = yaml.safe_load(text[4 : 4 + closing.start()])
+    except yaml.YAMLError as error:
+        errors.append(f"ERROR: {path}: contains invalid YAML frontmatter: {error}")
+        continue
+    if not isinstance(metadata, dict) or not isinstance(metadata.get("type"), str) or not metadata["type"].strip():
+        errors.append(f"ERROR: {path}: frontmatter must contain a non-empty string type")
+if errors:
+    print("\n".join(errors), file=sys.stderr)
+    raise SystemExit(1)
+PY
+    echo "OKF v0.2 strict validation passed: $BUNDLE"
+else
+    echo "OKF v0.2 structural validation passed: $BUNDLE"
+fi
