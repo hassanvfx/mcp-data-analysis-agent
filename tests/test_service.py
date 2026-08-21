@@ -118,25 +118,17 @@ def test_sqlite_progress_handler_interrupts_an_inflight_cancellation(tmp_path: P
     service = AnalyticsService(tmp_path)
     task = service.begin_task("inflight", "cancel while SQLite is executing")
 
-    class Cursor:
-        description = None
-
-        def execute(self, sql: str, parameters: dict[str, object]) -> None:
-            service.ledger.request_cancellation(task.task_id)
-            if database.progress_handler and database.progress_handler():
-                raise sqlite3.OperationalError("interrupted")
-
-        def fetchall(self) -> list[object]:
-            return []
-
     class Database:
         progress_handler: Callable[[], int] | None = None
 
         def set_progress_handler(self, handler: Callable[[], int] | None, count: int) -> None:
             self.progress_handler = handler
 
-        def cursor(self) -> Cursor:
-            return Cursor()
+        def execute(self, sql: object, parameters: dict[str, object]) -> object:
+            service.ledger.request_cancellation(task.task_id)
+            if self.progress_handler and self.progress_handler():
+                raise sqlite3.OperationalError("interrupted")
+            raise AssertionError("expected cancellation")
 
     database = Database()
     with pytest.raises(AgentError, match="cancelled"):
@@ -151,18 +143,9 @@ def test_postgres_execution_errors_are_typed(tmp_path: Path) -> None:
     class TimeoutError(Exception):
         sqlstate = "57014"
 
-    class Cursor:
-        description = None
-
-        def execute(self, sql: str, parameters: dict[str, object]) -> None:
-            raise TimeoutError()
-
-        def fetchall(self) -> list[object]:
-            return []
-
     class Database:
-        def cursor(self) -> Cursor:
-            return Cursor()
+        def execute(self, sql: object, parameters: dict[str, object]) -> object:
+            raise TimeoutError()
 
     with pytest.raises(AgentError, match="server-side timeout"):
         service._execute_bounded(Database(), "postgres", task.task_id, "SELECT 1", {})

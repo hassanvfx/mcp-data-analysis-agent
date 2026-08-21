@@ -1,11 +1,9 @@
-import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from typer.testing import CliRunner
 
-from mcp_data_agent import cli
+from mcp_data_agent import adapters, cli
 from mcp_data_agent.adapters import connection, describe_schema
 from mcp_data_agent.cli import app
 from mcp_data_agent.clients import ClientTemplate, templates, write_template
@@ -31,19 +29,6 @@ def test_adapter_failures_and_postgres_contract(tmp_path: Path, monkeypatch: pyt
 
     executed: list[str] = []
 
-    class Cursor:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args: object) -> None:
-            return None
-
-        def execute(self, sql: str) -> None:
-            executed.append(sql)
-
-        def close(self) -> None:
-            return None
-
     class Database:
         def __enter__(self):
             return self
@@ -51,11 +36,20 @@ def test_adapter_failures_and_postgres_contract(tmp_path: Path, monkeypatch: pyt
         def __exit__(self, *args: object) -> None:
             return None
 
-        def cursor(self) -> Cursor:
-            return Cursor()
+        def execution_options(self, **kwargs: object) -> "Database":
+            return self
 
-    fake = SimpleNamespace(connect=lambda *args, **kwargs: Database())
-    monkeypatch.setitem(sys.modules, "psycopg", fake)
+        def exec_driver_sql(self, sql: str) -> None:
+            executed.append(sql)
+
+    class Engine:
+        def connect(self) -> Database:
+            return Database()
+
+        def dispose(self) -> None:
+            return None
+
+    monkeypatch.setattr(adapters, "_engine", lambda *args: Engine())
     with connection(SourcePolicy("pg", "postgres", "URL", allowed_schemas=("analytics",)), "postgresql://example", 2) as db:
         assert isinstance(db, Database)
     assert executed == ["SET default_transaction_read_only = on", 'SET search_path TO "analytics"']
@@ -65,22 +59,14 @@ def test_adapter_failures_and_postgres_contract(tmp_path: Path, monkeypatch: pyt
 
 
 def test_postgres_schema_description() -> None:
-    class Cursor:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args: object) -> None:
-            return None
-
-        def execute(self, sql: str) -> None:
-            assert "information_schema.columns" in sql
-
-        def fetchall(self) -> list[tuple[str, str, str]]:
+    class Result:
+        def all(self) -> list[tuple[str, str, str]]:
             return [("public", "items", "id"), ("public", "items", "name")]
 
     class Database:
-        def cursor(self) -> Cursor:
-            return Cursor()
+        def execute(self, sql: object) -> Result:
+            assert "information_schema.columns" in str(sql)
+            return Result()
 
     assert describe_schema(Database(), "postgres") == [{"table": "public.items", "columns": ["id", "name"]}]
 

@@ -6,7 +6,7 @@ tags: [engineering, database, sqlalchemy, sqlite, postgresql, migration]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T04:30:00Z
+  at: 2026-08-21T04:45:00Z
 ---
 
 # Goal
@@ -26,21 +26,27 @@ Migrate the data-access layer from direct `sqlite3`/`psycopg` cursor handling to
 - Added SQLAlchemy Core as a locked runtime dependency and made its availability a required preflight check.
 - The existing adapter still uses direct DB-API connections. No SQLite/PostgreSQL parity claim will be made until Core engines/connections are in use and portable contract scenarios pass against both dialects.
 
+## 2026-08-21 04:45 UTC - Core engine and service migration checkpoint
+
+- Replaced direct `sqlite3`/`psycopg` connection setup with SQLAlchemy Core engines and connections. SQLite uses a read-only URI and `NullPool`; PostgreSQL uses the psycopg dialect, pre-ping, server timeout options, session read-only mode, and configured search path.
+- Migrated schema discovery, explain, bounded execution, result metadata, and quality queries to Core `text()` and `Result` APIs. SQLite cancellation remains attached to the Core raw driver connection.
+- Converted adapter contract fakes to SQLAlchemy-style connections. The full synthetic suite passes; live PostgreSQL contract evidence remains pending a disposable service run.
+
 # Decisions
 
 - **Use SQLAlchemy Core, not declarative ORM mappings:** The agent must work against user-owned schemas that are not known at package-build time. Core provides portable engines, SQL compilation primitives, inspection, pooling, and result interfaces without imposing model classes.
 - **Retain SQLGlot policy:** SQLAlchemy is not an authorization mechanism. Every caller-provided statement remains validated and normalized by SQLGlot before execution.
+- **Use the psycopg SQLAlchemy dialect explicitly:** PostgreSQL URLs are normalized to `postgresql+psycopg://` so the package cannot accidentally select an uninstalled `psycopg2` driver.
 - **Keep real PostgreSQL parity tests:** SQLite verifies shared behavior cheaply, but dialect-specific semantics, session configuration, and error behavior require disposable PostgreSQL evidence.
 
 # Testing
 
 - Focused preflight/interface test passed after adding the `sqlalchemy_core` requirement check.
-- Full migration verification is pending conversion of adapters and service execution paths.
+- Checkpoint validation (2026-08-21): `uv run ruff check src tests scripts`, `uv run mypy src`, `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests), coverage verification (94.33% statements; 87.01% branches), OKF, and whitespace validation passed.
 
 # Open Issues
 
-- Replace direct connections/cursors in `src/mcp_data_agent/adapters.py` and `src/mcp_data_agent/service.py` with SQLAlchemy Core connections and `text()` execution.
-- Preserve SQLite progress-handler cancellation through the Core raw driver connection where required.
+- Add the portable contract scenarios to the disposable PostgreSQL test, including schema discovery, SQLAlchemy `text()` parameter binding, read-only session enforcement, and typed timeout behavior.
 - Expand the disposable PostgreSQL contract suite so the same portable scenarios run on SQLite and PostgreSQL.
 
 # References

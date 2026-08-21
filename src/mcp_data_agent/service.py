@@ -7,13 +7,14 @@ import json
 import os
 import re
 import shutil
-import sqlite3
 import time
 import tomllib
 from pathlib import Path
 from threading import BoundedSemaphore
 from typing import Any, cast
 from uuid import uuid4
+
+from sqlalchemy import text
 
 from .adapters import connection, describe_schema
 from .artifacts import (
@@ -89,9 +90,7 @@ class AnalyticsService:
         validated = validate_sql(sql, parameters, source, self.settings)
         prefix = "EXPLAIN QUERY PLAN" if source.dialect == "sqlite" else "EXPLAIN (FORMAT JSON)"
         with connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
-            cursor = db.cursor()
-            cursor.execute(f"{prefix} {validated.sql}", parameters)
-            plan = [list(row) for row in cursor.fetchall()]
+            plan = [list(row) for row in db.execute(text(f"{prefix} {validated.sql}"), parameters).all()]
         warnings = ["Review plan cost before querying a large source."] if len(plan) > 4 else []
         return {"normalized_sql": validated.sql, "sql_hash": validated.sql_hash, "plan": plan, "warnings": warnings}
 
@@ -185,28 +184,26 @@ class AnalyticsService:
         if time.monotonic() >= deadline:
             raise AgentError("QUERY_TIMEOUT", "The query timeout elapsed before execution began.")
         use_progress_handler = dialect == "sqlite"
+        driver = getattr(getattr(db, "connection", None), "driver_connection", db)
         if use_progress_handler:
-            db.set_progress_handler(interrupt, 1_000)
+            driver.set_progress_handler(interrupt, 1_000)
         try:
-            cursor = db.cursor()
-            cursor.execute(sql, parameters)
-            raw_rows = cursor.fetchall()
-            columns = [{"name": desc[0], "type": "unknown", "classification": self.settings.column_classification(desc[0])}
-                       for desc in cursor.description or []]
+            result = db.execute(text(sql), parameters)
+            raw_rows = result.all()
+            columns = [{"name": name, "type": "unknown", "classification": self.settings.column_classification(name)}
+                       for name in list(result.keys())]
             return raw_rows, columns
-        except sqlite3.OperationalError as exc:
+        except Exception as exc:
             if interrupt_reason == "QUERY_CANCELLED":
                 raise AgentError("QUERY_CANCELLED", "The running SQLite query was cancelled.") from exc
             if interrupt_reason == "QUERY_TIMEOUT":
                 raise AgentError("QUERY_TIMEOUT", "The running SQLite query exceeded its timeout.") from exc
-            raise AgentError("QUERY_EXECUTION_FAILED", "The query could not be executed safely.") from exc
-        except Exception as exc:
             if getattr(exc, "sqlstate", None) == "57014":
                 raise AgentError("QUERY_TIMEOUT", "The PostgreSQL query exceeded its server-side timeout.") from exc
             raise AgentError("QUERY_EXECUTION_FAILED", "The query could not be executed safely.") from exc
         finally:
             if use_progress_handler:
-                db.set_progress_handler(None, 0)
+                driver.set_progress_handler(None, 0)
 
     def compare_periods(self, source_alias: str, sql: str, current_parameters: dict[str, Any],
                         previous_parameters: dict[str, Any], task_id: str | None = None) -> dict[str, object]:
@@ -297,20 +294,16 @@ class AnalyticsService:
         columns = [str(column) for column in schema["columns"]]
         quoted_table = f'"{table.replace(chr(34), chr(34) * 2)}"'
         with connection(source, self.settings.source_url(source_alias), self.settings.timeout_seconds) as db:
-            cursor = db.cursor()
-            cursor.execute(f"SELECT COUNT(*) FROM {quoted_table}")
-            count = cursor.fetchone()[0]
+            count = db.execute(text(f"SELECT COUNT(*) FROM {quoted_table}")).scalar_one()
             null_counts: dict[str, int] = {}
             for column in columns:
                 quoted_column = f'"{column.replace(chr(34), chr(34) * 2)}"'
-                cursor.execute(f"SELECT COUNT(*) - COUNT({quoted_column}) FROM {quoted_table}")
-                null_counts[column] = int(cursor.fetchone()[0])
+                null_counts[column] = int(db.execute(text(f"SELECT COUNT(*) - COUNT({quoted_column}) FROM {quoted_table}")).scalar_one())
             freshness_column = next((column for column in columns if column.lower().endswith(("_at", "_date"))), None)
             freshness = None
             if freshness_column:
                 quoted_column = f'"{freshness_column.replace(chr(34), chr(34) * 2)}"'
-                cursor.execute(f"SELECT MAX({quoted_column}) FROM {quoted_table}")
-                freshness = cursor.fetchone()[0]
+                freshness = db.execute(text(f"SELECT MAX({quoted_column}) FROM {quoted_table}")).scalar_one()
         warnings = [] if count else ["Table is empty."]
         if any(null_counts.values()):
             warnings.append("One or more columns contain null values.")
