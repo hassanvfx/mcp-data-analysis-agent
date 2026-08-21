@@ -233,6 +233,23 @@ class AnalyticsService:
         with path.open("rb") as file:
             return list(tomllib.load(file).get("metric", []))
 
+    def metric(self, name: str) -> dict[str, Any]:
+        if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", name):
+            raise AgentError("METRIC_NAME_INVALID", "Metric names may contain lowercase letters, numbers, underscores, and hyphens only.")
+        metric = next((item for item in self.metrics() if item.get("name") == name), None)
+        if not metric:
+            raise AgentError("METRIC_UNKNOWN", "The requested semantic metric is not available.")
+        required = {"name", "source_alias", "sql", "description", "classification", "owner"}
+        if missing := required - metric.keys():
+            raise AgentError("METRIC_INVALID", "A metric is missing required metadata.", ", ".join(sorted(missing)))
+        if metric["classification"] not in {"public", "internal", "confidential", "restricted"}:
+            raise AgentError("METRIC_INVALID", "Metric classification is invalid.")
+        return metric
+
+    def run_metric(self, name: str, task_id: str | None = None) -> QueryResult:
+        metric = self.metric(name)
+        return self.execute(str(metric["source_alias"]), str(metric["sql"]), {}, task_id)
+
     def suggest_chart(self, columns: list[dict[str, str]], row_count: int) -> dict[str, str]:
         names = [column["name"].lower() for column in columns]
         if any("date" in name or "month" in name or name.endswith("_at") for name in names):

@@ -58,6 +58,14 @@ def list_recipes() -> list[dict[str, object]]:
 
 
 @mcp.tool()
+def run_metric(name: str, task_id: str = "") -> dict[str, object]:
+    try:
+        return service().run_metric(name, task_id or None).model_dump()
+    except AgentError as exc:
+        return {"error": exc.as_dict()}
+
+
+@mcp.tool()
 def suggest_joins(source_alias: str) -> list[dict[str, str]]:
     return service().joins(source_alias)
 

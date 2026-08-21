@@ -35,7 +35,10 @@ def test_service_quality_metrics_and_artifacts(tmp_path: Path, monkeypatch) -> N
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 2, database)
     (tmp_path / "catalog").mkdir()
-    (tmp_path / "catalog" / "metrics.toml").write_text("[[metric]]\nname='revenue'\n")
+    (tmp_path / "catalog" / "metrics.toml").write_text(
+        "[[metric]]\nname='revenue'\ndescription='Revenue'\nclassification='internal'\nowner='analytics'\n"
+        "source_alias='retail'\nsql='SELECT SUM(revenue) AS revenue FROM order_items'\n"
+    )
     (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='TEST_RETAIL_PATH'\n")
     monkeypatch.setenv("TEST_RETAIL_PATH", str(database))
     service = AnalyticsService(tmp_path)
@@ -43,6 +46,7 @@ def test_service_quality_metrics_and_artifacts(tmp_path: Path, monkeypatch) -> N
     assert quality["row_count"] == 20
     assert quality["null_counts"]["name"] == 0
     assert service.metrics()[0]["name"] == "revenue"
+    assert service.run_metric("revenue").rows
     result = service.execute("retail", "SELECT id, name FROM products", {})
     artifacts = service.export(result, tmp_path / "outputs" / "run")
     assert len(artifacts) == 3

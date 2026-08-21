@@ -143,6 +143,11 @@ def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 4, database)
     (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='CLI_RETAIL_PATH'\n")
+    (tmp_path / "catalog").mkdir()
+    (tmp_path / "catalog" / "metrics.toml").write_text(
+        "[[metric]]\nname='revenue'\ndescription='Revenue'\nclassification='internal'\nowner='analytics'\n"
+        "source_alias='retail'\nsql='SELECT SUM(revenue) AS revenue FROM order_items'\n"
+    )
     (tmp_path / "recipes").mkdir()
     (tmp_path / "recipes" / "one.toml").write_text("source_alias='retail'\nsql='SELECT id FROM products WHERE id = :id'\nparameters=['id']\n")
     monkeypatch.setenv("CLI_RETAIL_PATH", str(database))
@@ -151,7 +156,7 @@ def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
     commands = [
         ["preflight"],
         ["sources"], ["schema", "retail"], ["schema-state", "retail"], ["joins", "retail"], ["profile", "retail", "products"],
-        ["quality", "retail", "products"], ["metrics"], ["recipes"], ["chart", "name,stock", "2"],
+        ["quality", "retail", "products"], ["metrics"], ["metric", "revenue"], ["recipes"], ["chart", "name,stock", "2"],
         ["sql", "retail", "SELECT id FROM products"],
         ["explain", "retail", "SELECT id FROM products"], ["query", "retail", "SELECT id FROM products"],
         ["recipe", "one", "--params", '{"id": 1}'], ["context"], ["dataset", "saas", "data.sqlite"],

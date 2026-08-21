@@ -119,6 +119,12 @@ def metrics() -> None:
     emit(AnalyticsService(root()).metrics())
 
 
+@app.command("metric")
+def metric(name: str, task_id: str | None = None) -> None:
+    """Run a reviewed semantic metric through the governed execution path."""
+    emit(AnalyticsService(root()).run_metric(name, task_id).model_dump())
+
+
 @app.command()
 def quality(source: str, table: str) -> None:
     emit(AnalyticsService(root()).quality(source, table))

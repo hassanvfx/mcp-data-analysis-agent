@@ -76,6 +76,8 @@
 
 * **Deterministic benchmark evidence checkpoint**: Added generated all-domain recipe/evidence performance coverage with a 60-second limit. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
+* **Governed semantic metric checkpoint**: Added approved revenue and MRR execution through the shared safe-query and receipt path. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
 ## YYYY-MM-DD
 
 * **Initialization**: Created the ClineFlow OKF knowledge bundle.
