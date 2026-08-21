@@ -6,7 +6,7 @@ tags: [engineering, database, sqlalchemy, sqlite, postgresql, migration]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T04:45:00Z
+  at: 2026-08-21T05:00:00Z
 ---
 
 # Goal
@@ -32,6 +32,11 @@ Migrate the data-access layer from direct `sqlite3`/`psycopg` cursor handling to
 - Migrated schema discovery, explain, bounded execution, result metadata, and quality queries to Core `text()` and `Result` APIs. SQLite cancellation remains attached to the Core raw driver connection.
 - Converted adapter contract fakes to SQLAlchemy-style connections. The full synthetic suite passes; live PostgreSQL contract evidence remains pending a disposable service run.
 
+## 2026-08-21 05:00 UTC - PostgreSQL Core parity-contract expansion
+
+- Expanded the disposable PostgreSQL contract to validate Core schema discovery, `text()` parameter binding, `EXPLAIN (FORMAT JSON)`, typed result metadata, and pre-execution mutation denial using the GitHub Actions PostgreSQL 16 service.
+- The test remains intentionally skipped locally without an explicit disposable URL, preserving local database safety.
+
 # Decisions
 
 - **Use SQLAlchemy Core, not declarative ORM mappings:** The agent must work against user-owned schemas that are not known at package-build time. Core provides portable engines, SQL compilation primitives, inspection, pooling, and result interfaces without imposing model classes.
@@ -43,11 +48,12 @@ Migrate the data-access layer from direct `sqlite3`/`psycopg` cursor handling to
 
 - Focused preflight/interface test passed after adding the `sqlalchemy_core` requirement check.
 - Checkpoint validation (2026-08-21): `uv run ruff check src tests scripts`, `uv run mypy src`, `uv run pytest --ignore=tests/test_postgres_contract.py --cov=mcp_data_agent --cov-branch` (69 tests), coverage verification (94.33% statements; 87.01% branches), OKF, and whitespace validation passed.
+- Checkpoint validation (2026-08-21): PostgreSQL Core contract module passed Ruff and was safely skipped locally without `MCP_DATA_TEST_POSTGRES_URL`; hosted CI owns live execution.
 
 # Open Issues
 
-- Add the portable contract scenarios to the disposable PostgreSQL test, including schema discovery, SQLAlchemy `text()` parameter binding, read-only session enforcement, and typed timeout behavior.
-- Expand the disposable PostgreSQL contract suite so the same portable scenarios run on SQLite and PostgreSQL.
+- Obtain the first hosted PostgreSQL CI result for the expanded Core contract.
+- Add live read-only session and typed timeout scenarios where the disposable service can safely exercise them.
 
 # References
 

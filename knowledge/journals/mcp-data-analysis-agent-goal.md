@@ -6,7 +6,7 @@ tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T04:45:00Z
+  at: 2026-08-21T05:00:00Z
 ---
 
 # Goal
@@ -62,6 +62,10 @@ Each representative use case is complete only when it:
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
 # Work Log
+
+## 2026-08-21 05:00 UTC - PostgreSQL Core contract checkpoint
+
+- Expanded the disposable PostgreSQL 16 CI contract with SQLAlchemy Core schema, explain, parameter-binding, typed-result, and mutation-denial evidence. See the [migration journal](sqlalchemy-core-adapter-migration.md).
 
 ## 2026-08-21 04:45 UTC - SQLAlchemy Core engine migration checkpoint
 
