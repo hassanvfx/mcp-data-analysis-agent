@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mcp-data-analysis": {
+      "args": [],
+      "command": "mcp-data-mcp"
+    }
+  }
+}

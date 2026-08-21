@@ -7,7 +7,7 @@ tags: [engineering, onboarding, mcp, sqlite, postgresql]
 status: stable
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-21T00:45:00Z
+  at: 2026-08-21T01:00:00Z
 ---
 
 # Goal
@@ -68,6 +68,11 @@ Deliver an explicit, confirmation-gated project bootstrap that generates an igno
 ## 2026-08-21 00:45 UTC - Repository cleanup
 
 - Confirmed `.DS_Store` was already ignored. At user direction, removed the remaining tracked project PDF asset in the repository cleanup commit.
+
+## 2026-08-21 01:00 UTC - Project MCP activation
+
+- Applied the one-confirmation project bootstrap after a Git-based tool install. The project now has the non-secret single-source policy and generated ignored playground; Codex, Cline, and VS Code/Copilot receive MCP definitions containing only `mcp-data-mcp`.
+- Verified `doctor --require-source` and Codex setup status pass. No source URL, credential, or database path was committed.
 
 # Decisions
 

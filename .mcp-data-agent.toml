@@ -18,3 +18,7 @@ restricted_columns = []
 # [classification.columns]
 # email = "confidential"
 # ssn = "restricted"
+
+[source]
+env = "MCP_DATA_SOURCE_URL"
+classification = "internal"
