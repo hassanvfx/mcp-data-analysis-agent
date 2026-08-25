@@ -1,0 +1,1035 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 3
+/Kids [ 4 0 R 11 0 R 15 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+4 0 obj
+<<
+/Contents 5 0 R
+/MediaBox [ 0 0 612 792 ]
+/Resources <<
+/Font <<
+/F1 6 0 R
+/F1-0 7 0 R
+/F2 8 0 R
+/F2-0 9 0 R
+/F3 10 0 R
+>>
+/ProcSet [ /ImageB /ImageC /ImageI /PDF /Text ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+/Annots [ ]
+/Parent 2 0 R
+>>
+endobj
+5 0 obj
+<<
+/Length 6566
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.843137 .870588 .909804 RG
+n 48.96 34.56 m 563.04 34.56 l S
+.32549 .380392 .443137 rg
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 48.96 21.6 Tm (MCP Data Analysis Agent - Operational Guide) Tj T* ET
+BT 1 0 0 1 537.688 21.6 Tm (Page 1) Tj T* ET
+Q
+q
+1 0 0 1 54.96 715.36 cm
+q
+.078431 .129412 .239216 rg
+BT 1 0 0 1 0 4 Tm /F2 22 Tf 26 TL 117.181 0 Td (MCP Data Analysis Agent) Tj T* -117.181 0 Td ET
+Q
+Q
+q
+1 0 0 1 54.96 693.36 cm
+q
+.32549 .380392 .443137 rg
+BT 1 0 0 1 0 4 Tm /F1 10 Tf 14 TL 152.11 0 Td (Compact operational guide - current contract) Tj T* -152.11 0 Td ET
+Q
+Q
+q
+1 0 0 1 54.96 649.36 cm
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 16.6 Tm /F1 9.4 Tf 13 TL (Local, governed database access for MCP clients. The server is credential-free globally; each data project opts in) Tj T* (through its own private source file.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 618.36 cm
+q
+.078431 .129412 .239216 rg
+BT 1 0 0 1 0 4 Tm /F2 15 Tf 19 TL (What it does) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 598.36 cm
+q
+BT 1 0 0 1 4 3.6 Tm /F1 10 Tf 12 TL .121569 .160784 .2 rg (-) Tj ET
+.121569 .160784 .2 rg
+BT 1 0 0 1 14 3.6 Tm /F1 9.4 Tf 13 TL -0.67 0 Td (Runs as a stdio MCP server for Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue.) Tj T* .67 0 Td ET
+Q
+Q
+q
+1 0 0 1 54.96 579.36 cm
+q
+BT 1 0 0 1 4 3.6 Tm /F1 10 Tf 12 TL .121569 .160784 .2 rg (-) Tj ET
+BT 1 0 0 1 14 3.6 Tm -0.67 0 Td 13 TL /F1 9.4 Tf .121569 .160784 .2 rg (Uses one project-local ) Tj /F2 9.4 Tf (.mcp-data-source) Tj /F1 9.4 Tf ( file for an SQLite path/URL or PostgreSQL URL.) Tj T* .67 0 Td ET
+Q
+Q
+q
+1 0 0 1 54.96 560.36 cm
+q
+BT 1 0 0 1 4 3.6 Tm /F1 10 Tf 12 TL .121569 .160784 .2 rg (-) Tj ET
+BT 1 0 0 1 14 3.6 Tm -0.67 0 Td -0.060969 Tw 13 TL /F1 9.4 Tf .121569 .160784 .2 rg (Performs bounded read-only probes, validates SQL, limits execution, and stores auditable evidence in ) Tj /F2 9.4 Tf (observability/) Tj /F1 9.4 Tf (.) Tj T* 0 Tw .67 0 Td ET
+Q
+Q
+q
+1 0 0 1 54.96 528.36 cm
+q
+BT 1 0 0 1 4 16.6 Tm /F1 10 Tf 12 TL .121569 .160784 .2 rg (-) Tj ET
+.121569 .160784 .2 rg
+BT 1 0 0 1 14 16.6 Tm /F1 9.4 Tf 13 TL -0.67 0 Td -0.016138 Tw (Offers schema discovery, governed queries, metrics, recipes, comparisons, reports, and an explicit deterministic retail) Tj T* 0 Tw .67 0 Td (demo.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 496.36 cm
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 16.6 Tm /F1 9.4 Tf 13 TL (It never uploads data, hosts a network service, creates database users, stores credentials in client configuration, or) Tj T* (changes a source database.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 465.36 cm
+q
+.078431 .129412 .239216 rg
+BT 1 0 0 1 0 4 Tm /F2 15 Tf 19 TL (Tell an agent to install it) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 445.36 cm
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 3.6 Tm /F1 9.4 Tf 13 TL (Use this instruction with an agentic coding client:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 407.86 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 23.2 Tm /F1 8.3 Tf 10.5 TL (Please install MCP Data Analysis Agent from this repository using its documented install.sh. Configure only credential-free global MCP) Tj T* (client entries. Do not create a database, inspect or modify my project, or configure a source until I explicitly choose a demo or provide a) Tj T* (source URL.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 385.86 cm
+q
+.113725 .305882 .537255 rg
+BT 1 0 0 1 0 3 Tm /F2 11 Tf 14 TL (Public repository install) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 371.86 cm
+q
+.843137 .870588 .909804 RG
+.5 w
+.94902 .960784 .972549 rg
+n -6 -6 514.08 22 re B*
+Q
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 2.6 Tm /F3 7.4 Tf 10 TL (curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/main/install.sh | bash) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 349.86 cm
+q
+.113725 .305882 .537255 rg
+BT 1 0 0 1 0 3 Tm /F2 11 Tf 14 TL (Already cloned checkout) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 335.86 cm
+q
+.843137 .870588 .909804 RG
+.5 w
+.94902 .960784 .972549 rg
+n -6 -6 514.08 22 re B*
+Q
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 2.6 Tm /F3 7.4 Tf 10 TL (./install.sh --local) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 302.86 cm
+q
+BT 1 0 0 1 0 16.6 Tm 13 TL /F1 9.4 Tf .121569 .160784 .2 rg (Both routes add only static ) Tj /F2 9.4 Tf (mcp-data-mcp --source-file .mcp-data-source) Tj /F1 9.4 Tf ( entries. Restart or trust the MCP client if it) Tj T* (asks.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 271.86 cm
+q
+.078431 .129412 .239216 rg
+BT 1 0 0 1 0 4 Tm /F2 15 Tf 19 TL (Operating model) Tj T* ET
+Q
+Q
+q
+1 0 0 1 86.4 192.86 cm
+q
+.078431 .129412 .239216 rg
+n 0 72 439.2 -20.5 re f*
+.972549 .980392 .988235 rg
+n 0 51.5 439.2 -51.5 re f*
+1 1 1 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 56.5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Scope) Tj T* ET
+Q
+Q
+q
+1 0 0 1 81.6 56.5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Contains) Tj T* ET
+Q
+Q
+q
+1 0 0 1 268.8 56.5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Never contains) Tj T* ET
+Q
+Q
+0 0 0 rg
+q
+1 0 0 1 6 36 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Global) Tj T* ET
+Q
+Q
+q
+1 0 0 1 81.6 36 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Executable and static client entry) Tj T* ET
+Q
+Q
+q
+1 0 0 1 268.8 36 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (URL, password, project setup) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 15.5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Data project) Tj T* ET
+Q
+Q
+q
+1 0 0 1 81.6 15.5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Source file, optional policy, evidence) Tj T* ET
+Q
+Q
+q
+1 0 0 1 268.8 5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 12.7 Tm /F1 8.3 Tf 10.5 TL (Repository clone, Git, Typst, PostgreSQL) Tj T* (CLI) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.843137 .870588 .909804 RG
+.35 w
+n 0 72 m 439.2 72 l S
+n 0 0 m 439.2 0 l S
+n 0 0 m 0 72 l S
+n 439.2 0 m 439.2 72 l S
+n 0 51.5 m 439.2 51.5 l S
+n 0 31 m 439.2 31 l S
+n 75.6 0 m 75.6 72 l S
+n 262.8 0 m 262.8 72 l S
+Q
+Q
+Q
+q
+1 0 0 1 54.96 184.86 cm
+Q
+q
+1 0 0 1 54.96 171.86 cm
+q
+.843137 .870588 .909804 RG
+.5 w
+.94902 .960784 .972549 rg
+n -6 -6 514.08 22 re B*
+Q
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 2.6 Tm /F3 7.4 Tf 10 TL (install -> preflight -> demo or real source -> ready probe -> inspect schema -> analyze -> optional cleanup) Tj T* ET
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 612 792 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+0.078431 0.129412 0.239216 rg
+n
+86 244 440 21 re
+f*
+1 1 1 rg
+BT
+/F2-0 8.3 Tf
+9.96 TL
+ET
+BT
+1 0 0 1 92 250.5 Tm
+(Scope) Tj
+T*
+ET
+BT
+1 0 0 1 169 250.5 Tm
+(Contains) Tj
+T*
+ET
+BT
+1 0 0 1 350 250.5 Tm
+(Never contains) Tj
+T*
+ET
+Q
+
+
+endstream
+endobj
+6 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+/Name /F2
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+9 0 obj
+<<
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+/Name /F2
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+10 0 obj
+<<
+/BaseFont /Courier
+/Encoding /WinAnsiEncoding
+/Name /F3
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+11 0 obj
+<<
+/Contents 12 0 R
+/MediaBox [ 0 0 612 792 ]
+/Resources <<
+/Font <<
+/F1 6 0 R
+/F1-0 13 0 R
+/F2 8 0 R
+/F2-0 14 0 R
+/F3 10 0 R
+>>
+/ProcSet [ /ImageB /ImageC /ImageI /PDF /Text ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+/Annots [ ]
+/Parent 2 0 R
+>>
+endobj
+12 0 obj
+<<
+/Length 6136
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.843137 .870588 .909804 RG
+n 48.96 34.56 m 563.04 34.56 l S
+.32549 .380392 .443137 rg
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 48.96 21.6 Tm (MCP Data Analysis Agent - Operational Guide) Tj T* ET
+BT 1 0 0 1 537.688 21.6 Tm (Page 2) Tj T* ET
+Q
+q
+1 0 0 1 54.96 722.36 cm
+q
+.078431 .129412 .239216 rg
+BT 1 0 0 1 0 4 Tm /F2 15 Tf 19 TL (Configure a data project) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 700.36 cm
+q
+.113725 .305882 .537255 rg
+BT 1 0 0 1 0 3 Tm /F2 11 Tf 14 TL (Start with the demo) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 676.36 cm
+q
+.843137 .870588 .909804 RG
+.5 w
+.94902 .960784 .972549 rg
+n -6 -6 514.08 32 re B*
+Q
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 12.6 Tm /F3 7.4 Tf 10 TL (mcp-data-cli preflight mcp-data-cli demo start --yes mcp-data-cli preflight mcp-data-cli schema data mcp-data-cli) Tj T* (query data 'SELECT id, name, stock FROM products ORDER BY id' --limit 10) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 643.36 cm
+q
+BT 1 0 0 1 0 16.6 Tm 13 TL /F1 9.4 Tf .121569 .160784 .2 rg (The confirmed demo creates only ) Tj /F2 9.4 Tf (.mcp-data/playground.sqlite) Tj /F1 9.4 Tf ( and a mode-0600 ) Tj /F2 9.4 Tf (.mcp-data-source) Tj /F1 9.4 Tf (. Git ignore entries) Tj T* (are added only when safe.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 621.36 cm
+q
+.113725 .305882 .537255 rg
+BT 1 0 0 1 0 3 Tm /F2 11 Tf 14 TL (Configure a real source) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 597.36 cm
+q
+.843137 .870588 .909804 RG
+.5 w
+.94902 .960784 .972549 rg
+n -6 -6 514.08 32 re B*
+Q
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 12.6 Tm /F3 7.4 Tf 10 TL (mcp-data-cli configure-source /absolute/path/to/analytics.sqlite --yes mcp-data-cli preflight # PostgreSQL:) Tj T* (mcp-data-cli configure-source 'postgresql://readonly_user:password@db.example:5432/analytics' --yes) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 564.36 cm
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 16.6 Tm /F1 9.4 Tf 13 TL -0.07719 Tw (The source file is the sole runtime secret. It must be a regular non-symlink file with exactly one absolute SQLite path/URL) Tj T* 0 Tw (or PostgreSQL URL. Never commit it.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 551.36 cm
+Q
+q
+1 0 0 1 86.4 448.86 cm
+q
+.113725 .305882 .537255 rg
+n 0 102.5 439.2 -20.5 re f*
+.972549 .980392 .988235 rg
+n 0 82 439.2 -82 re f*
+1 1 1 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 87 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Preflight) Tj T* ET
+Q
+Q
+q
+1 0 0 1 157.2 87 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Meaning and action) Tj T* ET
+Q
+Q
+0 0 0 rg
+q
+1 0 0 1 6 66.5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (source_configuration_required) Tj T* ET
+Q
+Q
+q
+1 0 0 1 157.2 66.5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (No source file. Start the demo or configure a real source.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 46 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (source_configuration_invalid) Tj T* ET
+Q
+Q
+q
+1 0 0 1 157.2 46 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Unsafe or malformed source/policy. Correct local configuration.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 25.5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (source_unavailable) Tj T* ET
+Q
+Q
+q
+1 0 0 1 157.2 25.5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Read-only probe failed. Check reachability and account privileges.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (ready) Tj T* ET
+Q
+Q
+q
+1 0 0 1 157.2 5 cm
+q
+.215686 .254902 .317647 rg
+BT 1 0 0 1 0 2.2 Tm /F1 8.3 Tf 10.5 TL (Read-only SELECT 1 succeeded. Discover schema and analyze.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.843137 .870588 .909804 RG
+.35 w
+n 0 102.5 m 439.2 102.5 l S
+n 0 0 m 439.2 0 l S
+n 0 0 m 0 102.5 l S
+n 439.2 0 m 439.2 102.5 l S
+n 0 82 m 439.2 82 l S
+n 0 61.5 m 439.2 61.5 l S
+n 0 41 m 439.2 41 l S
+n 0 20.5 m 439.2 20.5 l S
+n 151.2 0 m 151.2 102.5 l S
+Q
+Q
+Q
+q
+1 0 0 1 54.96 417.86 cm
+q
+.078431 .129412 .239216 rg
+BT 1 0 0 1 0 4 Tm /F2 15 Tf 19 TL (Analyze and retain evidence) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 380.86 cm
+q
+.843137 .870588 .909804 RG
+.5 w
+.94902 .960784 .972549 rg
+n -6 -6 514.08 42 re B*
+Q
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 22.6 Tm /F3 7.4 Tf 10 TL (mcp-data-cli schema data mcp-data-cli sql data 'SELECT id, name FROM products WHERE id = :id' --params '{"id":) Tj T* (1}' mcp-data-cli explain data 'SELECT id, name FROM products WHERE id = :id' --params '{"id": 1}' mcp-data-cli) Tj T* (query data 'SELECT id, name FROM products ORDER BY id' --limit 25) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 353.86 cm
+q
+.843137 .870588 .909804 RG
+.5 w
+.94902 .960784 .972549 rg
+n -6 -6 514.08 32 re B*
+Q
+q
+BT 1 0 0 1 0 12.6 Tm 10 TL /F3 7.4 Tf .121569 .160784 .2 rg (mcp-data-cli task-begin 'Inventory review' 'Find low-stock products.' mcp-data-cli observe <) Tj (task-id) Tj (> mcp-data-cli) Tj T* (task-complete <) Tj (task-id) Tj (> 'Findings recorded.') Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 320.86 cm
+q
+BT 1 0 0 1 0 16.6 Tm 13 TL /F1 9.4 Tf .121569 .160784 .2 rg (Receipts, lifecycle events, and evidence remain project-local under ) Tj /F2 9.4 Tf (observability/) Tj /F1 9.4 Tf (. HTML and CSV reports need no) Tj T* (renderer; Parquet needs its package extra, and PDF needs optional Typst.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 298.86 cm
+q
+.113725 .305882 .537255 rg
+BT 1 0 0 1 0 3 Tm /F2 11 Tf 14 TL (Optional governance) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 284.86 cm
+q
+.843137 .870588 .909804 RG
+.5 w
+.94902 .960784 .972549 rg
+n -6 -6 514.08 22 re B*
+Q
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 2.6 Tm /F3 7.4 Tf 10 TL (mcp-data-cli configure-policy --yes) Tj T* ET
+Q
+Q
+q
+1 0 0 1 54.96 251.86 cm
+q
+.121569 .160784 .2 rg
+BT 1 0 0 1 0 16.6 Tm /F1 9.4 Tf 13 TL (This creates non-secret policy/catalog/recipe starters only when none already exist. It never infers policy, overwrites) Tj T* (governance, or creates a source file.) Tj T* ET
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 612 792 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+0.078431 0.129412 0.239216 rg
+n
+86 530 440 21 re
+f*
+1 1 1 rg
+BT
+/F2-0 8.3 Tf
+9.96 TL
+ET
+BT
+1 0 0 1 92 536.5 Tm
+(Preflight) Tj
+T*
+ET
+BT
+1 0 0 1 244 536.5 Tm
+(Meaning and action) Tj
+T*
+ET
+Q
+
+
+endstream
+endobj
+13 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+14 0 obj
+<<
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+/Name /F2
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+15 0 obj
+<<
+/Type /Page
+/Resources <<
+/Font <<
+/F1 6 0 R
+/F2 8 0 R
+/F3 10 0 R
+>>
+/ProcSet [ /ImageB /ImageC /ImageI /PDF /Text ]
+>>
+/MediaBox [ 0.0 0.0 612 792 ]
+/Contents 16 0 R
+/Annots [ ]
+/Parent 2 0 R
+>>
+endobj
+16 0 obj
+<<
+/Length 3867
+>>
+stream
+q
+0.92 0.0 0.0 0.92 24 24 cm
+0.0 0.0 612 792 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1 12 Tf
+14.4 TL
+ET
+q
+0.843137 0.870588 0.909804 RG
+n
+48.96 34.56 m
+563.04 34.56 l
+S
+0.32549 0.380392 0.443137 rg
+BT
+/F1 8 Tf
+9.6 TL
+ET
+BT
+1 0 0 1 48.96 21.6 Tm
+(MCP Data Analysis Agent \055 Operational Guide) Tj
+T*
+ET
+BT
+1 0 0 1 537.688 21.6 Tm
+(Page 3) Tj
+T*
+ET
+Q
+q
+1 0 0 1 54.96 722.36 cm
+q
+0.078431 0.129412 0.239216 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 15 Tf
+19 TL
+(Client fallback and cleanup) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 54.96 689.36 cm
+q
+BT
+1 0 0 1 0 16.6 Tm
+13 TL
+/F1 9.4 Tf
+0.121569 0.160784 0.2 rg
+(Global entries resolve the source file relative to the MCP working directory\056 Open the target project and call MCP) Tj
+T*
+/F2 9.4 Tf
+(preflight) Tj
+/F1 9.4 Tf
+(\056 If a client does not preserve that directory\054 configure a project entry\072) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 54.96 674.36 cm
+q
+0.843137 0.870588 0.909804 RG
+0.5 w
+0.94902 0.960784 0.972549 rg
+n
+-6 -6 514.08 22 re
+B*
+Q
+q
+BT
+1 0 0 1 0 2.6 Tm
+10 TL
+/F3 7.4 Tf
+0.121569 0.160784 0.2 rg
+(mcp\055data\055cli setup \055\055client \074) Tj
+(client) Tj
+(\076 \055\055apply) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 54.96 654.36 cm
+q
+BT
+1 0 0 1 0 3.6 Tm
+13 TL
+/F1 9.4 Tf
+0.121569 0.160784 0.2 rg
+(That entry uses a static absolute ) Tj
+/F2 9.4 Tf
+(\055\055project\055root) Tj
+/F1 9.4 Tf
+( and still contains no URL or credential\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 54.96 632.36 cm
+q
+0.113725 0.305882 0.537255 rg
+BT
+1 0 0 1 0 3 Tm
+/F2 11 Tf
+14 TL
+(Preview and apply cleanup) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 54.96 608.36 cm
+q
+0.843137 0.870588 0.909804 RG
+0.5 w
+0.94902 0.960784 0.972549 rg
+n
+-6 -6 514.08 32 re
+B*
+Q
+q
+0.121569 0.160784 0.2 rg
+BT
+1 0 0 1 0 12.6 Tm
+/F3 7.4 Tf
+10 TL
+(mcp\055data\055cli uninstall \055\055clients \055\055demo mcp\055data\055cli uninstall \055\055clients \055\055demo \055\055apply \055\055yes uv tool uninstall) Tj
+T*
+(mcp\055data\055analysis\055agent) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 54.96 562.36 cm
+q
+0.121569 0.160784 0.2 rg
+BT
+1 0 0 1 0 29.6 Tm
+/F1 9.4 Tf
+13 TL
+(Cleanup removes only exact managed client entries and managed demo artifacts\056 It preserves custom sources\054) Tj
+T*
+(governance files\054 observability evidence\054 and unrelated client settings\056 A custom source that replaced the demo is) Tj
+T*
+(retained\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 54.96 531.36 cm
+q
+0.078431 0.129412 0.239216 rg
+BT
+1 0 0 1 0 4 Tm
+/F2 15 Tf
+19 TL
+(Safety contract) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 54.96 511.36 cm
+q
+BT
+1 0 0 1 4 3.6 Tm
+/F1 10 Tf
+12 TL
+0.121569 0.160784 0.2 rg
+(\055) Tj
+ET
+0.121569 0.160784 0.2 rg
+BT
+1 0 0 1 14 3.6 Tm
+/F1 9.4 Tf
+13 TL
+-0.67 0 Td
+(Only parameterized read\055only SELECT or WITH queries are permitted\056) Tj
+T*
+0.67 0 Td
+ET
+Q
+Q
+q
+1 0 0 1 54.96 492.36 cm
+q
+BT
+1 0 0 1 4 3.6 Tm
+/F1 10 Tf
+12 TL
+0.121569 0.160784 0.2 rg
+(\055) Tj
+ET
+0.121569 0.160784 0.2 rg
+BT
+1 0 0 1 14 3.6 Tm
+/F1 9.4 Tf
+13 TL
+-0.67 0 Td
+(Mutations\054 DDL\054 attachments\054 multi\055statements\054 unsafe functions\054 restricted fields\054 and unsafe paths are denied\056) Tj
+T*
+0.67 0 Td
+ET
+Q
+Q
+q
+1 0 0 1 54.96 460.36 cm
+q
+BT
+1 0 0 1 4 16.6 Tm
+/F1 10 Tf
+12 TL
+0.121569 0.160784 0.2 rg
+(\055) Tj
+ET
+0.121569 0.160784 0.2 rg
+BT
+1 0 0 1 14 16.6 Tm
+/F1 9.4 Tf
+13 TL
+-0.67 0 Td
+(SQLite and PostgreSQL sessions use read\055only controls\073 PostgreSQL still requires a least\055privilege database) Tj
+T*
+0.67 0 Td
+(account\056) Tj
+T*
+ET
+Q
+Q
+q
+1 0 0 1 54.96 441.36 cm
+q
+BT
+1 0 0 1 4 3.6 Tm
+/F1 10 Tf
+12 TL
+0.121569 0.160784 0.2 rg
+(\055) Tj
+ET
+0.121569 0.160784 0.2 rg
+BT
+1 0 0 1 14 3.6 Tm
+/F1 9.4 Tf
+13 TL
+-0.67 0 Td
+(Source URLs and secret\055like values are redacted from output and evidence\056) Tj
+T*
+0.67 0 Td
+ET
+Q
+Q
+q
+1 0 0 1 54.96 430.36 cm
+Q
+q
+1 0 0 1 54.96 413.86 cm
+q
+0.215686 0.254902 0.317647 rg
+BT
+1 0 0 1 0 2.2 Tm
+/F1 8.3 Tf
+10.5 TL
+(Current source\072 README\056md \174 Operations\072 docs\057OPERATIONS\056md \174 Security\072 docs\057SECURITY\056md) Tj
+T*
+ET
+Q
+Q
+Q
+
+
+endstream
+endobj
+xref
+0 17
+0000000000 65535 f 
+0000000015 00000 n 
+0000000054 00000 n 
+0000000127 00000 n 
+0000000176 00000 n 
+0000000432 00000 n 
+0000007050 00000 n 
+0000007157 00000 n 
+0000007264 00000 n 
+0000007376 00000 n 
+0000007488 00000 n 
+0000007594 00000 n 
+0000007854 00000 n 
+0000014043 00000 n 
+0000014151 00000 n 
+0000014264 00000 n 
+0000014479 00000 n 
+trailer
+<<
+/Size 17
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+18399
+%%EOF
