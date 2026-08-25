@@ -89,6 +89,8 @@
 
 * **Operational README replacement**: Replaced legacy bootstrap-oriented public guidance with the current credential-free install, project source, analysis, and cleanup lifecycle. See [Operational README replacement](journals/operational-readme.md).
 
+* **Agent handoff contract**: Simplified the public README around install, configure-folder, and install-demo phrases that agents can execute through the repository’s actual scripts and project-local source flow. See [Operational README replacement](journals/operational-readme.md).
+
 * **Operational guide PDF**: Added a compact, visually reviewed PDF companion to the current operations README. See [Operational guide PDF](journals/operational-pdf.md).
 
 * **Observability retention correction**: Made durable audit ledger records Git-versionable while retaining exclusions for credentials, databases, caches, and generated artifacts. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).

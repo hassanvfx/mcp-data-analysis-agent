@@ -6,7 +6,7 @@ tags: [engineering, documentation, onboarding]
 status: stable
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-25T19:41:00Z
+  at: 2026-08-25T20:05:00Z
 ---
 
 # Goal
@@ -27,13 +27,19 @@ Create an operation-first public README and explicitly deprecate legacy bootstra
 - Added an explicit agent-install instruction for the public repository and cloned checkouts.
 - Added a legacy-documentation notice rather than presenting historical bootstrap behavior as current operation.
 
+## 2026-08-25 20:05 UTC - Agent handoff simplification
+
+- Reframed the README as the explicit user-to-agent middleware contract, with three short phrases: “Please install from repo,” “Please configure this folder,” and “Please install demo in this folder.”
+- Documented the configuration handoff precisely: the agent prepares an empty private source file and opens the platform editor, while the user pastes and saves the one source value before the agent runs redacted preflight.
+- Kept installation scope explicit: package installation configures a global credential-free MCP server; every data folder independently opts in.
+
 # Decisions
 
 - The README is the canonical user/operator guide; the legacy notice directs historical investigation to repository history and dated knowledge records.
 
 # Testing
 
-- `git diff --check`, `./validate-okf`, `uv run ruff check src tests`, `uv run mypy src`, and `uv run pytest -q` passed.
+- `git diff --check` and `./validate-okf` passed after the handoff rewrite; no runtime code changed.
 
 # Open Issues
 
