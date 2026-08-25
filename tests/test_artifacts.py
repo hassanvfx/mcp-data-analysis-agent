@@ -57,7 +57,7 @@ def test_parquet_and_pdf_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert Path(render_pdf(tmp_path, "Test", ["id"], [[1]])["path"]).exists()
 
 
-@pytest.mark.skipif(not shutil.which("typst"), reason="requires required Typst installation")
+@pytest.mark.skipif(not shutil.which("typst"), reason="requires optional Typst renderer")
 def test_installed_typst_renders_a_valid_pdf(tmp_path: Path) -> None:
     rendered = Path(render_pdf(tmp_path, "Synthetic report", ["id", "name"], [[1, "one"]])["path"])
     assert rendered.read_bytes().startswith(b"%PDF-")

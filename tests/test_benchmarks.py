@@ -22,15 +22,16 @@ def test_all_domain_recipe_benchmark_completes_under_sixty_seconds(
     for domain in ("retail", "saas", "support"):
         database = tmp_path / f"{domain}.sqlite"
         generate(domain, "benchmark", 21, database)
-        environment = f"BENCHMARK_{domain.upper()}_PATH"
-        monkeypatch.setenv(environment, str(database))
-        config.append(f"[sources.{domain}]\ndialect='sqlite'\nenv='{environment}'\n")
+        config.append(f"[sources.{domain}]\ndialect='sqlite'\n")
     (tmp_path / ".mcp-data-agent.toml").write_text("\n".join(config), encoding="utf-8")
 
-    service = AnalyticsService(tmp_path)
     started = time.monotonic()
+    (tmp_path / ".mcp-data-source").write_text(f"{tmp_path / 'retail.sqlite'}\n")
+    service = AnalyticsService(tmp_path)
     task = service.begin_task("benchmark", "Run all deterministic domain recipes.")
-    for name in ("retail-top-products", "saas-mrr-by-plan", "support-sla-by-priority"):
+    for name, domain in (("retail-top-products", "retail"), ("saas-mrr-by-plan", "saas"), ("support-sla-by-priority", "support")):
+        (tmp_path / ".mcp-data-source").write_text(f"{tmp_path / f'{domain}.sqlite'}\n")
+        service = AnalyticsService(tmp_path)
         result = service.run_recipe(name, {}, task.task_id)
         assert result.rows
         assert result.result_checksum

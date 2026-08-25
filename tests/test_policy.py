@@ -10,7 +10,7 @@ from mcp_data_agent.policy import redact_value, validate_sql
 
 @pytest.fixture
 def source() -> SourcePolicy:
-    return SourcePolicy("test", "sqlite", "URL")
+    return SourcePolicy("test", "sqlite")
 
 
 def test_permits_parameterized_select(source: SourcePolicy, tmp_path: Path) -> None:
@@ -22,7 +22,7 @@ def test_permits_parameterized_select(source: SourcePolicy, tmp_path: Path) -> N
 def test_postgres_parameters_are_normalized_for_sqlalchemy_core(tmp_path: Path) -> None:
     result = validate_sql(
         "SELECT id FROM products WHERE id = :id", {"id": 1},
-        SourcePolicy("test", "postgres", "URL"), Settings(root=tmp_path),
+        SourcePolicy("test", "postgres"), Settings(root=tmp_path),
     )
     assert result.sql.endswith("id = :id")
 
@@ -36,7 +36,7 @@ def test_blocks_unsafe_sql(source: SourcePolicy, tmp_path: Path, sql: str) -> No
 @pytest.mark.parametrize("sql", ["SELECT * INTO temp generated FROM products", "SELECT pg_sleep(1)"])
 def test_blocks_select_write_and_side_effecting_function(tmp_path: Path, sql: str) -> None:
     with pytest.raises(AgentError):
-        validate_sql(sql, {}, SourcePolicy("test", "postgres", "URL"), Settings(root=tmp_path))
+        validate_sql(sql, {}, SourcePolicy("test", "postgres"), Settings(root=tmp_path))
 
 
 def test_blocks_writable_cte_and_parser_failures(source: SourcePolicy, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -54,7 +54,7 @@ def test_blocks_restricted_column(source: SourcePolicy, tmp_path: Path) -> None:
 
 def test_blocks_restricted_source(tmp_path: Path) -> None:
     with pytest.raises(AgentError, match="source is restricted"):
-        validate_sql("SELECT id FROM people", {}, SourcePolicy("test", "sqlite", "URL", classification="restricted"), Settings(root=tmp_path))
+        validate_sql("SELECT id FROM people", {}, SourcePolicy("test", "sqlite", classification="restricted"), Settings(root=tmp_path))
 
 
 def test_blocks_configured_restricted_classification(source: SourcePolicy, tmp_path: Path) -> None:
@@ -69,7 +69,7 @@ def test_blocks_configured_restricted_classification(source: SourcePolicy, tmp_p
 
 
 def test_blocks_table_outside_source_policy(source: SourcePolicy, tmp_path: Path) -> None:
-    restricted_source = SourcePolicy("test", "sqlite", "URL", allowed_tables=("products",))
+    restricted_source = SourcePolicy("test", "sqlite", allowed_tables=("products",))
     with pytest.raises(AgentError, match="outside"):
         validate_sql("SELECT * FROM people", {}, restricted_source, Settings(root=tmp_path))
 
@@ -84,7 +84,7 @@ def test_sql_validation_errors(source: SourcePolicy, tmp_path: Path, sql: str, p
 
 
 def test_blocks_schema_outside_source_policy(tmp_path: Path) -> None:
-    source = SourcePolicy("test", "postgres", "URL", allowed_schemas=("public",))
+    source = SourcePolicy("test", "postgres", allowed_schemas=("public",))
     with pytest.raises(AgentError, match="schema"):
         validate_sql("SELECT * FROM private.people", {}, source, Settings(root=tmp_path))
 

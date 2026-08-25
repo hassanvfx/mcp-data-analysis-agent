@@ -40,10 +40,9 @@ def test_postgres_core_adapter_contract(tmp_path: Path, monkeypatch: pytest.Monk
         cursor.execute("CREATE TABLE mcp_contract_items (id integer primary key, name text, updated_at timestamptz)")
         cursor.execute("INSERT INTO mcp_contract_items VALUES (1, 'one', now()), (2, 'two', now())")
     (tmp_path / ".mcp-data-agent.toml").write_text(
-        "[sources.contract]\ndialect='postgres'\nenv='MCP_DATA_TEST_POSTGRES_URL'\nallowed_schemas=['public']\nallowed_tables=['mcp_contract_items']\n"
+        "[sources.contract]\ndialect='postgres'\nallowed_schemas=['public']\nallowed_tables=['mcp_contract_items']\n"
     )
-    monkeypatch.setenv("MCP_DATA_TEST_POSTGRES_URL", POSTGRES_URL)
-    service = AnalyticsService(tmp_path)
+    service = AnalyticsService(tmp_path, POSTGRES_URL)
     schema = service.schema("contract")
     assert {item["table"] for item in schema} >= {"public.mcp_contract_items"}
     explained = service.explain("contract", "SELECT id, name FROM mcp_contract_items WHERE id = :id", {"id": 1})
@@ -63,7 +62,7 @@ def test_postgres_adapter_enforces_read_only_session_and_server_timeout() -> Non
     assert POSTGRES_URL
     with psycopg.connect(POSTGRES_URL, autocommit=True) as admin, admin.cursor() as cursor:
         cursor.execute("CREATE TABLE IF NOT EXISTS mcp_contract_items (id integer primary key, name text, updated_at timestamptz)")
-    source = SourcePolicy("contract", "postgres", "MCP_DATA_TEST_POSTGRES_URL", allowed_schemas=("public",))
+    source = SourcePolicy("contract", "postgres", allowed_schemas=("public",))
     with connection(source, POSTGRES_URL, 1) as readonly_db, connection(source, POSTGRES_URL, 1) as timeout_db:
         assert readonly_db.execute(text("SHOW transaction_read_only")).scalar_one() == "on"
         with pytest.raises(Exception, match="read-only"):

@@ -4,6 +4,7 @@
 .coverage
 coverage.json
 .env
+.mcp-data-source
 .venv/
 __pycache__/
 .pytest_cache/

@@ -43,14 +43,11 @@ class Ledger:
 
     def begin_task(self, title: str, objective: str, task_id: str | None = None) -> dict[str, str]:
         task_id = task_id or self.identifier("task")
-        journal = self.root / "knowledge" / "journals" / "data-analysis" / f"{task_id}.md"
-        journal_content = f'''---\ntype: Engineering Journal\ntitle: "{title}"\ndescription: "Data-analysis task {task_id}"\ntags: [data-analysis]\nstatus: draft\ngenerated:\n  by: mcp-data-analysis-agent\n  at: {_now().isoformat()}\n---\n\n# Goal\n\n{objective}\n\n# Status\n\n- [ ] Complete\n\n# Findings\n\nPending.\n\n# Verification\n\nPending.\n\n# Next Steps\n\nRun the approved analysis and complete this task.\n'''
-        _write_atomic(journal, journal_content)
         task = self.base / "tasks" / f"{task_id}.md"
-        task_content = f'''---\ntask_id: {task_id}\ntitle: "{title}"\nobjective: "{objective}"\nstatus: active\njournal: {journal.relative_to(self.root)}\nsource_aliases: []\nquery_ids: []\nrun_ids: []\nartifacts: []\ncreated_at: {_now().isoformat()}\n---\n\n# Findings\n\nPending.\n\n# Next steps\n\nComplete the linked analysis journal.\n'''
+        task_content = f'''---\ntask_id: {task_id}\ntitle: "{title}"\nobjective: "{objective}"\nstatus: active\nsource_aliases: []\nquery_ids: []\nrun_ids: []\nartifacts: []\ncreated_at: {_now().isoformat()}\n---\n\n# Findings\n\nPending.\n\n# Next steps\n\nComplete the analysis when its findings are ready.\n'''
         _write_atomic(task, task_content)
         self.event(task_id, "task_started", {"title": title})
-        return {"task_id": task_id, "journal_path": str(journal.relative_to(self.root))}
+        return {"task_id": task_id}
 
     def event(self, task_id: str, kind: str, payload: dict[str, object]) -> None:
         stamp = _now()
@@ -118,14 +115,6 @@ class Ledger:
         original = path.read_text(encoding="utf-8")
         completed = original.replace("status: active", "status: complete") + f"\n## Completion\n\n{findings}\n\n{next_steps}\n"
         _write_atomic(path, completed)
-        journal = self.root / "knowledge" / "journals" / "data-analysis" / f"{task_id}.md"
-        if journal.exists():
-            content = journal.read_text(encoding="utf-8")
-            content = content.replace("status: draft", "status: stable", 1)
-            content = content.replace("- [ ] Complete", "- [x] Complete", 1)
-            content = content.replace("# Findings\n\nPending.", f"# Findings\n\n{findings}", 1)
-            content = content.replace("# Next Steps\n\nRun the approved analysis and complete this task.", f"# Next Steps\n\n{next_steps or 'None.'}", 1)
-            _write_atomic(journal, content)
         self.event(task_id, "task_completed", {"findings": findings})
 
     def request_cancellation(self, task_id: str) -> None:

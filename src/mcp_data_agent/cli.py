@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 import shutil
-import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
@@ -15,7 +12,7 @@ import typer
 
 from .clients import apply as apply_client_plans
 from .clients import plans as client_plans
-from .context import load_context
+from .clients import remove_exact as remove_client_plans
 from .errors import AgentError
 from .fixtures import (
     clone_sqlite_to_postgres,
@@ -23,10 +20,21 @@ from .fixtures import (
     generate,
     seed_postgres,
 )
-from .onboarding import ENV_EXAMPLE, apply_init, init_plan, project_config_template
+from .onboarding import (
+    apply_gitignore,
+    apply_policy_template,
+    apply_source_file,
+    configure_policy_plan,
+    fixture_source_file_plan,
+    gitignore_plan,
+    legacy_env_value,
+    remove_managed_demo,
+    source_file_plan,
+)
 from .service import AnalyticsService
 
 app = typer.Typer(no_args_is_help=True, help="Local governed analytics for MCP clients.")
+LEGACY_DEMO_OUTPUT = typer.Option("demo.sqlite", "--output", hidden=True)
 
 
 def root() -> Path:
@@ -37,51 +45,13 @@ def emit(value: object) -> None:
     typer.echo(json.dumps(value, default=str, indent=2))
 
 
-def _clineflow_healthy(project: Path) -> bool:
-    """Run the project-owned ClineFlow health checks without changing knowledge."""
-    commands = [project / "clineflow-doctor", project / "validate-okf"]
-    if not all(command.is_file() for command in commands):
-        return False
-    try:
-        for command in commands:
-            completed = subprocess.run([str(command)], cwd=project, capture_output=True, text=True, check=False)
-            if completed is not None and completed.returncode != 0:
-                return False
-    except OSError:
-        return False
-    return True
-
-
-def _install_typst() -> str | None:
-    """Install Typst through an existing user package manager, never sudo."""
-    if shutil.which("typst"):
-        return None
-    if shutil.which("brew"):
-        subprocess.run(["brew", "install", "typst"], check=True)
-        return None
-    if sys.platform == "win32" and shutil.which("winget"):
-        subprocess.run(["winget", "install", "--id", "Typst.Typst", "--exact"], check=True)
-        return None
-    return "Install Typst with your platform package manager, then rerun preflight."
-
-
-def _install_postgres_cli() -> str | None:
-    """Install PostgreSQL local client/server tooling when a user package manager can do so."""
-    if shutil.which("createdb"):
-        return None
-    if shutil.which("brew"):
-        subprocess.run(["brew", "install", "postgresql@15"], check=True)
-        return None
-    return "Install PostgreSQL client tools (including createdb) to run local parity fixtures."
-
-
 @app.command()
 def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"), apply: bool = False,
-          status: bool = False) -> None:
+          status: bool = False, global_scope: bool = typer.Option(False, "--global"), yes: bool = typer.Option(False, "--yes")) -> None:
     """Preview or merge the local MCP server into detected supported clients."""
     project = root()
     try:
-        planned = client_plans(project, Path.home(), "all" if all_clients else client)
+        planned = client_plans(project, Path.home(), "all" if all_clients else client, global_scope)
     except AgentError as exc:
         raise typer.BadParameter(exc.message) from exc
     payload = {"client_plans": [item.as_dict() for item in planned], "apply": apply,
@@ -92,83 +62,70 @@ def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"),
     writable = [item for item in planned if item.action in {"add", "update"}]
     if not writable:
         return
-    if apply:
+    if not yes:
         targets = ", ".join(f"{item.client} ({item.scope})" for item in writable)
         if not typer.confirm(f"Merge mcp-data-analysis into: {targets}?", default=False):
             raise typer.Exit()
-        emit({"written": [str(path) for path in apply_client_plans(writable)],
-              "skipped": [item.as_dict() for item in planned if item.action == "skip"]})
+    emit({"written": [str(path) for path in apply_client_plans(writable)],
+          "skipped": [item.as_dict() for item in planned if item.action == "skip"]})
 
 
-@app.command()
-def init(preview: bool = typer.Option(False, "--preview"), yes: bool = typer.Option(False, "--yes")) -> None:
-    """Prepare this project with one URL-configured source and MCP clients."""
+@app.command("configure-source")
+def configure_source(url: str = typer.Argument(""), fixture: bool = typer.Option(False, "--fixture", hidden=True),
+                     migrate_env: bool = typer.Option(False, "--migrate-env"), yes: bool = typer.Option(False, "--yes")) -> None:
+    """Create or replace this project's private source file after confirmation."""
     project = root()
     try:
-        planned = init_plan(project, Path.home())
+        value = legacy_env_value(project) if migrate_env else url
+        if fixture:
+            typer.echo("Deprecated: use `mcp-data-cli demo start` to create and activate the managed demo.", err=True)
+            if value:
+                raise typer.BadParameter("Use either a URL, --fixture, or --migrate-env.")
+            planned = fixture_source_file_plan(project)
+        elif value:
+            planned = source_file_plan(project, value)
+        else:
+            raise typer.BadParameter("Provide a URL/path, --fixture, or --migrate-env.")
     except AgentError as exc:
         emit(exc.as_dict())
         raise typer.Exit(2) from exc
-    emit({"init_plan": planned.as_dict(), "preview": preview})
-    if preview:
-        return
-    writable = [item for item in planned.clients if item.action in {"add", "update"}]
-    targets = ["project policy and private playground"] + [f"{item.client} ({item.scope})" for item in writable]
-    if not yes and not typer.confirm(f"Initialize MCP Data Analysis: {', '.join(targets)}?", default=False):
+    ignore = gitignore_plan(project)
+    emit({"source_file_plan": planned.as_dict(), "gitignore_plan": ignore.as_dict()})
+    if not yes and not typer.confirm(f"Write {planned.source_file.name} for this project?", default=False):
         raise typer.Exit()
-    written = apply_init(planned, apply_client_plans)
-    emit({"initialized": {"source_alias": "data", "source_env": "MCP_DATA_SOURCE_URL",
-                           "playground": str(planned.playground)},
-          "client_configurations_written": [str(path) for path in written],
-          "client_configurations_skipped": [item.as_dict() for item in planned.clients if item.action == "skip"]})
+    apply_gitignore(ignore)
+    apply_source_file(planned, fixture)
+    emit({"configured": {"source_file": str(planned.source_file), "source_alias": "data"}})
 
 
 @app.command()
-def preflight(fix: bool = typer.Option(True, "--fix/--no-fix")) -> None:
-    """Ensure required local tooling is installed without connecting to a source."""
+def preflight() -> None:
+    """Validate source readiness without modifying this project or the machine."""
     project = root()
-    repaired: list[str] = []
-    required_action: list[str] = []
-    if fix:
-        for name, content in {".env.example": ENV_EXAMPLE,
-                              ".mcp-data-agent.toml": project_config_template()}.items():
-            target = project / name
-            if not target.exists():
-                target.write_text(content, encoding="utf-8")
-                repaired.append(name)
-        if shutil.which("uv"):
-            subprocess.run(["uv", "sync", "--extra", "dev", "--extra", "parquet"], check=True, cwd=project)
-        else:
-            required_action.append("Install uv through its official installer.")
-        try:
-            if action := _install_typst():
-                required_action.append(action)
-        except subprocess.CalledProcessError:
-            required_action.append("Typst installation failed; install it with your platform package manager.")
-        try:
-            if action := _install_postgres_cli():
-                required_action.append(action)
-        except subprocess.CalledProcessError:
-            required_action.append("PostgreSQL tooling installation failed; install PostgreSQL client tools.")
-    checks = {"project_writable": project.exists() and project.is_dir(), "git": shutil.which("git") is not None,
-              "uv": shutil.which("uv") is not None, "python_3_11": sys.version_info >= (3, 11),
-              "clineflow": _clineflow_healthy(project),
-              "mcp_executable": shutil.which("mcp-data-mcp") is not None, "typst": shutil.which("typst") is not None,
-              "sqlalchemy_core": importlib.util.find_spec("sqlalchemy") is not None,
-              "postgres_local_cli": shutil.which("createdb") is not None}
-    emit({"checks": checks, "repaired": repaired, "required_action": required_action,
+    source = AnalyticsService(project).preflight()
+    checks = {
+        "project_writable": project.is_dir() and os.access(project, os.W_OK),
+        "source": source["status"] == "ready",
+        "mcp_executable": shutil.which("mcp-data-mcp") is not None,
+    }
+    required_action = [] if source["status"] == "ready" else [str(source["action"])]
+    if not checks["mcp_executable"]:
+        required_action.append("Reinstall mcp-data-analysis-agent so mcp-data-mcp is available on PATH.")
+    emit({"checks": checks, "source": source, "required_action": required_action,
           "status": "pass" if all(checks.values()) else "required_action"})
 
 
 @app.command()
 def doctor(require_source: bool = False) -> None:
-    """Validate local setup; no configured source is configuration-pending."""
+    """Validate project source readiness without repository-specific checks."""
     service = AnalyticsService(root())
-    healthy = _clineflow_healthy(root())
-    source_ready = bool(service.settings.sources)
-    emit({"status": "pass" if healthy and (source_ready or not require_source) else "failed",
-          "clineflow": healthy, "source": "configured" if source_ready else "configuration_pending"})
-    if not healthy or (require_source and not source_ready):
+    source = service.preflight()
+    source_ready = source["status"] == "ready"
+    pending = source["status"] == "source_configuration_required"
+    passed = source_ready or (pending and not require_source)
+    emit({"status": "pass" if passed else "failed",
+          "source": "configured" if source_ready else ("configuration_pending" if pending else source["status"])})
+    if not passed:
         raise typer.Exit(1)
 
 
@@ -287,16 +244,50 @@ def benchmark(domain: str, output: Path, seed: int = 1) -> None:
 
 
 @app.command()
-def demo(action: str, domain: str = "retail", output: Path = Path("demo.sqlite")) -> None:
-    """Explicitly create or remove an isolated development demo source."""
+def demo(action: str, domain: str = typer.Option("retail", "--domain", hidden=True),
+         output: Path = LEGACY_DEMO_OUTPUT,
+         yes: bool = typer.Option(False, "--yes")) -> None:
+    """Create or remove the managed project retail demo after confirmation."""
+    project = root()
     if action == "start":
-        emit(generate(domain, "unit", 1, output))
+        if domain != "retail" or output != Path("demo.sqlite"):
+            raise typer.BadParameter("The managed demo is retail only; use dataset for contributor fixtures.")
+        plan = fixture_source_file_plan(project)
+        ignore = gitignore_plan(project)
+        emit({"demo_plan": plan.as_dict(), "gitignore_plan": ignore.as_dict()})
+        if not yes and not typer.confirm("Create and activate the seeded retail demo for this project?", default=False):
+            raise typer.Exit()
+        apply_gitignore(ignore)
+        apply_source_file(plan, fixture=True)
+        emit({"status": "demo_configured", "source_alias": "data", "created": [".mcp-data/playground.sqlite", ".mcp-data-source"]})
     elif action == "stop":
-        if output.exists() and output.is_file():
-            output.unlink()
-        emit({"status": "stopped", "path": str(output)})
+        if not yes and not typer.confirm("Remove the managed retail demo if it is still the active source?", default=False):
+            raise typer.Exit()
+        try:
+            emit(remove_managed_demo(project))
+        except AgentError as exc:
+            emit(exc.as_dict())
+            raise typer.Exit(2) from exc
     else:
         raise typer.BadParameter("action must be start or stop")
+
+
+@app.command("configure-policy")
+def configure_policy(yes: bool = typer.Option(False, "--yes")) -> None:
+    """Create optional non-secret policy, catalog, and recipe starter files."""
+    project = root()
+    try:
+        service = AnalyticsService(project)
+        if service.preflight()["status"] != "ready":
+            raise AgentError("SOURCE_CONFIGURATION_REQUIRED", "Configure and verify a source before scaffolding policy.")
+        policy, catalog, recipes = configure_policy_plan(project)
+    except AgentError as exc:
+        emit(exc.as_dict())
+        raise typer.Exit(2) from exc
+    emit({"policy_plan": {"policy": str(policy), "catalog": str(catalog), "recipes": str(recipes)}})
+    if not yes and not typer.confirm("Create optional non-secret policy starter files?", default=False):
+        raise typer.Exit()
+    emit(apply_policy_template(project))
 
 
 @app.command()
@@ -328,11 +319,6 @@ def task_cancel(task_id: str) -> None:
     except FileNotFoundError:
         emit({"code": "TASK_UNKNOWN", "message": "The selected task is not available."})
         raise typer.Exit(2)
-
-
-@app.command()
-def context(query: str = "") -> None:
-    emit(load_context(root(), query))
 
 
 @app.command()
@@ -377,5 +363,22 @@ def seed_postgres_dataset(domain: str, tier: str = "unit", seed: int = 1) -> Non
 
 
 @app.command()
-def uninstall() -> None:
-    typer.echo("Uninstall with: uv tool uninstall mcp-data-analysis-agent. ClineFlow and project knowledge are never removed.")
+def uninstall(clients: bool = typer.Option(False, "--clients"), demo: bool = typer.Option(False, "--demo"),
+              apply: bool = typer.Option(False, "--apply"), yes: bool = typer.Option(False, "--yes")) -> None:
+    """Preview or remove exact managed client entries and the managed demo."""
+    project = root()
+    plans = client_plans(project, Path.home(), "all", True) if clients else []
+    payload = {"client_entries": [item.as_dict() for item in plans], "demo": demo,
+               "apply": apply, "tool_uninstall": "uv tool uninstall mcp-data-analysis-agent"}
+    emit(payload)
+    if not apply:
+        return
+    if not yes and not typer.confirm("Remove the selected managed MCP Data Analysis setup?", default=False):
+        raise typer.Exit()
+    removed: dict[str, object] = {"clients": [str(path) for path in remove_client_plans(plans)] if clients else []}
+    if demo:
+        try:
+            removed["demo"] = remove_managed_demo(project)
+        except AgentError as exc:
+            removed["demo"] = exc.as_dict()
+    emit({"removed": removed, "tool_uninstall": "uv tool uninstall mcp-data-analysis-agent"})

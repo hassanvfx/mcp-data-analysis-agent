@@ -21,9 +21,8 @@ from mcp_data_agent.service import AnalyticsService
 def test_domain_evidence_chain(domain: str, sql: str, table: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     database = tmp_path / f"{domain}.sqlite"
     generate(domain, "unit", 42, database)
-    environment = f"E2E_{domain.upper()}_PATH"
-    (tmp_path / ".mcp-data-agent.toml").write_text(f"[sources.{domain}]\ndialect='sqlite'\nenv='{environment}'\n")
-    monkeypatch.setenv(environment, str(database))
+    (tmp_path / ".mcp-data-source").write_text(f"{database}\n")
+    (tmp_path / ".mcp-data-agent.toml").write_text(f"[sources.{domain}]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     task = service.begin_task(f"{domain} evidence", "Verify the full governed analysis chain.")
     assert service.schema_state(domain)["fingerprint"]

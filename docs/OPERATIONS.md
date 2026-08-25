@@ -1,31 +1,30 @@
 # Operations
 
-For a GitHub-repository installation that configures the current project, run this from that project
-directory:
+For a GitHub-repository installation that configures a credential-free global server, run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/main/install.sh | bash
 ```
 
-This is the standard installation instruction for every supported MCP client. It installs the tool,
-creates the local retail playground, writes `.env` with the one `MCP_DATA_SOURCE_URL` value, and
-merges only the `mcp-data-analysis` stdio entry into every detected client configuration. A bare
-`uv tool install` is intentionally user-level only and cannot initialize an arbitrary project.
+This installs the tool and merges only credential-free `mcp-data-analysis` stdio entries into detected
+global client configuration. It does not initialize any project or read/write a database URL.
 
-On first MCP-server use, an ignored deterministic retail SQLite playground is created automatically
-for the current project and exposed as source alias `data`; every supported client receives the same
-`welcome` MCP tool and startup instructions. Run `mcp-data-cli init` from the target project to
-materialize this into `.env`, the one-source policy, and detected MCP client entries after one
-confirmation. The only setting an operator normally changes is
-`MCP_DATA_SOURCE_URL` in `.env`; SQLite paths/URLs and PostgreSQL URLs select their dialect
-automatically. Use a dedicated database-level read-only PostgreSQL account in production, then run
-`mcp-data-cli doctor --require-source` in CI. The generated playground is development-only;
-contributors may generate other fixtures with `mcp-data-cli dataset retail /tmp/retail.sqlite`.
+For each project, create an ignored `.mcp-data-source` containing one absolute SQLite path/URL or
+PostgreSQL URL. `preflight` fails closed with setup instructions until that file is valid. Use
+`mcp-data-cli configure-source URL` for a real source, `mcp-data-cli demo start` for the managed retail demo, or
+`configure-source --migrate-env` for an explicit legacy migration after confirmation. Use a dedicated database-level read-only PostgreSQL account in production,
+then run `mcp-data-cli doctor --require-source` in CI.
 
-`init` configures detected MCP clients as part of its single confirmation. To configure clients only,
-run `mcp-data-cli setup --all` first to review detected project and fallback user targets, then run
-`mcp-data-cli setup --all --apply` and confirm the displayed merge. The setup process never replaces
+To configure clients, run `mcp-data-cli setup --all --global` first to review detected global targets,
+then run `mcp-data-cli setup --all --global --apply` and confirm the displayed merge. The setup process never replaces
 an existing client configuration; malformed files are skipped with guidance.
+
+Global entries rely on the client starting MCP from the active project directory. If a client does not preserve that working directory, use its project-scoped entry (`mcp-data-cli setup --client <client> --apply`), which records a static `--project-root` argument and still contains no credential. Verify this behavior after restart for Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue.
+
+| Client | Global-entry check | Fallback when CWD is not the project |
+| --- | --- | --- |
+| Codex | Open a project and call MCP `preflight`. | Codex uses its user configuration; confirm its launched CWD before relying on global setup. |
+| Claude Code, Copilot, Cline, Cursor, Windsurf, Continue | Open a project and call MCP `preflight`. | Run `mcp-data-cli setup --client <client> --apply` from that project, restart the client, then call `preflight` again. |
 
 For local PostgreSQL parity without supplying a URL, use
 `mcp-data-cli dataset-postgres retail mcp_data_parity`. The command uses `createdb`, refuses to
@@ -42,4 +41,4 @@ then run the two PostgreSQL test modules.
 
 To retain deterministic domain data in that database for manual development, export the printed test URL and run `mcp-data-cli seed-postgres retail` (or `saas` / `support`). Each command replaces only its own reserved `mcp_seed_<domain>` schema.
 
-Typst is a required preflight prerequisite for the supported installation. HTML and CSV remain independently usable after installation.
+Typst is optional and required only for PDF rendering. HTML, CSV, and Parquet reports remain available without it; a PDF request returns actionable renderer-install guidance when Typst is unavailable. PostgreSQL command-line tools in this document are contributor/test tooling, not a runtime prerequisite.

@@ -53,8 +53,15 @@ def test_install_script_refuses_invalid_checksum_before_install(tmp_path: Path) 
     assert not log.exists()
 
 
-def test_install_script_defaults_to_repository_install_and_project_init_contract() -> None:
+def test_install_script_defaults_to_repository_install_and_global_setup_contract() -> None:
     script = (Path(__file__).parents[1] / "install.sh").read_text()
     assert 'repository_url="${MCP_DATA_REPOSITORY_URL:-https://github.com/hassanvfx/mcp-data-analysis-agent.git}"' in script
     assert 'uv tool install --force "$install_source"' in script
-    assert 'uv tool run --from "$install_source" mcp-data-cli init --yes' in script
+    assert 'uv tool run --from "$install_source" mcp-data-cli setup --all --global --apply --yes' in script
+
+
+def test_install_script_supports_safe_local_editable_checkout_mode() -> None:
+    script = (Path(__file__).parents[1] / "install.sh").read_text()
+    assert '"${1:-}" == "--local"' in script
+    assert 'uv tool install --force --editable "$install_source"' in script
+    assert '--local requires a repository checkout.' in script

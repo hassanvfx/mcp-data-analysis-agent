@@ -25,12 +25,10 @@ When the user asks to commit:
 
 ## Repository installation requests
 
-When a user asks to install this repository into the current project, use this repository's
-`install.sh` from that project directory (or its documented GitHub `curl | bash` command). Do not
-substitute bare `uv tool install`: it installs a user-level executable only. The installer is the
-explicit project bootstrap; it creates the ignored retail playground, writes the single private
-`MCP_DATA_SOURCE_URL` value, and configures every detected supported MCP client without placing
-source URLs or credentials in client configuration.
+When a user asks to install this repository, use its `install.sh` (or the documented GitHub
+`curl | bash` command) to install the package and configure credential-free global MCP client
+entries. It does not bootstrap, inspect, or write the caller's project. Each data-enabled project
+separately creates its ignored `.mcp-data-source` file.
 
 ## Knowledge navigation
 

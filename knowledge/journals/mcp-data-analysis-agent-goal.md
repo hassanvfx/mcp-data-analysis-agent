@@ -1,7 +1,7 @@
 ---
 type: Engineering Journal
 title: "MCP Data Analysis Agent Delivery Goal"
-description: "Active delivery goal for the local, ClineFlow-backed MCP Data Analysis Agent."
+description: "Active delivery goal for the local, observability-backed MCP Data Analysis Agent."
 tags: [engineering, mcp, data-analysis, goal, delivery]
 status: draft
 generated:
@@ -11,7 +11,7 @@ generated:
 
 # Goal
 
-Deliver a production-ready, local-first MCP Data Analysis Agent that Copilot can use to safely analyze user-owned SQLite and PostgreSQL data. The product must be installable with human-controlled setup, use ClineFlow as persistent project memory, produce receipt-backed outputs, and retain a structured version-controlled observability history for every analytical task.
+Deliver a production-ready, local-first MCP Data Analysis Agent that Copilot can use to safely analyze user-owned SQLite and PostgreSQL data. The product must be installable with human-controlled setup, produce receipt-backed outputs, and retain project-local observability evidence for every analytical task without requiring repository-clone tooling in user projects.
 
 The authoritative product design is the stable [MCP Data Analysis Agent Specification](mcp-data-analysis-agent-spec.md). This journal tracks delivery progress and verification separately from that specification.
 
@@ -23,19 +23,19 @@ The authoritative product design is the stable [MCP Data Analysis Agent Specific
 
 # Delivery Milestones
 
-1. **Foundation and onboarding** - Create the Python package, UV-managed environment, one-line installer, preflight/doctor commands, ClineFlow prerequisite checks, and human-controlled local MCP configuration.
-2. **Safe data access** - Implement SQLite/PostgreSQL adapters, local `.env` source configuration, read-only policy enforcement, schema/catalog discovery, SQL validation, explain, execution, receipts, limits, cancellation, and classifications.
-3. **Memory and observability** - Integrate progressive ClineFlow context, semantic catalog/recipes, task lifecycle, and version-controlled query/run/event records.
+1. **Foundation and onboarding** - Create the Python package, one-line installer, non-mutating preflight/doctor commands, credential-free global MCP configuration, and per-project source onboarding.
+2. **Safe data access** - Implement SQLite/PostgreSQL adapters, `.mcp-data-source` configuration, read-only policy enforcement, schema/catalog discovery, SQL validation, explain, execution, receipts, limits, cancellation, and classifications.
+3. **Observability** - Integrate semantic catalog/recipes, task lifecycle, and project-local query/run/event records.
 4. **Data products** - Implement profiling, quality checks, period comparisons, chart suggestions, HTML dashboards, Typst PDFs, and CSV/Parquet exports.
 5. **Evidence and release readiness** - Add generated development fixtures, golden scenarios, evaluation, coverage gates, CI, security/release automation, documentation, and package publishing.
 
 # Success Criteria
 
 - A user can install the tool locally without creating a database or providing a secret during installation.
-- ClineFlow is verified or installed as a prerequisite, and its OKF bundle remains healthy.
+- No user project needs ClineFlow, OKF, Git metadata, Typst, or PostgreSQL CLI tooling to use a configured source.
 - The local MCP server works over stdio with Copilot; no hosted service or remote credential store is required.
 - SQLite and PostgreSQL queries are independently constrained to safe read-only behavior.
-- Each analysis has bounded evidence, a receipt, a linked ClineFlow journal, and an observability timeline.
+- Each analysis has bounded evidence, a receipt, and an observability timeline.
 - Requested reports/exports are reproducible and never commit artifacts, credentials, or protected values.
 - Golden retail, SaaS, and support scenarios pass the specified safety, correctness, coverage, and under-60-second benchmark criteria.
 
@@ -54,10 +54,10 @@ The following use cases are delivery targets. They must run against deterministi
 
 Each representative use case is complete only when it:
 
-1. Loads required ClineFlow/catalog context without exposing unrelated or restricted data.
+1. Loads required catalog/schema context without exposing unrelated or restricted data.
 2. Validates and explains one permitted bounded query or defined safe query sequence.
 3. Produces expected typed results and deterministic metric assertions.
-4. Creates a receipt, query/run records, task timeline, and linked ClineFlow journal entry.
+4. Creates a receipt, query/run records, and task timeline under `observability/`.
 5. Produces requested HTML/PDF/export artifacts with reproducible paths and hashes.
 6. Meets the unit or benchmark latency target, including the under-60-second end-to-end benchmark requirement.
 
@@ -337,7 +337,7 @@ Each representative use case is complete only when it:
 # Decisions
 
 - **Separate specification and goal:** Keep the completed specification stable while using this journal to record implementation progress, decisions, verification, and next steps.
-- **ClineFlow as delivery memory:** Track substantial implementation work here and link detailed product/task journals as the project grows.
+- **ClineFlow for repository development:** Track this repository's engineering work in OKF journals; the installed MCP never requires or writes those files in user projects.
 - **Milestone-driven delivery:** Use the five delivery milestones above to preserve safe sequencing from installation foundations through release readiness.
 
 # Testing

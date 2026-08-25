@@ -15,6 +15,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from .adapters import connection, describe_schema
 from .artifacts import (
@@ -25,7 +26,7 @@ from .artifacts import (
     render_pdf,
     write_receipt_metadata,
 )
-from .config import Settings, load_settings
+from .config import SOURCE_FILE, Settings, load_settings
 from .errors import AgentError
 from .ledger import Ledger
 from .models import QueryResult, TaskResult
@@ -38,14 +39,14 @@ def quote_identifier(identifier: str) -> str:
 
 
 class AnalyticsService:
-    def __init__(self, root: Path) -> None:
-        self.settings: Settings = load_settings(root)
+    def __init__(self, root: Path, source_url: str | None = None, source_file: Path = SOURCE_FILE) -> None:
+        self.settings: Settings = load_settings(root, source_url, source_file)
         self.ledger = Ledger(root)
         self.query_gate = BoundedSemaphore(self.settings.max_concurrent_queries)
 
     def begin_task(self, title: str, objective: str) -> TaskResult:
         item = self.ledger.begin_task(title, objective)
-        return TaskResult(task_id=item["task_id"], status="active", journal_path=item["journal_path"])
+        return TaskResult(task_id=item["task_id"], status="active")
 
     def cancel_task(self, task_id: str) -> dict[str, str]:
         self.ledger.request_cancellation(task_id)
@@ -53,6 +54,30 @@ class AnalyticsService:
 
     def _source(self, source_alias: str) -> tuple[Any, str]:
         return self.settings.resolved_source(source_alias)
+
+    def preflight(self) -> dict[str, object]:
+        """Probe the configured source read-only without disclosing its location."""
+        try:
+            source, location = self._source("data")
+        except AgentError as exc:
+            if exc.code == "SOURCE_CONFIGURATION_REQUIRED":
+                return {"status": "source_configuration_required", "error": exc.as_dict(),
+                        "action": "Create .mcp-data-source with one absolute SQLite path/URL or PostgreSQL URL, or run mcp-data-cli configure-source.",
+                        "demo": {"request": "Ask the user whether they want the seeded retail demo configured for this project.",
+                                 "tool": "configure_demo", "confirmation_required": True}}
+            return {"status": "source_configuration_invalid", "error": exc.as_dict(),
+                    "action": "Correct the project source file or policy, then rerun preflight."}
+        try:
+            with connection(source, location, min(self.settings.timeout_seconds, 5)) as db:
+                db.execute(text("SELECT 1"))
+        except AgentError as exc:
+            return {"status": "source_unavailable", "error": exc.as_dict(),
+                    "action": "Verify the database is reachable and the configured account is read-only."}
+        except (OSError, SQLAlchemyError):
+            return {"status": "source_unavailable", "error": {"code": "SOURCE_UNAVAILABLE", "message": "The configured source could not be reached."},
+                    "action": "Verify the database is reachable and the configured account is read-only."}
+        return {"status": "ready", "source_alias": "data", "dialect": source.dialect,
+                "source_origin": self.settings.source_origin, "probe": "read_only_select_1"}
 
     def schema(self, source_alias: str) -> list[dict[str, Any]]:
         source, location = self._source(source_alias)
@@ -81,39 +106,36 @@ class AnalyticsService:
     def sources(self) -> list[dict[str, object]]:
         values: list[dict[str, object]] = []
         for item in self.settings.sources.values():
-            configured = bool(__import__("os").environ.get(item.env))
             dialect = item.dialect
-            playground = item.alias in self.settings.default_source_urls
-            if configured or playground:
+            configured = self.settings.source_location is not None
+            if configured:
                 try:
                     dialect = self.settings.resolved_source(item.alias)[0].dialect
                 except AgentError:
                     dialect = "unsupported"
             values.append({"alias": item.alias, "dialect": dialect or "inferred", "classification": item.classification,
-                           "configured": configured or playground,
-                           "origin": "playground" if playground else "private_url"})
+                           "configured": configured, "origin": self.settings.source_origin or "configuration_required"})
         return values
 
     def welcome(self) -> dict[str, object]:
         """Return first-run guidance without exposing a production source URL."""
-        source, location = self._source("data")
-        playground = "data" in self.settings.default_source_urls
+        status = self.preflight()
+        if status["status"] != "ready":
+            return {"status": "source_configuration_required", "message": "Configure a local source before analysis.",
+                    "source_alias": "data", "quickstart": [status["action"]]}
+        source, _ = self._source("data")
         return {
-            "status": "playground_ready" if playground else "source_ready",
-            "message": "Welcome to MCP Data Analysis. Start by exploring the deterministic retail playground.",
+            "status": "source_ready",
+            "message": "Welcome to MCP Data Analysis. Your project source is ready for governed analysis.",
             "source_alias": "data",
             "dialect": source.dialect,
-            "playground": playground,
+            "source_origin": self.settings.source_origin,
             "quickstart": [
                 "List the data source and inspect its schema.",
                 "Run a bounded SELECT against products, orders, or order_items.",
                 "Create a task before a multi-step analysis to retain receipts and a timeline.",
             ],
-            "switch_to_your_database": {
-                "environment_variable": "MCP_DATA_SOURCE_URL",
-                "action": "Run mcp-data-cli init once to write the project .env, then replace only this value with an absolute SQLite path or PostgreSQL URL.",
-                "current_playground_path": location if playground else None,
-            },
+            "configure_source": {"file": ".mcp-data-source", "action": "Run mcp-data-cli configure-source or create the file with one absolute SQLite path/URL or PostgreSQL URL."},
         }
 
     def validate(self, source_alias: str, sql: str, parameters: dict[str, Any]) -> dict[str, object]:

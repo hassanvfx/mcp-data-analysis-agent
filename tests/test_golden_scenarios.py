@@ -20,9 +20,8 @@ from mcp_data_agent.service import AnalyticsService
 def test_domain_golden_queries(domain: str, sql: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     database = tmp_path / f"{domain}.sqlite"
     generate(domain, "unit", 11, database)
-    env = f"TEST_{domain.upper()}_PATH"
-    (tmp_path / ".mcp-data-agent.toml").write_text(f"[sources.{domain}]\ndialect='sqlite'\nenv='{env}'\n")
-    monkeypatch.setenv(env, str(database))
+    (tmp_path / ".mcp-data-source").write_text(f"{database}\n")
+    (tmp_path / ".mcp-data-agent.toml").write_text(f"[sources.{domain}]\ndialect='sqlite'\n")
     result = AnalyticsService(tmp_path).execute(domain, sql, {})
     assert result.rows
     assert result.result_checksum

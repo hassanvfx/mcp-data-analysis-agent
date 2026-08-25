@@ -28,7 +28,8 @@ def _engine(source: SourcePolicy, location: str, timeout: int) -> Engine:
             url = "postgresql+psycopg://" + location.removeprefix("postgres://")
         else:
             url = location.replace("postgresql://", "postgresql+psycopg://", 1)
-        return create_engine(url, connect_args={"options": f"-c statement_timeout={timeout * 1000}"}, pool_pre_ping=True)
+        return create_engine(url, connect_args={"options": f"-c statement_timeout={timeout * 1000}",
+                                                "connect_timeout": timeout}, pool_pre_ping=True)
     raise AgentError("SOURCE_DIALECT_UNSUPPORTED", "The source dialect is unsupported.")
 
 

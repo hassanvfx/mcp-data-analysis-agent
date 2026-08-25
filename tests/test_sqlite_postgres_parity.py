@@ -43,16 +43,11 @@ def test_sqlite_fixture_results_match_postgres_core(
     generate(domain, "unit", 31, sqlite_path)
     copied = clone_sqlite_to_postgres(sqlite_path, POSTGRES_URL)
     assert copied["tables"] > 0
-    sqlite_env = f"PARITY_SQLITE_{domain.upper()}"
-    postgres_env = f"PARITY_POSTGRES_{domain.upper()}"
-    monkeypatch.setenv(sqlite_env, str(sqlite_path))
-    monkeypatch.setenv(postgres_env, POSTGRES_URL)
     (tmp_path / ".mcp-data-agent.toml").write_text(
-        f"[sources.sqlite]\ndialect='sqlite'\nenv='{sqlite_env}'\n"
-        f"[sources.postgres]\ndialect='postgres'\nenv='{postgres_env}'\nallowed_schemas=['mcp_parity']\n"
+        "[sources.sqlite]\ndialect='sqlite'\n"
+        "[sources.postgres]\ndialect='postgres'\nallowed_schemas=['mcp_parity']\n"
     )
-    service = AnalyticsService(tmp_path)
-    sqlite_result = service.execute("sqlite", sql, {})
-    postgres_result = service.execute("postgres", sql, {})
+    sqlite_result = AnalyticsService(tmp_path, str(sqlite_path)).execute("sqlite", sql, {})
+    postgres_result = AnalyticsService(tmp_path, POSTGRES_URL).execute("postgres", sql, {})
     assert sqlite_result.rows == postgres_result.rows
     assert sqlite_result.columns == postgres_result.columns

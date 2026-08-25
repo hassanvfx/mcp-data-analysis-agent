@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This script deliberately uses the caller's directory as the target project.
-# Run it from the project you want to configure, including when piping it from GitHub.
-target_dir="$(pwd -P)"
 repository_url="${MCP_DATA_REPOSITORY_URL:-https://github.com/hassanvfx/mcp-data-analysis-agent.git}"
 command -v uv >/dev/null || { echo 'uv is required; install it before running this bootstrap.' >&2; exit 1; }
 
-if [[ -n "${MCP_DATA_RELEASE_URL:-}" || -n "${MCP_DATA_RELEASE_SHA256:-}" ]]; then
+local_install=false
+if [[ "${1:-}" == "--local" ]]; then
+  local_install=true
+  shift
+fi
+[[ $# -eq 0 ]] || { echo 'usage: install.sh [--local]' >&2; exit 2; }
+
+if $local_install; then
+  repository_root="$(cd "$(dirname "$0")" && pwd)"
+  [[ -f "$repository_root/pyproject.toml" ]] || { echo '--local requires a repository checkout.' >&2; exit 1; }
+  [[ -z "${MCP_DATA_RELEASE_URL:-}${MCP_DATA_RELEASE_SHA256:-}" ]] || { echo '--local cannot be combined with release variables.' >&2; exit 2; }
+  install_source="$repository_root"
+elif [[ -n "${MCP_DATA_RELEASE_URL:-}" || -n "${MCP_DATA_RELEASE_SHA256:-}" ]]; then
   : "${MCP_DATA_RELEASE_URL:?Set MCP_DATA_RELEASE_URL to a versioned artifact URL}"
   : "${MCP_DATA_RELEASE_SHA256:?Set MCP_DATA_RELEASE_SHA256 to its published SHA-256}"
   command -v curl >/dev/null || { echo 'curl is required for a checksum-verified release install.' >&2; exit 1; }
@@ -28,9 +37,14 @@ else
   install_source="git+$repository_url"
 fi
 
-uv tool install --force "$install_source"
+if $local_install; then
+  uv tool install --force --editable "$install_source"
+else
+  uv tool install --force "$install_source"
+fi
 # `uv tool run --from` does not depend on the user's tool-bin directory being on PATH.
-uv tool run --from "$install_source" mcp-data-cli init --yes
+# Global setup is intentionally credential-free; projects opt in through .mcp-data-source.
+uv tool run --from "$install_source" mcp-data-cli setup --all --global --apply --yes
 
-echo "Installed and initialized MCP Data Analysis in $target_dir."
-echo 'The local retail SQLite playground is ready. When ready for real data, change only MCP_DATA_SOURCE_URL in .env.'
+echo 'Installed MCP Data Analysis as a global, credential-free MCP server.'
+echo 'In each project, create .mcp-data-source with one absolute SQLite path/URL or PostgreSQL URL.'

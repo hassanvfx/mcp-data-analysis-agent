@@ -1,5 +1,17 @@
 # Knowledge Update Log
 
+## 2026-08-25
+
+* **New-user journey hardening**: Added editable clone installation, live read-only source preflight, Git-ignore assistance, managed demo/policy/client cleanup, project-root client fallback, and hermetic install-to-teardown acceptance evidence. See the [implementation journal](journals/journey-hardening-implementation.md).
+
+* **New-user journey audit**: Identified clone-install, Git-ignore, connectivity-status, overlapping-demo, client-working-directory, and optional-policy-scaffold follow-ups for the credential-free global MCP workflow. See the [new-user journey audit](journals/new-user-journey-audit.md).
+
+* **Runtime de-cloning checkpoint**: Removed ClineFlow/OKF, Git, dependency-installation, and tooling prerequisites from installed MCP operation. User-project task evidence is now observability-only; Typst is PDF-only optional and PostgreSQL CLI tooling is contributor/test-only. See the [runtime de-cloning journal](journals/runtime-declone.md).
+
+* **Per-project MCP source configuration checkpoint**: Replaced ambient `.env` source loading and automatic project fixtures with the ignored project-local `.mcp-data-source` contract, credential-free global client commands, required MCP preflight, and explicit source/fixture migration setup. See the [source-configuration journal](journals/per-project-source-configuration.md).
+
+* **MCP demo handoff checkpoint**: Missing project configuration now offers a confirmation-gated seeded retail demo setup with practical next-step examples. See the [source-configuration journal](journals/per-project-source-configuration.md).
+
 ## 2026-08-21
 
 * **SQLAlchemy Core adapter migration**: Created the active [migration journal](journals/sqlalchemy-core-adapter-migration.md) for portable SQLite/PostgreSQL data access and parity evidence.
@@ -72,6 +84,10 @@
 * **Schema drift checkpoint**: Added atomic local schema fingerprints and drift detection for safe discovery-cache invalidation. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 
 * **PostgreSQL schema isolation checkpoint**: Added configured schema search-path enforcement for unqualified PostgreSQL queries. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
+
+* **New-user journey completion audit**: Hardened global setup application, structured MCP preflight failures, exact Continue cleanup, and the all-client hermetic demo-to-cleanup journey. See [Journey hardening implementation](journals/journey-hardening-implementation.md).
+
+* **Operational README replacement**: Replaced legacy bootstrap-oriented public guidance with the current credential-free install, project source, analysis, and cleanup lifecycle. See [Operational README replacement](journals/operational-readme.md).
 
 * **Observability retention correction**: Made durable audit ledger records Git-versionable while retaining exclusions for credentials, databases, caches, and generated artifacts. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).
 

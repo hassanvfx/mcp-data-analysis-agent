@@ -34,6 +34,12 @@ jobs:
       - run: uv run pytest tests/test_postgres_contract.py tests/test_sqlite_postgres_parity.py -q
         env:
           MCP_DATA_TEST_POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/mcp_contract
+  user-journey:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: bash scripts/e2e-user-journey.sh
   security:
     runs-on: ubuntu-latest
     steps:

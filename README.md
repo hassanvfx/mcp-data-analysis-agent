@@ -1,218 +1,189 @@
 # MCP Data Analysis Agent
 
-Local-first, governed analytics for MCP clients over SQLite and PostgreSQL.
+**Current operational guide.** This README replaces legacy repository-bootstrap guidance. For historical context only, see [the legacy notice](docs/README-LEGACY.md).
 
-`mcp-data-analysis-agent` gives an MCP client a small, auditable data-access layer instead of direct database access. It validates SQL before execution, uses read-only connections, bounds results and execution time, writes receipt-backed observability records, and keeps credentials on the operator's machine.
+MCP Data Analysis Agent is a local, governed database-access boundary for MCP clients. It analyzes one project-local SQLite or PostgreSQL source without placing database URLs or credentials in a global client configuration.
 
-## Why it exists
+## What it provides
 
-MCP clients can reason about data, but they should not receive unrestricted database credentials or silently execute arbitrary statements. This project provides a local control point for that boundary:
+- Credential-free stdio MCP setup for Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue.
+- One private project source file: `.mcp-data-source`.
+- Bounded read-only connection probing, schema discovery, governed query validation and execution, metrics, recipes, comparisons, reports, and observability.
+- Deterministic retail demo data, created only after explicit confirmation.
+- Safe source, demo, client-entry, and tool cleanup that preserves user-owned files.
 
-- Keep database paths, URLs, passwords, and tokens in an ignored `.env` file.
-- Permit a single parameterized `SELECT` or `WITH` statement only.
-- Block mutations, DDL, commands, attachments, multi-statements, unsafe functions, restricted fields, and unsafe artifact paths.
-- Require database-level read-only access in addition to application policy.
-- Preserve normalized SQL, timing, task linkage, receipts, hashes, and event timelines for later audit.
+It never hosts a network service, uploads data, creates database users, stores credentials globally, mutates a source database, or bootstraps arbitrary projects during installation.
 
-The server uses stdio only. It does not host a public API, upload source data, store remote credentials, or create production database users.
+## Tell an agent to install it
 
-## Capabilities
+When using an agentic coding client, give it this explicit instruction:
 
-- SQLite and PostgreSQL access through SQLAlchemy Core with SQLGlot policy validation.
-- Source, schema, relationship, profile, quality/freshness, and schema-drift discovery.
-- Validation, explain plans, bounded execution, non-negative offset pagination, cancellation, timeouts, and concurrency limits.
-- Classifications for public, internal, confidential, and restricted fields/sources.
-- Approved semantic metrics, Git-native recipes, period comparison, change detection, and chart recommendations.
-- Offline HTML dashboards, CSV, Parquet, Typst PDF, receipt metadata, and safe atomic output directories.
-- ClineFlow context loading, task journals, immutable query/run records, event timelines, and integrity verification.
-- Deterministic retail, SaaS, and support fixtures, including local SQLite-to-PostgreSQL parity fixtures.
+> Please install MCP Data Analysis Agent from this repository using its documented `install.sh`. Configure only credential-free global MCP client entries. Do not create a database, inspect or modify my project, or configure a source until I explicitly choose a demo or provide a source URL.
 
-## Prerequisites
-
-- Python 3.11 or newer and [`uv`](https://docs.astral.sh/uv/).
-- [Typst](https://typst.app/) for the supported report-rendering installation.
-- PostgreSQL command-line tooling including `createdb` for local parity fixtures.
-- A healthy ClineFlow/OKF bundle in the target project.
-
-Run `mcp-data-cli preflight` to install or report required local tooling through an available user-scope package manager. It never contacts a configured source. `mcp-data-cli doctor` validates the local installation; no configured source is reported as `configuration_pending`, not as an installation failure.
-
-## Install
-
-### Install this repository into the current project
-
-When an agent or operator is asked to install this GitHub repository into a project, use the
-repository installer—not a bare `uv tool install` command:
+For a public repository install, the agent should run:
 
 ```bash
-cd /path/to/your-project
 curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/main/install.sh | bash
 ```
 
-The installer installs the command-line tool and initializes the directory from which it was run.
-It creates the ignored deterministic retail playground, writes the one private
-`MCP_DATA_SOURCE_URL` value to `.env`, writes the source policy, and merges the MCP server into
-every detected supported client. It does not copy the package into the project, and it never puts a
-database URL or credential into a client configuration. Client trust/enablement and restart prompts
-remain under each client application's control.
+For an already cloned checkout, the agent should run this from the checkout root:
 
-`uv tool install` intentionally installs user-level executables and does not run project-mutating
-post-install hooks. Use it only when you want to install the executable separately, then run
-`mcp-data-cli init` yourself.
+```bash
+./install.sh --local
+```
 
-### PyPI-compatible workflow
+Both routes install the package and add only static `mcp-data-mcp --source-file .mcp-data-source` entries. They never write a source URL, credential, demo database, or policy into the current project. Restart or trust the MCP client if it asks.
+
+## Operating model
+
+| Scope | Contains | Does not contain |
+| --- | --- | --- |
+| Global package/client setup | Executable and static MCP entry | Database URL, password, project setup |
+| Data project | `.mcp-data-source`, optional policy, `observability/` evidence | A repository clone, Git, ClineFlow, Typst, PostgreSQL CLI tools |
+
+The normal lifecycle is:
+
+```text
+install → preflight → demo or real source → ready probe → inspect schema → analyze → optional cleanup
+```
+
+`ready` means a bounded read-only `SELECT 1` connection probe succeeded. Readiness output never exposes the source location.
+
+## Install manually
 
 ```bash
 uv tool install mcp-data-analysis-agent
-cd /path/to/your-project
+mcp-data-cli setup --all --global --apply
+```
+
+To use the current checkout instead of a released package:
+
+```bash
+./install.sh --local
+```
+
+`setup --all --global` previews detected client entries. Add `--apply` to merge only the managed MCP Data Analysis entry; unrelated settings are retained.
+
+## Start a project with the demo
+
+Run these commands from the data project, not the repository checkout:
+
+```bash
 mcp-data-cli preflight
-mcp-data-cli init
-mcp-data-cli doctor
+mcp-data-cli demo start --yes
+mcp-data-cli preflight
+mcp-data-cli schema data
+mcp-data-cli query data 'SELECT id, name, stock FROM products ORDER BY id' --limit 10
 ```
 
-To install the current repository version before a package release, replace the install command with:
+The confirmed demo creates `.mcp-data/playground.sqlite` and an ignored, mode-`0600` `.mcp-data-source` that points to it. In a Git project it also offers safe ignore rules for `.mcp-data-source` and `.mcp-data/`.
+
+From MCP, call `preflight` first. When configuration is missing, ask the user whether they want the demo, then call `configure_demo(confirmed=true)` only after explicit approval.
+
+## Configure a real source
 
 ```bash
-uv tool install git+https://github.com/hassanvfx/mcp-data-analysis-agent.git
+mcp-data-cli configure-source /absolute/path/to/analytics.sqlite --yes
+mcp-data-cli preflight
+mcp-data-cli schema data
 ```
 
-On first server use in any supported MCP client, the agent creates and opens a deterministic development-only retail SQLite playground at `.mcp-data/playground.sqlite`. The shared MCP `welcome` tool explains how to explore it and how to switch to a real source. `init` materializes the same playground into the explicit project policy and private `.env`, then merges safe MCP client entries after one confirmation. The explicit repository installer uses `init --yes` because running that installer is the single authorization for those scoped writes.
-
-Use `setup --all` to preview client configuration only, or `setup --all --apply` to merge only the `mcp-data-analysis` stdio entry after one explicit confirmation. It preserves unrelated servers and settings. Use `setup --status` to inspect detection and current configuration state.
-
-| Client | Preferred scope | Fallback | Operator action after setup |
-| --- | --- | --- | --- |
-| Claude Code | Project `.mcp.json` | User configuration | Review project-server approval when prompted. |
-| VS Code / GitHub Copilot | Project `.vscode/mcp.json` | User MCP configuration | Restart or use MCP server management; trust the server. |
-| Cline, Cursor, Windsurf | Project MCP configuration | Client user configuration | Restart or reload the client and approve/trust the server. |
-| Continue | Project `.continue/mcpServers/` fragment | User configuration | Restart Continue and use Agent mode. |
-| Codex | — | User `~/.codex/config.toml` | Restart Codex; this is the narrow user-scope fallback. |
-
-Setup configures MCP definitions only. It cannot bypass a client's trust/enable prompt or launch/restart an IDE. VS Code configuration details are documented by [VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) and [GitHub Copilot in VS Code](https://code.visualstudio.com/docs/agent-customization/mcp-servers); Continue documents project MCP fragments in its [MCP guide](https://docs.continue.dev/customize/deep-dives/mcp).
-
-### Checksum-verified release bootstrap
-
-For a versioned wheel and its published SHA-256 checksum:
+PostgreSQL uses a dedicated database-level read-only account:
 
 ```bash
-MCP_DATA_RELEASE_URL='https://example.invalid/mcp_data_analysis_agent-0.1.0-py3-none-any.whl' \
-MCP_DATA_RELEASE_SHA256='published-sha256' \
-./install.sh
+mcp-data-cli configure-source 'postgresql://readonly_user:password@db.example:5432/analytics' --yes
+mcp-data-cli preflight
 ```
 
-The bootstrap requires `curl` and `uv`, verifies the artifact with `sha256sum` or `shasum`, and installs only after the checksum matches. It then initializes the current project exactly as the repository installer does. It does not use `sudo` or contact a production database; it creates only local deterministic demo data.
+`.mcp-data-source` is the sole runtime secret. It must be a regular, non-symlink file containing exactly one absolute SQLite path/URL or PostgreSQL URL; never commit it. The optional `--migrate-env` command is only for a deliberate one-time migration from an older local `.env`; normal operation never reads ambient environment configuration.
 
-## Configure one active source
+| Preflight state | Meaning | Safe next action |
+| --- | --- | --- |
+| `source_configuration_required` | No project source file | Start demo or configure a real source. |
+| `source_configuration_invalid` | Unsafe or malformed source/policy | Correct the project configuration. |
+| `source_unavailable` | Read-only probe failed | Check reachability and database privileges. |
+| `ready` | Read-only probe succeeded | Discover schema and analyze. |
 
-The standard installation uses exactly one active source, named `data`, and exactly one private value in `.env`: `MCP_DATA_SOURCE_URL`. It is not a package constant or a test value—it is the one value the operator changes to point at their own read-only database. Keep `.env` private; it is ignored by Git.
+`mcp-data-cli doctor` treats missing configuration as pending unless `--require-source` is used. An invalid or unreachable configured source always fails.
 
-On first use, `data` automatically points to the generated retail playground. Run `mcp-data-cli init` when you are ready to materialize that choice in the project `.env`; it writes:
+## Analyze safely
 
 ```bash
-MCP_DATA_SOURCE_URL='/absolute/path/to/your-project/.mcp-data/playground.sqlite'
+mcp-data-cli schema data
+mcp-data-cli joins data
+mcp-data-cli sql data 'SELECT id, name FROM products WHERE id = :id' --params '{"id": 1}'
+mcp-data-cli explain data 'SELECT id, name FROM products WHERE id = :id' --params '{"id": 1}'
+mcp-data-cli query data 'SELECT id, name FROM products ORDER BY id' --limit 25
 ```
 
-The playground is development-only synthetic data. It lets a new installation run schema discovery, governed queries, receipts, and reports immediately; it is never production data and is never overwritten by a later `init` run. All supported clients receive the same stdio-server welcome instructions and `welcome` MCP tool.
-
-```toml
-# .mcp-data-agent.toml
-[agent]
-default_row_limit = 500
-max_row_limit = 5000
-query_timeout_seconds = 30
-
-# The database dialect is inferred from MCP_DATA_SOURCE_URL.
-[source]
-env = "MCP_DATA_SOURCE_URL"
-allowed_schemas = ["analytics"]
-classification = "internal"
-
-[classification.columns]
-email = "restricted"
-```
+For multi-step analysis, retain project-local evidence:
 
 ```bash
-# .env — never commit this file. Change this single value for your own source.
-MCP_DATA_SOURCE_URL='postgresql://readonly_user:password@localhost:5432/analytics'
-```
-
-For SQLite, make the same single variable an absolute file path or a SQLite URL. For PostgreSQL, use a `postgres://` or `postgresql://` URL. No manual dialect setting is needed:
-
-```bash
-MCP_DATA_SOURCE_URL=/absolute/path/to/your.sqlite
-# or: MCP_DATA_SOURCE_URL='postgresql://readonly_user:password@localhost:5432/analytics'
-```
-
-Use `data` as the source argument in CLI calls, for example `mcp-data-cli schema data`. The agent rejects unsupported URL schemes, relative SQLite paths, and a legacy declared dialect that conflicts with the URL. Established multi-source policies remain readable, but `init` deliberately refuses to rewrite them; migrate manually or start a new simplified project.
-
-For PostgreSQL, use a dedicated least-privilege account with no write or DDL privileges. The agent also enables a read-only session and applies the configured schema search path, but database-side access control remains mandatory.
-
-## Typical workflow
-
-Validate before execution, then inspect the plan and run a bounded query:
-
-```bash
-mcp-data-cli sql data 'SELECT id, name, stock FROM products WHERE id = :id' --params '{"id": 1}'
-mcp-data-cli explain data 'SELECT id, name, stock FROM products WHERE id = :id' --params '{"id": 1}'
-mcp-data-cli query data 'SELECT id, name, stock FROM products ORDER BY id' --limit 25 --offset 0
-```
-
-Create an explicit task when several operations belong to one analysis:
-
-```bash
-mcp-data-cli task-begin 'Inventory review' 'Identify stockout risk.'
+mcp-data-cli task-begin 'Inventory review' 'Find low-stock products.'
 mcp-data-cli observe <task-id>
 mcp-data-cli task-complete <task-id> 'Findings recorded.'
 mcp-data-cli evaluate-task <task-id>
 ```
 
-Generate reports in a new, caller-selected directory. Existing directories and symlink traversal are refused.
+Receipts, lifecycle events, and task evidence live under `observability/`; they do not require Git or a clone of this repository.
+
+Supported governed operations include schema/profile/quality inspection, query validation and explain plans, bounded queries, approved metrics and recipes, period comparisons, change detection, and offline reports. HTML and CSV reports work without extra renderers; Parquet requires its package extra and PDF requires optional Typst.
+
+## Optional governance
+
+After preflight is `ready`, create non-secret starter policy files if desired:
 
 ```bash
-mcp-data-cli report data 'SELECT id, name, stock FROM products' outputs/inventory --pdf --parquet
+mcp-data-cli configure-policy --yes
 ```
 
-Each report contains offline HTML, CSV, optional Parquet/PDF artifacts, receipt metadata, paths, and content hashes. Generated artifacts, sources, and credentials must not be committed.
+It creates `.mcp-data-agent.toml`, `catalog/metrics.toml`, and `recipes/README.md` only when absent. It never infers policy from data, overwrites governance, or creates a source configuration.
 
-## Development fixtures and PostgreSQL parity
+## Client working-directory fallback
 
-`init` creates only the small retail playground described above. Contributors can generate additional deterministic synthetic fixtures explicitly:
+Global client entries resolve `.mcp-data-source` relative to the MCP process working directory. Open the target project and call MCP `preflight` after restart. If a client does not preserve that working directory, create its static project entry from that project:
 
 ```bash
-mcp-data-cli dataset retail /tmp/retail.sqlite --tier unit --seed 1
-mcp-data-cli dataset-postgres retail mcp_data_parity --tier unit --seed 1
-# Seed an already-created disposable test database; creates only mcp_seed_<domain>.
-MCP_DATA_TEST_POSTGRES_URL='postgresql://mcp_data_test@localhost:5432/mcp_data_parity' \
-  mcp-data-cli seed-postgres retail --seed 1
+mcp-data-cli setup --client <client> --apply
 ```
 
-`dataset-postgres` uses local `createdb`, refuses an existing database name, creates SQLite data only in a temporary directory, then copies it to the new PostgreSQL database under the `mcp_parity` schema. It does not require a manually supplied disposable PostgreSQL URL.
+The fallback has an absolute `--project-root` but still has no URL or credential. See [operations](docs/OPERATIONS.md) for the compatibility matrix and manual smoke procedure.
 
-`seed-postgres` is for an already-provisioned isolated test database. It reads the private test URL from the environment and replaces only its reserved `mcp_seed_retail`, `mcp_seed_saas`, or `mcp_seed_support` schema. It never touches public/application schemas.
+## Replace or clean up the demo
 
-Run the full local quality suite with an isolated PostgreSQL instance when developing adapter behavior. CI covers linting, typing, tests, coverage gates, real Typst rendering, SQLite/PostgreSQL parity, secret scanning, dependency auditing, SBOM generation, and trusted-publishing release automation.
+Replace demo data by configuring a real source again:
 
 ```bash
-uv run ruff check src tests scripts
+mcp-data-cli configure-source /absolute/path/to/analytics.sqlite --yes
+```
+
+Preview cleanup, then apply it deliberately:
+
+```bash
+mcp-data-cli uninstall --clients --demo
+mcp-data-cli uninstall --clients --demo --apply --yes
+uv tool uninstall mcp-data-analysis-agent
+```
+
+Cleanup removes only exact managed client entries and managed demo artifacts. It preserves custom sources, policy/catalog/recipe files, observability evidence, and unrelated client configuration. If a custom source replaced the demo, that source is retained.
+
+## Safety contract
+
+- Only parameterized read-only `SELECT` or `WITH` queries are permitted.
+- Mutations, DDL, attachments, multi-statements, unsafe functions, restricted fields, and unsafe paths are denied.
+- SQLite and PostgreSQL sessions use read-only controls; PostgreSQL still requires a least-privilege database account.
+- Source URLs and secret-like values are redacted from outputs and evidence.
+- Deterministic `dataset` tooling is contributor/test infrastructure and never configures a project source.
+
+## Contributors
+
+```bash
+uv run ruff check src tests
 uv run mypy src
-uv run pytest --cov=mcp_data_agent --cov-branch
+uv run pytest --cov=mcp_data_agent --cov-branch --cov-report=json:coverage.json
 uv run python scripts/check_coverage.py coverage.json
+bash scripts/e2e-user-journey.sh
 ./validate-okf
 ```
 
-Safety-critical configuration, context, ledger, and SQL-policy modules require 100% line and branch coverage. Overall gates require at least 90% line coverage and 85% branch coverage.
-
-## Security and operating contract
-
-- Queries must be parameterized and are validated before database connection/execution.
-- Result limits and offsets are governed by the project policy; caller SQL cannot bypass them.
-- Restricted columns are rejected before execution and secret-like parameters are redacted in observability records.
-- Task journals, query receipts, runs, and events are stored under `knowledge/` and `observability/`; database URLs, raw secrets, source databases, result caches, and report binaries are excluded.
-- Local synthetic datasets are development infrastructure only and are not production onboarding.
-
-See [operations guidance](docs/OPERATIONS.md), the [security policy](SECURITY.md), and the [MIT license](LICENSE) for the full operating and disclosure contract.
-
-## Contributing and releases
-
-Use focused commits and preserve the annotated `checkpoint-*` tags: they are explicit rollback points for delivery milestones. Update the active ClineFlow engineering journal and knowledge log with material changes, run OKF validation, then commit implementation and knowledge evidence together.
-
-GitHub Actions builds and verifies distributions on release publication. Release endpoints and publishing credentials are repository configuration; they are never stored in this codebase.
+See [operations](docs/OPERATIONS.md), the [security policy](docs/SECURITY.md), and the [MIT license](LICENSE).

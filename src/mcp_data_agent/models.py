@@ -36,4 +36,3 @@ class QueryResult(BaseModel):
 class TaskResult(BaseModel):
     task_id: str
     status: Literal["active", "complete"]
-    journal_path: str

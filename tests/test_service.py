@@ -10,16 +10,21 @@ from mcp_data_agent.fixtures import generate
 from mcp_data_agent.service import AnalyticsService, quote_identifier
 
 
+def configure_source(project: Path, database: Path) -> None:
+    (project / ".mcp-data-source").write_text(f"{database}\n")
+
+
 def test_retail_query_creates_task_and_receipt(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 7, database)
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='TEST_RETAIL_PATH'\n")
-    monkeypatch.setenv("TEST_RETAIL_PATH", str(database))
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     result = AnalyticsService(tmp_path).execute("retail", "SELECT name, stock FROM products WHERE id = :id", {"id": 1})
     assert result.rows and result.task_id.startswith("task-")
     assert result.columns[0]["classification"] == "internal"
     assert list((tmp_path / "observability" / "queries").rglob("*.json"))
-    assert (tmp_path / "knowledge" / "journals" / "data-analysis" / f"{result.task_id}.md").exists()
+    assert (tmp_path / "observability" / "tasks" / f"{result.task_id}.md").exists()
+    assert not (tmp_path / "knowledge").exists()
     task_record = (tmp_path / "observability" / "tasks" / f"{result.task_id}.md").read_text()
     assert result.query_id in task_record
     assert "run-" in task_record
@@ -38,13 +43,13 @@ def test_qualified_identifiers_preserve_schema_parts() -> None:
 def test_service_quality_metrics_and_artifacts(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 2, database)
+    configure_source(tmp_path, database)
     (tmp_path / "catalog").mkdir()
     (tmp_path / "catalog" / "metrics.toml").write_text(
         "[[metric]]\nname='revenue'\ndescription='Revenue'\nclassification='internal'\nowner='analytics'\n"
         "source_alias='retail'\nsql='SELECT SUM(revenue) AS revenue FROM order_items'\n"
     )
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='TEST_RETAIL_PATH'\n")
-    monkeypatch.setenv("TEST_RETAIL_PATH", str(database))
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     quality = service.quality("retail", "products")
     assert quality["row_count"] == 20
@@ -61,11 +66,10 @@ def test_service_quality_metrics_and_artifacts(tmp_path: Path, monkeypatch) -> N
 def test_service_explain_join_profile_recipe_and_timeline(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 3, database)
-    env = "TEST_RETAIL_PATH"
-    (tmp_path / ".mcp-data-agent.toml").write_text(f"[sources.retail]\ndialect='sqlite'\nenv='{env}'\n")
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     (tmp_path / "recipes").mkdir()
     (tmp_path / "recipes" / "top-products.toml").write_text("source_alias='retail'\nsql='SELECT id FROM products WHERE id = :id'\nparameters=['id']\n")
-    monkeypatch.setenv(env, str(database))
     service = AnalyticsService(tmp_path)
     task = service.begin_task("test", "test")
     assert service.explain("retail", "SELECT id FROM products WHERE id = :id", {"id": 1})["plan"]
@@ -75,12 +79,13 @@ def test_service_explain_join_profile_recipe_and_timeline(tmp_path: Path, monkey
     assert service.timeline(task.task_id)
 
 
-def test_task_completion_closes_journal_and_evaluates(tmp_path: Path) -> None:
+def test_task_completion_writes_observability_only_and_evaluates(tmp_path: Path) -> None:
     service = AnalyticsService(tmp_path)
     task = service.begin_task("completed", "Verify task lifecycle")
     service.ledger.complete_task(task.task_id, "Done", "None")
-    journal = tmp_path / task.journal_path
-    assert "status: stable" in journal.read_text()
+    record = tmp_path / "observability" / "tasks" / f"{task.task_id}.md"
+    assert "status: complete" in record.read_text()
+    assert not (tmp_path / "knowledge").exists()
     evaluation = service.evaluate_task(task.task_id)
     assert evaluation["status"] == "incomplete"
     assert "query_recorded" in evaluation["missing"]
@@ -89,8 +94,8 @@ def test_task_completion_closes_journal_and_evaluates(tmp_path: Path) -> None:
 def test_cancellation_is_persisted_and_blocks_execution(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 15, database)
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='CANCEL_RETAIL_PATH'\n")
-    monkeypatch.setenv("CANCEL_RETAIL_PATH", str(database))
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     task = service.begin_task("cancel", "cancel a query")
     assert service.cancel_task(task.task_id)["status"] == "cancellation_requested"
@@ -110,10 +115,10 @@ def test_cancellation_is_persisted_and_blocks_execution(tmp_path: Path, monkeypa
 def test_zero_timeout_is_a_governed_query_timeout(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 16, database)
+    configure_source(tmp_path, database)
     (tmp_path / ".mcp-data-agent.toml").write_text(
-        "[agent]\nquery_timeout_seconds=0\n[sources.retail]\ndialect='sqlite'\nenv='TIMEOUT_RETAIL_PATH'\n"
+        "[agent]\nquery_timeout_seconds=0\n[sources.retail]\ndialect='sqlite'\n"
     )
-    monkeypatch.setenv("TIMEOUT_RETAIL_PATH", str(database))
     with pytest.raises(AgentError, match="timeout"):
         AnalyticsService(tmp_path).execute("retail", "SELECT id FROM products", {})
 
@@ -158,8 +163,8 @@ def test_postgres_execution_errors_are_typed(tmp_path: Path) -> None:
 def test_ledger_integrity_detects_tampered_receipt(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 8, database)
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='INTEGRITY_RETAIL_PATH'\n")
-    monkeypatch.setenv("INTEGRITY_RETAIL_PATH", str(database))
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     service.execute("retail", "SELECT id FROM products", {})
     assert service.verify_observability()["status"] == "pass"
@@ -171,8 +176,8 @@ def test_ledger_integrity_detects_tampered_receipt(tmp_path: Path, monkeypatch) 
 def test_invalid_limit_and_failed_query_are_bounded_and_audited(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 9, database)
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='FAILED_RETAIL_PATH'\n")
-    monkeypatch.setenv("FAILED_RETAIL_PATH", str(database))
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     with pytest.raises(AgentError, match="positive"):
         service.execute("retail", "SELECT id FROM products", {}, limit=0)
@@ -187,8 +192,8 @@ def test_invalid_limit_and_failed_query_are_bounded_and_audited(tmp_path: Path, 
 def test_period_comparison_and_change_detection(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 10, database)
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='PERIOD_RETAIL_PATH'\n")
-    monkeypatch.setenv("PERIOD_RETAIL_PATH", str(database))
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     sql = "SELECT COUNT(*) AS count FROM products WHERE id <= :maximum"
     comparison = service.compare_periods("retail", sql, {"maximum": 20}, {"maximum": 10})
@@ -200,8 +205,8 @@ def test_period_comparison_and_change_detection(tmp_path: Path, monkeypatch) -> 
 def test_schema_state_fingerprints_and_detects_drift(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 12, database)
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='SCHEMA_RETAIL_PATH'\n")
-    monkeypatch.setenv("SCHEMA_RETAIL_PATH", str(database))
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     first = service.schema_state("retail")
     assert first["changed"] is False
@@ -264,18 +269,19 @@ def test_task_reference_linking_rejects_invalid_missing_and_duplicate_values(tmp
     service.ledger.link_task_value("task-links", "query_ids", "query-2")
 
 
-def test_task_completion_tolerates_missing_linked_journal(tmp_path: Path) -> None:
+def test_task_completion_does_not_require_project_knowledge(tmp_path: Path) -> None:
     service = AnalyticsService(tmp_path)
     task = service.begin_task("missing journal", "test")
-    (tmp_path / task.journal_path).unlink()
     service.ledger.complete_task(task.task_id, "done")
+    assert (tmp_path / "observability" / "tasks" / f"{task.task_id}.md").is_file()
+    assert not (tmp_path / "knowledge").exists()
 
 
 def test_service_errors_chart_options_and_quality_variants(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 13, database)
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='VARIANT_RETAIL_PATH'\n")
-    monkeypatch.setenv("VARIANT_RETAIL_PATH", str(database))
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     with pytest.raises(AgentError):
         service.schema("missing")
@@ -295,8 +301,8 @@ def test_service_errors_chart_options_and_quality_variants(tmp_path: Path, monke
 def test_service_export_selected_formats(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 14, database)
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='EXPORT_RETAIL_PATH'\n")
-    monkeypatch.setenv("EXPORT_RETAIL_PATH", str(database))
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     result = service.execute("retail", "SELECT id FROM products", {})
     artifacts = service.export(result, tmp_path / "outputs" / "parquet", html=False, csv=False, parquet=True)
@@ -310,8 +316,8 @@ def test_service_export_selected_formats(tmp_path: Path, monkeypatch) -> None:
 def test_failed_export_removes_its_final_directory(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "retail.sqlite"
     generate("retail", "unit", 17, database)
-    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\nenv='FAILED_EXPORT_RETAIL_PATH'\n")
-    monkeypatch.setenv("FAILED_EXPORT_RETAIL_PATH", str(database))
+    configure_source(tmp_path, database)
+    (tmp_path / ".mcp-data-agent.toml").write_text("[sources.retail]\ndialect='sqlite'\n")
     service = AnalyticsService(tmp_path)
     result = service.execute("retail", "SELECT id FROM products", {})
     monkeypatch.setattr("mcp_data_agent.artifacts.shutil.which", lambda _: None)

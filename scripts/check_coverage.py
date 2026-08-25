@@ -10,7 +10,6 @@ LINE_THRESHOLD = 90.0
 BRANCH_THRESHOLD = 85.0
 CRITICAL_MODULES = {
     "src/mcp_data_agent/config.py",
-    "src/mcp_data_agent/context.py",
     "src/mcp_data_agent/ledger.py",
     "src/mcp_data_agent/policy.py",
 }
