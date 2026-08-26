@@ -4,6 +4,7 @@ import pytest
 
 from mcp_data_agent.fixtures import generate
 from mcp_data_agent.service import AnalyticsService
+from mcp_data_agent.workspace import initialize_workspace
 
 
 @pytest.mark.parametrize(
@@ -22,6 +23,7 @@ def test_domain_golden_queries(domain: str, sql: str, tmp_path: Path, monkeypatc
     generate(domain, "unit", 11, database)
     (tmp_path / ".mcp-data-source").write_text(f"{database}\n")
     (tmp_path / ".mcp-data-agent.toml").write_text(f"[sources.{domain}]\ndialect='sqlite'\n")
+    initialize_workspace(tmp_path)
     result = AnalyticsService(tmp_path).execute(domain, sql, {})
     assert result.rows
     assert result.result_checksum

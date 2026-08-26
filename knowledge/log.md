@@ -2,6 +2,8 @@
 
 ## 2026-08-25
 
+* **Deterministic per-project workspace initialization**: Added versioned `.mcp-data-agent/` bootstrap state, evidence-gated analysis preflight, and explicit project preparation flows. See the [workspace journal](journals/deterministic-project-workspace.md).
+
 * **Global client reliability and Cline synchronization**: Added verified absolute global MCP commands, synchronized Cline runtime settings files, legacy-aware cleanup, and the preview-first agentic uninstall handoff. See the [reliability journal](journals/global-client-reliability.md).
 
 * **GitHub Pages onboarding guide**: Replaced the ambiguous repository handoff with a URL-specific install instruction, concise README, installer guidance, static hosted guide, and Pages deployment workflow. See the [onboarding journal](journals/github-pages-onboarding.md).

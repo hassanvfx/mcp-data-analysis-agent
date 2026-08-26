@@ -22,6 +22,8 @@ PostgreSQL URL. `preflight` fails closed with setup instructions until that file
 `configure-source --migrate-env` for an explicit legacy migration after confirmation. Use a dedicated database-level read-only PostgreSQL account in production,
 then run `mcp-data-cli doctor --require-source` in CI.
 
+The confirmed source/demo flows deterministically initialize `.mcp-data-agent/` with an empty versioned workspace, schema cache, managed demo location, and `observability/` ledger. For a manually created source file, run `mcp-data-cli prepare-workspace --yes` before preflight. A source that probes successfully but lacks this state returns `workspace_initialization_required`. This project root must be writable; a read-only legacy `observability/` mount is ignored, but an entirely read-only project returns `PROJECT_STATE_UNAVAILABLE` and cannot run governed analysis without evidence. Root-level `observability/` and `.mcp-data/` are unsupported legacy locations and are never read, migrated, or removed.
+
 To configure clients, run `mcp-data-cli setup --all --global` first to review detected global targets,
 then run `mcp-data-cli setup --all --global --apply` and confirm the displayed merge. The setup process never replaces
 an existing client configuration; malformed files are skipped with guidance.

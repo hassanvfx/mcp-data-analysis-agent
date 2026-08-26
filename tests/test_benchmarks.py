@@ -10,6 +10,7 @@ import pytest
 
 from mcp_data_agent.fixtures import generate
 from mcp_data_agent.service import AnalyticsService
+from mcp_data_agent.workspace import initialize_workspace
 
 
 @pytest.mark.benchmark
@@ -27,6 +28,7 @@ def test_all_domain_recipe_benchmark_completes_under_sixty_seconds(
 
     started = time.monotonic()
     (tmp_path / ".mcp-data-source").write_text(f"{tmp_path / 'retail.sqlite'}\n")
+    initialize_workspace(tmp_path)
     service = AnalyticsService(tmp_path)
     task = service.begin_task("benchmark", "Run all deterministic domain recipes.")
     for name, domain in (("retail-top-products", "retail"), ("saas-mrr-by-plan", "saas"), ("support-sla-by-priority", "support")):

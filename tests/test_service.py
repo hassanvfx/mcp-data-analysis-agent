@@ -8,10 +8,16 @@ from mcp_data_agent import ledger as ledger_module
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import generate
 from mcp_data_agent.service import AnalyticsService, quote_identifier
+from mcp_data_agent.workspace import initialize_workspace
 
 
 def configure_source(project: Path, database: Path) -> None:
     (project / ".mcp-data-source").write_text(f"{database}\n")
+
+
+@pytest.fixture(autouse=True)
+def initialized_workspace(tmp_path: Path) -> None:
+    initialize_workspace(tmp_path)
 
 
 def test_retail_query_creates_task_and_receipt(tmp_path: Path, monkeypatch) -> None:
@@ -22,10 +28,10 @@ def test_retail_query_creates_task_and_receipt(tmp_path: Path, monkeypatch) -> N
     result = AnalyticsService(tmp_path).execute("retail", "SELECT name, stock FROM products WHERE id = :id", {"id": 1})
     assert result.rows and result.task_id.startswith("task-")
     assert result.columns[0]["classification"] == "internal"
-    assert list((tmp_path / "observability" / "queries").rglob("*.json"))
-    assert (tmp_path / "observability" / "tasks" / f"{result.task_id}.md").exists()
+    assert list((tmp_path / ".mcp-data-agent" / "observability" / "queries").rglob("*.json"))
+    assert (tmp_path / ".mcp-data-agent" / "observability" / "tasks" / f"{result.task_id}.md").exists()
     assert not (tmp_path / "knowledge").exists()
-    task_record = (tmp_path / "observability" / "tasks" / f"{result.task_id}.md").read_text()
+    task_record = (tmp_path / ".mcp-data-agent" / "observability" / "tasks" / f"{result.task_id}.md").read_text()
     assert result.query_id in task_record
     assert "run-" in task_record
 
@@ -83,7 +89,7 @@ def test_task_completion_writes_observability_only_and_evaluates(tmp_path: Path)
     service = AnalyticsService(tmp_path)
     task = service.begin_task("completed", "Verify task lifecycle")
     service.ledger.complete_task(task.task_id, "Done", "None")
-    record = tmp_path / "observability" / "tasks" / f"{task.task_id}.md"
+    record = tmp_path / ".mcp-data-agent" / "observability" / "tasks" / f"{task.task_id}.md"
     assert "status: complete" in record.read_text()
     assert not (tmp_path / "knowledge").exists()
     evaluation = service.evaluate_task(task.task_id)
@@ -103,7 +109,7 @@ def test_cancellation_is_persisted_and_blocks_execution(tmp_path: Path, monkeypa
         service.execute("retail", "SELECT id FROM products", {}, task.task_id)
     assert any(event["kind"] == "cancellation_requested" for event in service.timeline(task.task_id))
     assert any(event["kind"] == "query_cancelled" for event in service.timeline(task.task_id))
-    run = next((tmp_path / "observability" / "runs").rglob("*.json"))
+    run = next((tmp_path / ".mcp-data-agent" / "observability" / "runs").rglob("*.json"))
     assert '"cancelled": true' in run.read_text()
     service.cancel_task(task.task_id)
     assert sum(event["kind"] == "cancellation_requested" for event in service.timeline(task.task_id)) == 1
@@ -168,7 +174,7 @@ def test_ledger_integrity_detects_tampered_receipt(tmp_path: Path, monkeypatch) 
     service = AnalyticsService(tmp_path)
     service.execute("retail", "SELECT id FROM products", {})
     assert service.verify_observability()["status"] == "pass"
-    receipt = next((tmp_path / "observability" / "queries").rglob("*.json"))
+    receipt = next((tmp_path / ".mcp-data-agent" / "observability" / "queries").rglob("*.json"))
     receipt.write_text(receipt.read_text().replace("SELECT", "SELECT /* tampered */", 1))
     assert service.verify_observability()["status"] == "failed"
 
@@ -236,10 +242,10 @@ def test_ledger_invalid_records_and_missing_completion_are_detected(tmp_path: Pa
     assert item["task_id"] == "task-explicit"
     with pytest.raises(FileNotFoundError):
         service.ledger.complete_task("missing", "none")
-    query = tmp_path / "observability" / "queries" / "2026" / "08" / "invalid.json"
+    query = tmp_path / ".mcp-data-agent" / "observability" / "queries" / "2026" / "08" / "invalid.json"
     query.parent.mkdir(parents=True)
     query.write_text("not json")
-    event = tmp_path / "observability" / "events" / "2026" / "08.jsonl"
+    event = tmp_path / ".mcp-data-agent" / "observability" / "events" / "2026" / "08.jsonl"
     event.parent.mkdir(parents=True, exist_ok=True)
     event.write_text("{}\n")
     verification = service.verify_observability()
@@ -263,7 +269,7 @@ def test_task_reference_linking_rejects_invalid_missing_and_duplicate_values(tmp
     service.ledger.begin_task("links", "test", task_id="task-links")
     service.ledger.link_task_value("task-links", "query_ids", "query-1")
     service.ledger.link_task_value("task-links", "query_ids", "query-1")
-    task = tmp_path / "observability" / "tasks" / "task-links.md"
+    task = tmp_path / ".mcp-data-agent" / "observability" / "tasks" / "task-links.md"
     assert task.read_text().count("query-1") == 1
     task.write_text("---\nother: []\n---\n")
     service.ledger.link_task_value("task-links", "query_ids", "query-2")
@@ -273,7 +279,7 @@ def test_task_completion_does_not_require_project_knowledge(tmp_path: Path) -> N
     service = AnalyticsService(tmp_path)
     task = service.begin_task("missing journal", "test")
     service.ledger.complete_task(task.task_id, "done")
-    assert (tmp_path / "observability" / "tasks" / f"{task.task_id}.md").is_file()
+    assert (tmp_path / ".mcp-data-agent" / "observability" / "tasks" / f"{task.task_id}.md").is_file()
     assert not (tmp_path / "knowledge").exists()
 
 
@@ -308,7 +314,7 @@ def test_service_export_selected_formats(tmp_path: Path, monkeypatch) -> None:
     artifacts = service.export(result, tmp_path / "outputs" / "parquet", html=False, csv=False, parquet=True)
     assert len(artifacts) == 2
     assert artifacts[1]["path"].endswith(".parquet")
-    task_record = (tmp_path / "observability" / "tasks" / f"{result.task_id}.md").read_text()
+    task_record = (tmp_path / ".mcp-data-agent" / "observability" / "tasks" / f"{result.task_id}.md").read_text()
     assert "source_aliases:" in task_record
     assert "artifacts:" in task_record
 

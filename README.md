@@ -30,8 +30,8 @@ Choose one project action:
 
 | Tell your agent | Result |
 | --- | --- |
-| **Please configure this folder.** | Creates or opens `.mcp-data-source` so you can paste one real database location, then runs a read-only preflight. |
-| **Please install demo in this folder.** | Creates the deterministic retail demo only in this folder and activates it. |
+| **Please configure this folder.** | Deterministically initializes `.mcp-data-agent/`, then creates or opens `.mcp-data-source` and runs preflight. |
+| **Please install demo in this folder.** | Initializes the hidden workspace and creates the deterministic retail demo only in this folder. |
 
 The canonical commands are:
 
@@ -53,6 +53,8 @@ mcp-data-cli preflight
 - **Not supported:** MySQL and other database dialects.
 
 `.mcp-data-source` is the project’s runtime connection secret. Keep it regular (not a symlink), one line only, mode `0600`, and out of version control. Global MCP configuration never contains a database URL or `MCP_DATA_SOURCE_URL`.
+
+The first project-specific configure or demo action creates `.mcp-data-agent/`: its empty versioned workspace, schema cache, managed demo, and durable observability ledger. If you created `.mcp-data-source` manually, run `mcp-data-cli prepare-workspace --yes` before preflight. The project root must be writable; `workspace_initialization_required` tells you to prepare it, while `PROJECT_STATE_UNAVAILABLE` tells you to choose a writable regular folder. MCP never runs a query without its task and receipt evidence. Legacy root-level `observability/` and `.mcp-data/` locations are not read, migrated, or removed.
 
 After `preflight` returns `ready`, ask the agent to inspect schema or run a bounded governed query. For the demo:
 

@@ -13,6 +13,7 @@ from mcp_data_agent.config import SourcePolicy
 from mcp_data_agent.errors import AgentError
 from mcp_data_agent.fixtures import local_postgres_url, seed_postgres
 from mcp_data_agent.service import AnalyticsService
+from mcp_data_agent.workspace import initialize_workspace
 
 
 def available_postgres_url() -> str | None:
@@ -42,6 +43,7 @@ def test_postgres_core_adapter_contract(tmp_path: Path, monkeypatch: pytest.Monk
     (tmp_path / ".mcp-data-agent.toml").write_text(
         "[sources.contract]\ndialect='postgres'\nallowed_schemas=['public']\nallowed_tables=['mcp_contract_items']\n"
     )
+    initialize_workspace(tmp_path)
     service = AnalyticsService(tmp_path, POSTGRES_URL)
     schema = service.schema("contract")
     assert {item["table"] for item in schema} >= {"public.mcp_contract_items"}

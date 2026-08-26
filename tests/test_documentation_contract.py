@@ -37,6 +37,8 @@ def test_hosted_guide_covers_project_workflow_and_supported_databases() -> None:
 
     for expected in (
         ".mcp-data-source",
+        ".mcp-data-agent/",
+        "prepare-workspace --yes",
         "Please configure this folder.",
         "Please install demo in this folder.",
         "mcp-data-cli demo start --yes",

@@ -34,6 +34,7 @@ from mcp_data_agent.onboarding import (
     source_file_plan,
 )
 from mcp_data_agent.service import AnalyticsService
+from mcp_data_agent.workspace import initialize_workspace
 
 
 def test_sqlite_adapter_schema_and_read_only(tmp_path: Path) -> None:
@@ -324,6 +325,7 @@ def test_cli_setup_and_doctor(tmp_path: Path, monkeypatch) -> None:
     database = tmp_path / "data.sqlite"
     generate("retail", "unit", 1, database)
     (tmp_path / SOURCE_FILE).write_text(f"{database}\n")
+    initialize_workspace(tmp_path)
     runner = CliRunner()
     assert runner.invoke(app, ["setup", "--client", "codex"]).exit_code == 0
     assert not (tmp_path / ".mcp-data-agent.toml").exists()
@@ -446,7 +448,7 @@ def test_cli_configure_source_creates_fixture_only_after_confirmation(tmp_path: 
     runner = CliRunner()
     applied = runner.invoke(app, ["configure-source", "--fixture"], input="y\n")
     assert applied.exit_code == 0, applied.output
-    playground = tmp_path / ".mcp-data" / "playground.sqlite"
+    playground = tmp_path / ".mcp-data-agent" / "playground.sqlite"
     assert playground.is_file()
     assert (tmp_path / SOURCE_FILE).read_text() == f"{playground}\n"
     assert not (tmp_path / ".env").exists()
@@ -473,7 +475,7 @@ def test_source_file_plans_reject_invalid_values_and_cleanup_failed_fixture(tmp_
     monkeypatch.setattr("mcp_data_agent.onboarding.generate", failed_generate)
     with pytest.raises(RuntimeError, match="fixture failed"):
         apply_source_file(plan, fixture=True)
-    assert not (tmp_path / ".mcp-data" / "playground.pending").exists()
+    assert not (tmp_path / ".mcp-data-agent" / "playground.pending").exists()
 
 
 def test_source_file_plan_replaces_existing_file_and_migration_is_explicit(tmp_path: Path) -> None:
@@ -494,7 +496,7 @@ def test_gitignore_plan_protects_private_files_and_refuses_tracked_source(tmp_pa
         return type("Result", (), {"returncode": 0 if "rev-parse" in command else 1})()
     monkeypatch.setattr("mcp_data_agent.onboarding.subprocess.run", run)
     plan = gitignore_plan(tmp_path)
-    assert plan.additions == (".mcp-data-source", ".mcp-data/")
+    assert plan.additions == (".mcp-data-source", ".mcp-data-agent/playground.sqlite", ".mcp-data-agent/schema-cache/")
     apply_gitignore(plan)
     assert ".mcp-data-source" in (tmp_path / ".gitignore").read_text()
     assert gitignore_plan(tmp_path).action == "unchanged"
@@ -523,11 +525,11 @@ def test_gitignore_and_demo_cleanup_failure_paths(tmp_path: Path, monkeypatch: p
         gitignore_plan(tmp_path)
     (tmp_path / ".gitignore").rmdir()
     source = tmp_path / SOURCE_FILE
-    source.write_text(f"{tmp_path / '.mcp-data' / 'playground.sqlite'}\n")
-    playground = tmp_path / ".mcp-data" / "playground.sqlite"
+    source.write_text(f"{tmp_path / '.mcp-data-agent' / 'playground.sqlite'}\n")
+    playground = tmp_path / ".mcp-data-agent" / "playground.sqlite"
     playground.parent.mkdir()
     generate("retail", "unit", 1, playground)
-    cache = tmp_path / ".mcp-data" / "schema-cache"
+    cache = tmp_path / ".mcp-data-agent" / "schema-cache"
     cache.mkdir()
     (cache / "data.json").write_text("{}")
     assert remove_managed_demo(tmp_path)["status"] == "demo_removed"
@@ -540,7 +542,7 @@ def test_gitignore_and_demo_cleanup_failure_paths(tmp_path: Path, monkeypatch: p
 def test_demo_cleanup_preserves_custom_source_but_removes_stale_managed_fixture(tmp_path: Path) -> None:
     source = tmp_path / SOURCE_FILE
     source.write_text("/tmp/custom.sqlite\n")
-    playground = tmp_path / ".mcp-data" / "playground.sqlite"
+    playground = tmp_path / ".mcp-data-agent" / "playground.sqlite"
     playground.parent.mkdir()
     generate("retail", "unit", 1, playground)
     result = remove_managed_demo(tmp_path)
@@ -554,18 +556,18 @@ def test_source_file_onboarding_rejects_unsafe_targets_and_preserves_fixture(tmp
     with pytest.raises(AgentError, match="regular"):
         source_file_plan(tmp_path, "/tmp/source.sqlite")
     (tmp_path / SOURCE_FILE).rmdir()
-    (tmp_path / ".mcp-data").symlink_to(tmp_path / "outside", target_is_directory=True)
+    (tmp_path / ".mcp-data-agent").symlink_to(tmp_path / "outside", target_is_directory=True)
     with pytest.raises(AgentError, match="symbolic link"):
         fixture_source_file_plan(tmp_path)
-    (tmp_path / ".mcp-data").unlink()
-    (tmp_path / ".mcp-data").mkdir()
-    (tmp_path / ".mcp-data" / "playground.sqlite").mkdir()
+    (tmp_path / ".mcp-data-agent").unlink()
+    (tmp_path / ".mcp-data-agent").mkdir()
+    (tmp_path / ".mcp-data-agent" / "playground.sqlite").mkdir()
     with pytest.raises(AgentError, match="regular SQLite"):
         apply_source_file(fixture_source_file_plan(tmp_path), fixture=True)
-    (tmp_path / ".mcp-data" / "playground.sqlite").rmdir()
+    (tmp_path / ".mcp-data-agent" / "playground.sqlite").rmdir()
     (tmp_path / ".env").write_text("OTHER=value\n")
     assert legacy_env_value(tmp_path) is None
-    fixture = tmp_path / ".mcp-data" / "playground.sqlite"
+    fixture = tmp_path / ".mcp-data-agent" / "playground.sqlite"
     generate("retail", "unit", 1, fixture)
     apply_source_file(fixture_source_file_plan(tmp_path), fixture=True)
     assert fixture.is_file()
@@ -575,6 +577,7 @@ def test_ready_preflight_and_welcome_redact_project_source_url(tmp_path: Path) -
     database = tmp_path / "data.sqlite"
     generate("retail", "unit", 1, database)
     (tmp_path / SOURCE_FILE).write_text(f"{database}\n")
+    initialize_workspace(tmp_path)
     service = AnalyticsService(tmp_path)
     assert service.preflight() == {"status": "ready", "source_alias": "data", "dialect": "sqlite", "source_origin": "project_file", "probe": "read_only_select_1"}
     welcome = service.welcome()
@@ -596,6 +599,7 @@ def test_setup_all_preview_is_read_only(tmp_path: Path, monkeypatch: pytest.Monk
     result = CliRunner().invoke(app, ["setup", "--all", "--status"])
     assert result.exit_code == 0
     assert not (tmp_path / ".mcp-data-agent.toml").exists()
+    assert not (tmp_path / ".mcp-data-agent").exists()
     assert not (tmp_path / ".env.example").exists()
 
 
@@ -631,6 +635,7 @@ def test_preflight_passes_for_a_bare_configured_project(tmp_path: Path, monkeypa
     database = tmp_path / "data.sqlite"
     generate("retail", "unit", 1, database)
     (tmp_path / SOURCE_FILE).write_text(f"{database}\n")
+    initialize_workspace(tmp_path)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("mcp_data_agent.cli.shutil.which", lambda _: "/usr/local/bin/mcp-data-mcp")
     result = CliRunner().invoke(app, ["preflight"])
@@ -657,7 +662,7 @@ def test_demo_cleanup_preserves_a_replaced_source_and_policy_scaffold_is_non_ove
     assert stopped.exit_code == 0
     assert "custom_source_preserved" in stopped.output
     assert replacement.is_file()
-    assert not (tmp_path / ".mcp-data" / "playground.sqlite").exists()
+    assert not (tmp_path / ".mcp-data-agent" / "playground.sqlite").exists()
     assert runner.invoke(app, ["configure-policy", "--yes"]).exit_code == 0
     assert (tmp_path / ".mcp-data-agent.toml").is_file()
     with pytest.raises(AgentError):
@@ -740,7 +745,7 @@ def test_full_uninstall_removes_exact_global_and_explicit_project_entries(tmp_pa
     assert "mcp-data-analysis" in changed.read_text()
     assert replacement.is_file()
     assert (other / SOURCE_FILE).is_file()
-    assert not (current / ".mcp-data" / "playground.sqlite").exists()
+    assert not (current / ".mcp-data-agent" / "playground.sqlite").exists()
 
 
 def test_full_uninstall_rejects_invalid_or_unscoped_project_roots(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -830,10 +835,11 @@ def test_cli_analysis_commands(tmp_path: Path, monkeypatch) -> None:
     )
     (tmp_path / "recipes").mkdir()
     (tmp_path / "recipes" / "one.toml").write_text("source_alias='retail'\nsql='SELECT id FROM products WHERE id = :id'\nparameters=['id']\n")
+    initialize_workspace(tmp_path)
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
     commands = [
-        ["preflight"],
+            ["preflight"],
         ["sources"], ["schema", "retail"], ["schema-state", "retail"], ["joins", "retail"], ["profile", "retail", "products"],
         ["quality", "retail", "products"], ["metrics"], ["metric", "revenue"], ["recipes"], ["chart", "name,stock", "2"],
         ["sql", "retail", "SELECT id FROM products"],

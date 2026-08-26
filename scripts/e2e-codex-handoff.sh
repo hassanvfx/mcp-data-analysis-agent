@@ -155,7 +155,8 @@ complete_phase "static_global_entry"
 
 phase="demo_configuration"
 test -f .mcp-data-source
-test -f .mcp-data/playground.sqlite
+test -f .mcp-data-agent/playground.sqlite
+test -f .mcp-data-agent/state.json
 source_mode="$(stat -f '%Lp' .mcp-data-source 2>/dev/null || stat -c '%a' .mcp-data-source)"
 test "$source_mode" = 600
 grep -qx '.mcp-data-source' .gitignore
@@ -179,8 +180,8 @@ query_evidence="products_id_name_limit_2"
 complete_phase "query"
 
 phase="observability"
-test -d observability
-find observability -type f -print -quit | grep -q .
+test -d .mcp-data-agent/observability
+find .mcp-data-agent/observability -type f -print -quit | grep -q .
 complete_phase "observability"
 
 phase="completed"

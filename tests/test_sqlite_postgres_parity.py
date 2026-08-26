@@ -9,6 +9,7 @@ import pytest
 
 from mcp_data_agent.fixtures import clone_sqlite_to_postgres, generate, local_postgres_url
 from mcp_data_agent.service import AnalyticsService
+from mcp_data_agent.workspace import initialize_workspace
 
 
 def available_postgres_url() -> str | None:
@@ -47,6 +48,7 @@ def test_sqlite_fixture_results_match_postgres_core(
         "[sources.sqlite]\ndialect='sqlite'\n"
         "[sources.postgres]\ndialect='postgres'\nallowed_schemas=['mcp_parity']\n"
     )
+    initialize_workspace(tmp_path)
     sqlite_result = AnalyticsService(tmp_path, str(sqlite_path)).execute("sqlite", sql, {})
     postgres_result = AnalyticsService(tmp_path, POSTGRES_URL).execute("postgres", sql, {})
     assert sqlite_result.rows == postgres_result.rows

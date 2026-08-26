@@ -19,8 +19,8 @@
         <h2 id="start">Tell your agent</h2>
         <div class="cards">
           <article><h3>1. Install</h3><code>Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.</code><p>Installs the package and credential-free global MCP entries using this machine’s absolute executable path. It never creates a database or source file.</p></article>
-          <article><h3>2. Configure a project</h3><code>Please configure this folder.</code><p>Use this from the separate folder containing the data you intend to analyze.</p></article>
-          <article><h3>3. Try the demo</h3><code>Please install demo in this folder.</code><p>Creates the deterministic retail demo only in the current project folder.</p></article>
+          <article><h3>2. Configure a project</h3><code>Please configure this folder.</code><p>Deterministically initializes the hidden workspace in the separate folder containing the data you intend to analyze.</p></article>
+          <article><h3>3. Try the demo</h3><code>Please install demo in this folder.</code><p>Initializes the workspace and creates the deterministic retail demo only in the current project folder.</p></article>
         </div>
       </section>
 
@@ -53,7 +53,7 @@ mcp-data-cli preflight</code></pre>
         <p>For PostgreSQL, configure a dedicated read-only account:</p>
         <pre><code>mcp-data-cli configure-source 'postgresql://readonly_user:password@db.example:5432/analytics' --yes
 mcp-data-cli preflight</code></pre>
-        <p><code>configure-source</code> writes <code>.mcp-data-source</code> with mode <code>0600</code> and safely offers to add <code>.mcp-data-source</code> and <code>.mcp-data/</code> to the project’s <code>.gitignore</code>. It never stores the value in global MCP configuration.</p>
+        <p><code>configure-source</code> deterministically initializes <code>.mcp-data-agent/</code>, writes <code>.mcp-data-source</code> with mode <code>0600</code>, and safely offers Git protection for private demo/cache assets. It never stores the value in global MCP configuration. If you create the source file yourself, run <code>mcp-data-cli prepare-workspace --yes</code> before preflight.</p>
         <h3>Manual configuration</h3>
         <p>Ask “Please configure this folder” to have your agent create or open the empty file in your normal text editor. Paste exactly one value, save, then run preflight. The file must be a regular non-symlink file containing one absolute SQLite path/local URL or PostgreSQL URL. Never commit it.</p>
       </section>
@@ -76,7 +76,7 @@ mcp-data-cli preflight</code></pre>
 mcp-data-cli preflight
 mcp-data-cli schema data
 mcp-data-cli query data 'SELECT id, name, stock FROM products ORDER BY id' --limit 10</code></pre>
-        <p>This creates <code>.mcp-data/playground.sqlite</code>, points <code>.mcp-data-source</code> to it, and creates governed observability evidence after a query. To remove it safely, use <code>mcp-data-cli demo stop --yes</code>; it refuses to delete a custom source.</p>
+        <p>This creates <code>.mcp-data-agent/playground.sqlite</code>, points <code>.mcp-data-source</code> to it, and creates governed observability evidence under <code>.mcp-data-agent/observability/</code> after a query. To remove it safely, use <code>mcp-data-cli demo stop --yes</code>; it refuses to delete a custom source.</p>
       </section>
 
       <section aria-labelledby="analyze">

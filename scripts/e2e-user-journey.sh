@@ -53,7 +53,8 @@ mcp-data-cli preflight > missing.json
 grep -q 'source_configuration_required' missing.json
 mcp-data-cli demo start --yes > demo.json
 test -f .mcp-data-source
-test -f .mcp-data/playground.sqlite
+test -f .mcp-data-agent/playground.sqlite
+test -f .mcp-data-agent/state.json
 source_mode="$(stat -f '%Lp' .mcp-data-source 2>/dev/null || stat -c '%a' .mcp-data-source)"
 test "$source_mode" = 600
 grep -qx '.mcp-data-source' .gitignore
@@ -61,7 +62,7 @@ mcp-data-cli preflight > ready.json
 grep -q 'read_only_select_1' ready.json
 mcp-data-cli schema data > schema.json
 mcp-data-cli query data 'SELECT id, name FROM products ORDER BY id' --limit 2 > query.json
-test -d observability
+test -d .mcp-data-agent/observability
 
 mcp-data-cli configure-policy --yes
 test -f .mcp-data-agent.toml
@@ -79,10 +80,10 @@ mcp-data-cli configure-source "$sandbox/other-project/replacement.sqlite" --yes
 mcp-data-cli preflight > other-ready.json
 cd "$sandbox/project"
 mcp-data-cli uninstall --all --project-root "$sandbox/other-project" --apply --yes > cleanup.json
-test ! -e .mcp-data/playground.sqlite
+test ! -e .mcp-data-agent/playground.sqlite
 test -f "$sandbox/other-project/replacement.sqlite"
 test -f "$sandbox/other-project/.mcp-data-source"
-test ! -e "$sandbox/other-project/.mcp-data/playground.sqlite"
+test ! -e "$sandbox/other-project/.mcp-data-agent/playground.sqlite"
 if grep -q 'mcp-data-analysis' "$sandbox/other-project/.mcp.json"; then
   echo 'managed project client configuration remains after full cleanup' >&2
   exit 1
@@ -96,7 +97,7 @@ for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilo
 done
 grep -q 'Personal Continue Config' "$HOME/.continue/config.yaml"
 test -f .mcp-data-agent.toml
-test -d observability
+test -d .mcp-data-agent/observability
 for _ in $(seq 1 30); do
   test ! -e "$checkout" && break
   sleep 1

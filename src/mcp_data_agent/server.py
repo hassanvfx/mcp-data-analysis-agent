@@ -11,6 +11,7 @@ from mcp.server.fastmcp import FastMCP
 from .errors import AgentError
 from .onboarding import apply_gitignore, apply_source_file, fixture_source_file_plan, gitignore_plan
 from .service import AnalyticsService
+from .workspace import initialize_workspace
 
 mcp = FastMCP(
     "MCP Data Analysis Agent",
@@ -41,20 +42,26 @@ def source_preflight_error() -> dict[str, object] | None:
 
 
 @mcp.tool()
-def begin_analysis_task(title: str, objective: str) -> dict[str, str]:
+def begin_analysis_task(title: str, objective: str) -> dict[str, object]:
+    if error := source_preflight_error():
+        return error
     return service().begin_task(title, objective).model_dump()
 
 
 @mcp.tool()
-def complete_analysis_task(task_id: str, findings: str, next_steps: str = "") -> dict[str, str]:
+def complete_analysis_task(task_id: str, findings: str, next_steps: str = "") -> dict[str, object]:
+    if error := source_preflight_error():
+        return error
     service().ledger.complete_task(task_id, findings, next_steps)
     return {"task_id": task_id, "status": "complete"}
 
 
 @mcp.tool()
-def cancel_analysis_task(task_id: str) -> dict[str, str]:
+def cancel_analysis_task(task_id: str) -> dict[str, object]:
+    if error := source_preflight_error():
+        return error
     try:
-        return service().cancel_task(task_id)
+        return dict(service().cancel_task(task_id))
     except FileNotFoundError:
         return {"error": "TASK_UNKNOWN"}
 
@@ -90,17 +97,22 @@ def configure_demo(confirmed: bool = False) -> dict[str, object]:
     if not confirmed:
         return {
             "status": "confirmation_required",
-            "message": "Ask the user to confirm demo setup. This creates .mcp-data/playground.sqlite and .mcp-data-source in the current project.",
+            "message": "Ask the user to confirm demo setup. This initializes .mcp-data-agent, then creates its managed demo and .mcp-data-source in the current project.",
             "next_call": {"tool": "configure_demo", "confirmed": True},
         }
     plan = fixture_source_file_plan(_project_root)
     ignore = gitignore_plan(_project_root)
-    apply_gitignore(ignore)
-    apply_source_file(plan, fixture=True)
+    try:
+        workspace = initialize_workspace(_project_root)
+        apply_gitignore(ignore)
+        apply_source_file(plan, fixture=True)
+    except AgentError as exc:
+        return {"error": exc.as_dict()}
     return {
         "status": "demo_configured",
         "source_alias": "data",
-        "created": [".mcp-data/playground.sqlite", ".mcp-data-source"],
+        "workspace": workspace,
+        "created": [".mcp-data-agent/playground.sqlite", ".mcp-data-source"],
         "message": "Configured the seeded retail demo for this project. The source file is ignored by Git.",
         "examples": [
             "Call get_schema with source_alias='data' to inspect products, orders, and order_items.",
@@ -160,16 +172,22 @@ def validate_sql(source_alias: str, sql: str, parameters_json: str = "{}") -> di
 
 @mcp.tool()
 def task_timeline(task_id: str) -> list[dict[str, object]]:
+    if error := source_preflight_error():
+        return error  # type: ignore[return-value]
     return service().timeline(task_id)
 
 
 @mcp.tool()
 def evaluate_analysis_task(task_id: str) -> dict[str, object]:
+    if error := source_preflight_error():
+        return error
     return service().evaluate_task(task_id)
 
 
 @mcp.tool()
 def verify_observability() -> dict[str, object]:
+    if error := source_preflight_error():
+        return error
     return service().verify_observability()
 
 

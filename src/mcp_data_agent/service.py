@@ -31,6 +31,7 @@ from .errors import AgentError
 from .ledger import Ledger
 from .models import QueryResult, TaskResult
 from .policy import validate_sql
+from .workspace import STATE_DIRECTORY, require_workspace, workspace_status
 
 
 def quote_identifier(identifier: str) -> str:
@@ -45,10 +46,12 @@ class AnalyticsService:
         self.query_gate = BoundedSemaphore(self.settings.max_concurrent_queries)
 
     def begin_task(self, title: str, objective: str) -> TaskResult:
+        require_workspace(self.settings.root)
         item = self.ledger.begin_task(title, objective)
         return TaskResult(task_id=item["task_id"], status="active")
 
     def cancel_task(self, task_id: str) -> dict[str, str]:
+        require_workspace(self.settings.root)
         self.ledger.request_cancellation(task_id)
         return {"task_id": task_id, "status": "cancellation_requested"}
 
@@ -76,11 +79,16 @@ class AnalyticsService:
         except (OSError, SQLAlchemyError):
             return {"status": "source_unavailable", "error": {"code": "SOURCE_UNAVAILABLE", "message": "The configured source could not be reached."},
                     "action": "Verify the database is reachable and the configured account is read-only."}
+        workspace = workspace_status(self.settings.root)
+        if workspace["status"] != "ready":
+            return {**workspace, "source_alias": "data", "dialect": source.dialect,
+                    "source_origin": self.settings.source_origin, "probe": "read_only_select_1"}
         return {"status": "ready", "source_alias": "data", "dialect": source.dialect,
                 "source_origin": self.settings.source_origin, "probe": "read_only_select_1"}
 
     def schema(self, source_alias: str) -> list[dict[str, Any]]:
         source, location = self._source(source_alias)
+        require_workspace(self.settings.root)
         with connection(source, location, self.settings.timeout_seconds) as db:
             return describe_schema(db, source.dialect)
 
@@ -89,7 +97,7 @@ class AnalyticsService:
         schema = self.schema(source_alias)
         canonical = json.dumps(schema, sort_keys=True, separators=(",", ":"))
         fingerprint = hashlib.sha256(canonical.encode()).hexdigest()
-        path = self.settings.root / ".mcp-data" / "schema-cache" / f"{source_alias}.json"
+        path = self.settings.root / STATE_DIRECTORY / "schema-cache" / f"{source_alias}.json"
         previous: str | None = None
         if path.exists():
             try:
@@ -121,8 +129,14 @@ class AnalyticsService:
         """Return first-run guidance without exposing a production source URL."""
         status = self.preflight()
         if status["status"] != "ready":
-            return {"status": "source_configuration_required", "message": "Configure a local source before analysis.",
-                    "source_alias": "data", "quickstart": [status["action"]]}
+            if status["status"] == "workspace_initialization_required":
+                message = "Your source is ready; initialize this project's hidden runtime workspace before analysis."
+            elif status["status"] == "workspace_unavailable":
+                message = "This project's hidden runtime workspace is unavailable for governed analysis."
+            else:
+                message = "Configure a local source before analysis."
+            return {"status": status["status"], "message": message, "source_alias": "data",
+                    "quickstart": [status["action"]], "error": status.get("error")}
         source, _ = self._source("data")
         return {
             "status": "source_ready",
@@ -140,11 +154,13 @@ class AnalyticsService:
 
     def validate(self, source_alias: str, sql: str, parameters: dict[str, Any]) -> dict[str, object]:
         source, _ = self._source(source_alias)
+        require_workspace(self.settings.root)
         validated = validate_sql(sql, parameters, source, self.settings)
         return validated.validation.model_dump()
 
     def explain(self, source_alias: str, sql: str, parameters: dict[str, Any]) -> dict[str, object]:
         source, location = self._source(source_alias)
+        require_workspace(self.settings.root)
         validated = validate_sql(sql, parameters, source, self.settings)
         prefix = "EXPLAIN QUERY PLAN" if source.dialect == "sqlite" else "EXPLAIN (FORMAT JSON)"
         with connection(source, location, self.settings.timeout_seconds) as db:
@@ -153,6 +169,7 @@ class AnalyticsService:
         return {"normalized_sql": validated.sql, "sql_hash": validated.sql_hash, "plan": plan, "warnings": warnings}
 
     def joins(self, source_alias: str) -> list[dict[str, str]]:
+        require_workspace(self.settings.root)
         schema = self.schema(source_alias)
         table_names = {str(item["table"]): set(item["columns"]) for item in schema}
         suggestions: list[dict[str, str]] = []
@@ -208,12 +225,15 @@ class AnalyticsService:
         return [self.recipe(path.stem) for path in sorted(directory.glob("*.toml"))] if directory.is_dir() else []
 
     def timeline(self, task_id: str) -> list[dict[str, object]]:
+        require_workspace(self.settings.root)
         return self.ledger._timeline(task_id)
 
     def evaluate_task(self, task_id: str) -> dict[str, object]:
+        require_workspace(self.settings.root)
         return self.ledger.evaluate(task_id)
 
     def verify_observability(self) -> dict[str, object]:
+        require_workspace(self.settings.root)
         return self.ledger.verify_integrity()
 
     def _execute_bounded(self, db: Any, dialect: str, task_id: str, sql: str,
@@ -344,6 +364,7 @@ class AnalyticsService:
 
     def quality(self, source_alias: str, table: str) -> dict[str, Any]:
         source, location = self._source(source_alias)
+        require_workspace(self.settings.root)
         schema = next((item for item in self.schema(source_alias) if item["table"] == table), None)
         if not schema:
             raise AgentError("TABLE_UNKNOWN", "The selected table is not available.")
@@ -371,6 +392,7 @@ class AnalyticsService:
     def execute(self, source_alias: str, sql: str, parameters: dict[str, Any], task_id: str | None = None,
                 limit: int | None = None, offset: int = 0) -> QueryResult:
         source, location = self._source(source_alias)
+        require_workspace(self.settings.root)
         requested_limit = self.settings.default_row_limit if limit is None else limit
         bounded_limit = min(requested_limit, self.settings.max_row_limit)
         if bounded_limit < 1:

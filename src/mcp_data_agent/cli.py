@@ -36,6 +36,7 @@ from .onboarding import (
 )
 from .removal import editable_checkout, project_root, schedule_checkout_removal, uninstall_tool
 from .service import AnalyticsService
+from .workspace import initialize_workspace
 
 app = typer.Typer(no_args_is_help=True, help="Local governed analytics for MCP clients.")
 LEGACY_DEMO_OUTPUT = typer.Option("demo.sqlite", "--output", hidden=True)
@@ -107,9 +108,27 @@ def configure_source(url: str = typer.Argument(""), fixture: bool = typer.Option
     emit({"source_file_plan": planned.as_dict(), "gitignore_plan": ignore.as_dict()})
     if not yes and not typer.confirm(f"Write {planned.source_file.name} for this project?", default=False):
         raise typer.Exit()
-    apply_gitignore(ignore)
-    apply_source_file(planned, fixture)
-    emit({"configured": {"source_file": str(planned.source_file), "source_alias": "data"}})
+    try:
+        workspace = initialize_workspace(project)
+        apply_gitignore(ignore)
+        apply_source_file(planned, fixture)
+    except AgentError as exc:
+        emit(exc.as_dict())
+        raise typer.Exit(2) from exc
+    emit({"workspace": workspace, "configured": {"source_file": str(planned.source_file), "source_alias": "data"}})
+
+
+@app.command("prepare-workspace")
+def prepare_workspace(yes: bool = typer.Option(False, "--yes")) -> None:
+    """Initialize the empty hidden runtime workspace for this project."""
+    project = root()
+    if not yes and not typer.confirm("Initialize .mcp-data-agent runtime state for this project?", default=False):
+        raise typer.Exit()
+    try:
+        emit(initialize_workspace(project))
+    except AgentError as exc:
+        emit(exc.as_dict())
+        raise typer.Exit(2) from exc
 
 
 @app.command()
@@ -271,9 +290,14 @@ def demo(action: str, domain: str = typer.Option("retail", "--domain", hidden=Tr
         emit({"demo_plan": plan.as_dict(), "gitignore_plan": ignore.as_dict()})
         if not yes and not typer.confirm("Create and activate the seeded retail demo for this project?", default=False):
             raise typer.Exit()
-        apply_gitignore(ignore)
-        apply_source_file(plan, fixture=True)
-        emit({"status": "demo_configured", "source_alias": "data", "created": [".mcp-data/playground.sqlite", ".mcp-data-source"]})
+        try:
+            workspace = initialize_workspace(project)
+            apply_gitignore(ignore)
+            apply_source_file(plan, fixture=True)
+        except AgentError as exc:
+            emit(exc.as_dict())
+            raise typer.Exit(2) from exc
+        emit({"status": "demo_configured", "workspace": workspace, "source_alias": "data", "created": [".mcp-data-agent/playground.sqlite", ".mcp-data-source"]})
     elif action == "stop":
         if not yes and not typer.confirm("Remove the managed retail demo if it is still the active source?", default=False):
             raise typer.Exit()

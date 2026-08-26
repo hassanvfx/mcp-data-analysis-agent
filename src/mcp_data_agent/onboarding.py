@@ -13,9 +13,10 @@ from pathlib import Path
 from .config import SOURCE_FILE, infer_dialect
 from .errors import AgentError
 from .fixtures import generate
+from .workspace import STATE_DIRECTORY
 
-PLAYGROUND = Path(".mcp-data") / "playground.sqlite"
-PRIVATE_IGNORE_RULES = (".mcp-data-source", ".mcp-data/")
+PLAYGROUND = STATE_DIRECTORY / "playground.sqlite"
+PRIVATE_IGNORE_RULES = (".mcp-data-source", f"{STATE_DIRECTORY}/playground.sqlite", f"{STATE_DIRECTORY}/schema-cache/")
 POLICY_TEMPLATE = """[agent]\ndefault_row_limit = 500\nmax_row_limit = 5000\nquery_timeout_seconds = 30\n\n[source]\nclassification = \"internal\"\n\n[classification.columns]\n# email = \"restricted\"\n"""
 
 
@@ -114,7 +115,7 @@ def remove_managed_demo(project: Path) -> dict[str, object]:
         if playground.is_symlink() or not playground.is_file():
             raise AgentError("PATH_UNSAFE", "The managed playground must be a regular file.")
         playground.unlink()
-    cache = project / ".mcp-data" / "schema-cache" / "data.json"
+    cache = project / STATE_DIRECTORY / "schema-cache" / "data.json"
     if cache.is_file() and not cache.is_symlink():
         cache.unlink()
     if custom_source:

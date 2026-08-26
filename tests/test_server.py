@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from mcp_data_agent import server
 from mcp_data_agent.errors import AgentError
+from mcp_data_agent.fixtures import generate
 from mcp_data_agent.service import AnalyticsService
 
 
@@ -122,7 +123,8 @@ def test_configure_demo_requires_confirmation_and_sets_up_project(tmp_path: Path
     assert not (tmp_path / ".mcp-data-source").exists()
     configured = server.configure_demo(confirmed=True)
     assert configured["status"] == "demo_configured"
-    assert (tmp_path / ".mcp-data" / "playground.sqlite").is_file()
+    assert (tmp_path / ".mcp-data-agent" / "playground.sqlite").is_file()
+    assert (tmp_path / ".mcp-data-agent" / "state.json").is_file()
     assert (tmp_path / ".mcp-data-source").is_file()
     assert any("get_schema" in example for example in configured["examples"])
 
@@ -143,3 +145,27 @@ def test_every_source_dependent_mcp_tool_returns_the_same_preflight_error(tmp_pa
     for result in results:
         assert result["error"]["code"] == "SOURCE_CONFIGURATION_REQUIRED"
         assert result["preflight"]["status"] == "source_configuration_required"
+
+
+def test_every_source_dependent_mcp_tool_requires_initialized_workspace(tmp_path: Path, monkeypatch) -> None:
+    database = tmp_path / "data.sqlite"
+    generate("retail", "unit", 1, database)
+    (tmp_path / ".mcp-data-source").write_text(f"{database}\n")
+    monkeypatch.setattr(server, "service", lambda: AnalyticsService(tmp_path))
+    results = [
+        server.begin_analysis_task("title", "objective"),
+        server.complete_analysis_task("task", "findings"),
+        server.cancel_analysis_task("task"),
+        server.get_schema("data"),
+        server.schema_state("data"),
+        server.suggest_joins("data"),
+        server.explain_sql("data", "SELECT 1"),
+        server.validate_sql("data", "SELECT 1"),
+        server.validate_and_execute("data", "SELECT 1"),
+        server.task_timeline("task"),
+        server.evaluate_analysis_task("task"),
+        server.verify_observability(),
+    ]
+    for result in results:
+        assert result["error"]["code"] == "WORKSPACE_INITIALIZATION_REQUIRED"
+        assert result["preflight"]["status"] == "workspace_initialization_required"

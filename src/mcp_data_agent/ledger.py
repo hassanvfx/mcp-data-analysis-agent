@@ -13,6 +13,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 from .policy import redact_value
+from .workspace import STATE_DIRECTORY
 
 
 def _now() -> datetime:
@@ -36,7 +37,7 @@ def _write_atomic(path: Path, content: str) -> None:
 class Ledger:
     def __init__(self, root: Path) -> None:
         self.root = root
-        self.base = root / "observability"
+        self.base = root / STATE_DIRECTORY / "observability"
 
     def identifier(self, kind: str) -> str:
         return f"{kind}-{uuid4().hex[:16]}"

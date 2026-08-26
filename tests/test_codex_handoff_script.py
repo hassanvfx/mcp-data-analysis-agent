@@ -48,11 +48,12 @@ prompt="$(cat)"
 [[ "$prompt" == 'Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.'$'\\n'* ]]
 grep -q -- '--local' <<<"$prompt"
 printf '\\n[mcp_servers.mcp-data-analysis]\\ncommand = "%s/mcp-data-mcp"\\nargs = ["--source-file", ".mcp-data-source"]\\n' "$FAKE_TOOL_BIN" >> "$HOME/.codex/config.toml"
-mkdir -p "$project/.mcp-data" "$project/observability"
-printf '%s\\n' "$project/.mcp-data/playground.sqlite" > "$project/.mcp-data-source"
+mkdir -p "$project/.mcp-data-agent/observability/queries" "$project/.mcp-data-agent/observability/tasks" "$project/.mcp-data-agent/observability/events" "$project/.mcp-data-agent/observability/runs" "$project/.mcp-data-agent/schema-cache"
+printf '{"version": 1}\\n' > "$project/.mcp-data-agent/state.json"
+printf '%s\\n' "$project/.mcp-data-agent/playground.sqlite" > "$project/.mcp-data-source"
 chmod 600 "$project/.mcp-data-source"
-touch "$project/.mcp-data/playground.sqlite" "$project/observability/receipt.json"
-printf '.mcp-data-source\\n.mcp-data/\\n' > "$project/.gitignore"
+touch "$project/.mcp-data-agent/playground.sqlite" "$project/.mcp-data-agent/observability/queries/receipt.json"
+printf '.mcp-data-source\\n.mcp-data-agent/playground.sqlite\\n.mcp-data-agent/schema-cache/\\n' > "$project/.gitignore"
 printf 'completed isolated handoff\\n' > "$output"
 """,
     )
