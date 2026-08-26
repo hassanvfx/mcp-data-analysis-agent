@@ -91,6 +91,10 @@
 
 * **Agent handoff contract**: Simplified the public README around install, configure-folder, and install-demo phrases that agents can execute through the repository’s actual scripts and project-local source flow. See [Operational README replacement](journals/operational-readme.md).
 
+* **Agent handoff protocol**: Reworked the README so its three user phrases are the primary interface, with detailed operational guidance following each concrete agent/user handoff. See [Operational README replacement](journals/operational-readme.md).
+
+* **Getting-started path**: Added direct global MCP setup, per-folder `.mcp-data-source` enablement, and readiness verification before the agent handoff reference. See [Operational README replacement](journals/operational-readme.md).
+
 * **Operational guide PDF**: Added a compact, visually reviewed PDF companion to the current operations README. See [Operational guide PDF](journals/operational-pdf.md).
 
 * **Observability retention correction**: Made durable audit ledger records Git-versionable while retaining exclusions for credentials, databases, caches, and generated artifacts. See the [delivery goal](journals/mcp-data-analysis-agent-goal.md).

@@ -6,7 +6,7 @@ tags: [engineering, documentation, onboarding]
 status: stable
 generated:
   by: clineflow/2.0.0
-  at: 2026-08-25T20:05:00Z
+  at: 2026-08-25T20:22:00Z
 ---
 
 # Goal
@@ -33,13 +33,24 @@ Create an operation-first public README and explicitly deprecate legacy bootstra
 - Documented the configuration handoff precisely: the agent prepares an empty private source file and opens the platform editor, while the user pastes and saves the one source value before the agent runs redacted preflight.
 - Kept installation scope explicit: package installation configures a global credential-free MCP server; every data folder independently opts in.
 
+## 2026-08-25 20:15 UTC - Handoff-protocol rewrite
+
+- Rebuilt the README around the three user phrases as a complete protocol: install from repo, configure this folder, and install demo in this folder.
+- Placed agent actions, explicit non-actions, human secret-pasting responsibility, and the expected next instruction together for each phrase.
+- Kept operational details as supporting reference after the handoff protocol rather than leading with raw product capabilities.
+
+## 2026-08-25 20:22 UTC - Conventional getting-started addition
+
+- Added a copy-pasteable Getting Started path before the agent phrases: global MCP installation, one-folder source enablement through `.mcp-data-source`, and successful read-only verification.
+- Distinguished global client setup from a project’s secret-bearing source file and documented both SQLite and PostgreSQL configuration commands.
+
 # Decisions
 
 - The README is the canonical user/operator guide; the legacy notice directs historical investigation to repository history and dated knowledge records.
 
 # Testing
 
-- `git diff --check` and `./validate-okf` passed after the handoff rewrite; no runtime code changed.
+- Pending final markdown, whitespace, and OKF validation after the getting-started addition; no runtime code changed.
 
 # Open Issues
 
