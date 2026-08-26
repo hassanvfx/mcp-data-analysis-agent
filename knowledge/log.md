@@ -2,6 +2,8 @@
 
 ## 2026-08-25
 
+* **Cline explicit project activation**: Added a visible-runtime activation flow, host-aware status diagnostics, and safe Cline project switching without source secrets. See the [Cline activation journal](journals/cline-explicit-project-activation.md).
+
 * **Deterministic per-project workspace initialization**: Added versioned `.mcp-data-agent/` bootstrap state, evidence-gated analysis preflight, and explicit project preparation flows. See the [workspace journal](journals/deterministic-project-workspace.md).
 
 * **Global client reliability and Cline synchronization**: Added verified absolute global MCP commands, synchronized Cline runtime settings files, legacy-aware cleanup, and the preview-first agentic uninstall handoff. See the [reliability journal](journals/global-client-reliability.md).

@@ -28,24 +28,32 @@ To configure clients, run `mcp-data-cli setup --all --global` first to review de
 then run `mcp-data-cli setup --all --global --apply` and confirm the displayed merge. The setup process never replaces
 an existing client configuration; malformed files are skipped with guidance.
 
-Global entries rely on the client starting MCP from the active project directory. If a client does not preserve that working directory, use its project-scoped entry (`mcp-data-cli setup --client <client> --apply`), which records a static `--project-root` argument and still contains no credential. Verify this behavior after restart for Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue.
+Global entries rely on the client starting MCP from the active project directory. If a client does not preserve that working directory, use its project-scoped entry (`mcp-data-cli setup --client <client> --apply`), which records a static `--project-root` argument and still contains no credential. Cline is the exception: use its explicit activation flow below rather than creating `.cline/mcp.json`.
 
 | Client | Global-entry check | Fallback when CWD is not the project |
 | --- | --- | --- |
 | Codex | Open a project and call MCP `preflight`. | Codex uses its user configuration; confirm its launched CWD before relying on global setup. |
 | Claude Code, Copilot, Cline, Cursor, Windsurf, Continue | Open a project and call MCP `preflight`. | Run `mcp-data-cli setup --client <client> --apply` from that project, restart the client, then call `preflight` again. |
 
-### Cline runtime settings
+### Cline runtime settings and explicit project activation
 
-Global Cline setup synchronizes every recognized existing runtime settings file, rather than selecting one as authoritative:
+Global Cline setup synchronizes every recognized existing runtime settings file, rather than selecting one as authoritative. On macOS it recognizes VS Code, VS Code Insiders, Cursor, and Windsurf storage, plus native and historical Cline files when present:
 
 ```text
-~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+~/Library/Application Support/{Code,Code - Insiders,Cursor,Windsurf}/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
 ~/.cline/data/settings/cline_mcp_settings.json
 ~/.cline/mcp.json (only when the historical file already exists)
 ```
 
-The VS Code target is used on macOS when its extension storage exists. Native and historical files are synchronized only when present; an explicit Cline setup with no known target creates the native settings file. Setup reports and validates every written target, merges the credential-free `mcp-data-analysis` entry, removes only the obsolete `data-analysis-agent` legacy key, and preserves all other Cline MCP servers. It never writes `MCP_DATA_SOURCE_URL`, a database URL, or an `env` block. Run **Developer: Reload Window** in VS Code to make an already-open Cline instance reload the changed MCP settings.
+The global entry remains portable and credential-free. For reliable VS Code use, activate the folder currently open in Cline:
+
+```bash
+mcp-data-cli cline activate --project-root /absolute/path/to/data-project
+mcp-data-cli cline activate --project-root /absolute/path/to/data-project --apply --yes
+mcp-data-cli cline status
+```
+
+Activation synchronizes every detected Cline runtime file to the selected project with an absolute executable and static `--project-root`. It validates each write, replaces only recognized managed/legacy `mcp-data-analysis` variants, removes only `data-analysis-agent`, and preserves unrelated servers. It never writes `MCP_DATA_SOURCE_URL`, a database URL, or an `env` block. Run **Developer: Reload Window** in VS Code after activation. A single visible Cline entry can point to only one project at a time, so activate again when switching folders. The legacy project-local `.cline/mcp.json` is not read, created, migrated, or removed automatically.
 
 For local PostgreSQL parity without supplying a URL, use
 `mcp-data-cli dataset-postgres retail mcp_data_parity`. The command uses `createdb`, refuses to

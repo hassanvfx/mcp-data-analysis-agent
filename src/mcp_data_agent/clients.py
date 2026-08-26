@@ -27,6 +27,11 @@ def server_for(scope: str, project: Path, global_command: Path | None = None) ->
     if scope == "project":
         return {"command": "mcp-data-mcp", "args": ["--project-root", str(project.resolve()),
                                                         "--source-file", ".mcp-data-source"]}
+    if scope == "cline-project":
+        if global_command is None:
+            raise AgentError("MCP_EXECUTABLE_UNAVAILABLE", "A verified absolute mcp-data-mcp executable is required for Cline activation.")
+        return {"command": str(global_command), "args": ["--project-root", str(project.resolve()),
+                                                             "--source-file", ".mcp-data-source"]}
     if scope == "global":
         if global_command is None:
             raise AgentError("MCP_EXECUTABLE_UNAVAILABLE", "A verified absolute mcp-data-mcp executable is required for global setup.")
@@ -88,15 +93,18 @@ def _clients(project: Path, home: Path) -> list[tuple[str, Path | None, Path, st
         ("codex", None, home / ".codex" / "config.toml", "toml", home / ".codex"),
         ("claude-code", project / ".mcp.json", home / ".claude" / "mcp.json", "json-mcp", home / ".claude"),
         ("copilot", project / ".vscode" / "mcp.json", home / ".copilot" / "mcp-config.json", "json-servers", home / ".vscode"),
-        ("cline", project / ".cline" / "mcp.json", _cline_native_target(home), "json-mcp", home / ".cline"),
+        ("cline", None, _cline_native_target(home), "json-mcp", home / ".cline"),
         ("cursor", project / ".cursor" / "mcp.json", home / ".cursor" / "mcp.json", "json-mcp", home / ".cursor"),
         ("windsurf", project / ".windsurf" / "mcp.json", home / ".codeium" / "windsurf" / "mcp.json", "json-mcp", home / ".codeium" / "windsurf"),
         ("continue", project / ".continue" / "mcpServers" / "mcp-data-analysis.yaml", home / ".continue" / "config.yaml", "continue", home / ".continue"),
     ]
 
 
-def _cline_vscode_target(home: Path) -> Path:
-    return home / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
+CLINE_MACOS_HOSTS = ("Code", "Code - Insiders", "Cursor", "Windsurf")
+
+
+def _cline_host_target(home: Path, host: str) -> Path:
+    return home / "Library" / "Application Support" / host / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
 
 
 def _cline_native_target(home: Path) -> Path:
@@ -107,21 +115,75 @@ def _cline_historical_target(home: Path) -> Path:
     return home / ".cline" / "mcp.json"
 
 
-def _cline_global_targets(home: Path, explicit: bool) -> list[Path]:
-    """Return every installed Cline runtime target, without broad filesystem discovery."""
-    targets: list[Path] = []
-    vscode = _cline_vscode_target(home)
-    if platform.system() == "Darwin" and (vscode.exists() or vscode.parent.parent.exists()):
-        targets.append(vscode)
+def cline_runtime_targets(home: Path) -> list[tuple[str, Path]]:
+    """Return detected Cline runtime files, without broad filesystem discovery."""
+    targets: list[tuple[str, Path]] = []
+    if platform.system() == "Darwin":
+        for host in CLINE_MACOS_HOSTS:
+            target = _cline_host_target(home, host)
+            if target.exists() or target.parent.parent.exists():
+                targets.append((host.lower().replace(" ", "-"), target))
     native = _cline_native_target(home)
     if native.exists() or native.parent.exists():
-        targets.append(native)
+        targets.append(("cline-native", native))
     historical = _cline_historical_target(home)
     if historical.exists():
-        targets.append(historical)
-    if not targets and explicit:
-        targets.append(native)
+        targets.append(("cline-historical", historical))
     return targets
+
+
+def cline_status(home: Path) -> list[dict[str, str]]:
+    """Describe known Cline runtime settings without leaking source configuration."""
+    candidates: list[tuple[str, Path]] = []
+    if platform.system() == "Darwin":
+        candidates.extend((host.lower().replace(" ", "-"), _cline_host_target(home, host)) for host in CLINE_MACOS_HOSTS)
+    candidates.extend((("cline-native", _cline_native_target(home)), ("cline-historical", _cline_historical_target(home))))
+    values: list[dict[str, str]] = []
+    for host, target in candidates:
+        item = {"host": host, "target": str(target)}
+        if not target.exists():
+            values.append({**item, "status": "missing"})
+            continue
+        try:
+            current = _read(target, "json-mcp")
+        except (OSError, ValueError, json.JSONDecodeError):
+            values.append({**item, "status": "malformed"})
+            continue
+        server = _server(current, "json-mcp")
+        if server is None:
+            servers = current.get("mcpServers", {}) if isinstance(current, dict) else {}
+            values.append({**item, "status": "empty" if not servers else "active"})
+            continue
+        if server == SERVER or _managed_global_server(server):
+            values.append({**item, "status": "managed_global"})
+            continue
+        project = _managed_project_root(server)
+        values.append({**item, "status": "managed_project", "project_root": project} if project else {**item, "status": "foreign"})
+    return values
+
+
+def cline_activation_plans(project: Path, home: Path, global_command: Path | None = None) -> list[SetupPlan]:
+    """Plan one explicit project activation across all detected Cline runtime files."""
+    targets = cline_runtime_targets(home)
+    if not targets:
+        raise AgentError("CLINE_RUNTIME_NOT_DETECTED", "No Cline runtime settings were detected. Open Cline → MCP Servers → Configure MCP Servers, then retry activation.")
+    command = global_command or resolve_global_command()
+    server = server_for("cline-project", project, command)
+    result: list[SetupPlan] = []
+    for _, target in targets:
+        action, reason = _action(target, "json-mcp", server)
+        if target.exists():
+            try:
+                current = _read(target, "json-mcp")
+                existing = _server(current, "json-mcp")
+                if _legacy_cline_present(current, "json-mcp") or _managed_global_server(existing) or _managed_project_root(existing):
+                    action, reason = "update", "updates the managed Cline entry for the selected project"
+                elif existing is not None:
+                    action, reason = "skip", "the Cline MCP Data Analysis entry was changed outside this package"
+            except (OSError, ValueError, json.JSONDecodeError):
+                pass
+        result.append(SetupPlan("cline", target, "cline-project", action, "json-mcp", reason, server, True))
+    return result
 
 
 def templates(home: Path) -> dict[str, ClientTemplate]:
@@ -132,11 +194,13 @@ def plans(project: Path, home: Path, client: str = "all", global_scope: bool = F
           global_command: Path | None = None) -> list[SetupPlan]:
     result: list[SetupPlan] = []
     resolved_command = resolve_global_command() if global_scope and global_command is None else global_command
+    if client == "cline" and not global_scope:
+        raise AgentError("CLINE_ACTIVATION_REQUIRED", "Cline project setup uses `mcp-data-cli cline activate --project-root /absolute/project`, not .cline/mcp.json.")
     for name, preferred, fallback, format_name, marker in _clients(project, home):
         if client != "all" and client != name:
             continue
         if name == "cline" and global_scope:
-            for target in _cline_global_targets(home, explicit=client == "cline"):
+            for _, target in cline_runtime_targets(home):
                 server = server_for("global", project, resolved_command)
                 action, reason = _action(target, format_name, server)
                 if target.exists():
@@ -206,6 +270,30 @@ def _server(current: object, format_name: str) -> object | None:
     key = "servers" if format_name == "json-servers" else "mcpServers"
     servers = value.get(key, {})
     return servers.get(SERVER_NAME) if isinstance(servers, dict) else None
+
+
+def _managed_global_server(server: object | None) -> bool:
+    """Recognize prior package-managed global command forms without accepting foreign entries."""
+    if not isinstance(server, dict):
+        return False
+    command = server.get("command")
+    args = server.get("args")
+    return (isinstance(command, str) and Path(command).is_absolute() and Path(command).name == "mcp-data-mcp"
+            and args == ["--source-file", ".mcp-data-source"])
+
+
+def _managed_project_root(server: object | None) -> str | None:
+    """Return a managed explicit Cline project root, if this is a recognized entry."""
+    if not isinstance(server, dict):
+        return None
+    command = server.get("command")
+    args = server.get("args")
+    if not (isinstance(command, str) and Path(command).is_absolute() and Path(command).name == "mcp-data-mcp"
+            and isinstance(args, list) and len(args) == 4 and args[0] == "--project-root"
+            and isinstance(args[1], str) and Path(args[1]).is_absolute()
+            and args[2:] == ["--source-file", ".mcp-data-source"]):
+        return None
+    return args[1]
 
 
 def _legacy_cline_present(current: object, format_name: str) -> bool:
@@ -371,6 +459,8 @@ def _managed_match(actual: object | None, expected: object | None, plan: SetupPl
         return actual == _continue_entry(_continue_content(SERVER))
     if not isinstance(actual, dict):
         return False
+    if plan.client == "cline" and (_managed_global_server(actual) or _managed_project_root(actual)):
+        return True
     return actual == SERVER
 
 

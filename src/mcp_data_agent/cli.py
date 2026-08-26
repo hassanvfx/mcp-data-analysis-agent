@@ -11,7 +11,13 @@ from pathlib import Path
 
 import typer
 
-from .clients import SetupPlan, legacy_cline_migration_needed, removal_status
+from .clients import (
+    SetupPlan,
+    cline_activation_plans,
+    cline_status,
+    legacy_cline_migration_needed,
+    removal_status,
+)
 from .clients import apply as apply_client_plans
 from .clients import plans as client_plans
 from .clients import remove_exact as remove_client_plans
@@ -39,8 +45,11 @@ from .service import AnalyticsService
 from .workspace import initialize_workspace
 
 app = typer.Typer(no_args_is_help=True, help="Local governed analytics for MCP clients.")
+cline_app = typer.Typer(no_args_is_help=True, help="Activate and diagnose Cline runtime MCP settings.")
+app.add_typer(cline_app, name="cline")
 LEGACY_DEMO_OUTPUT = typer.Option("demo.sqlite", "--output", hidden=True)
 PROJECT_ROOT_OPTION = typer.Option([], "--project-root")
+CLINE_PROJECT_ROOT_OPTION = typer.Option(..., "--project-root")
 
 
 def root() -> Path:
@@ -60,8 +69,10 @@ def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"),
         planned = client_plans(project, Path.home(), "all" if all_clients else client, global_scope)
     except AgentError as exc:
         raise typer.BadParameter(exc.message) from exc
+    cline_pending = global_scope and (all_clients or client in {"all", "cline"}) and not any(item.client == "cline" for item in planned)
     payload = {"client_plans": [item.as_dict() for item in planned], "apply": apply,
-               "status": status, "detected": list(dict.fromkeys(item.client for item in planned))}
+               "status": status, "detected": list(dict.fromkeys(item.client for item in planned)),
+               "cline": {"status": "runtime_not_detected", "action": "Open Cline → MCP Servers → Configure MCP Servers, then run mcp-data-cli cline activate --project-root /absolute/project."} if cline_pending else None}
     emit(payload)
     if status or not apply:
         return
@@ -83,6 +94,41 @@ def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"),
         "reload_guidance": [{"client": "cline", "target": str(path), "action": "Restart or run Developer: Reload Window in VS Code for Cline to load the new server."} for path in cline_targets],
         "skipped": [item.as_dict() for item in planned if item.action == "skip"],
     })
+
+
+@cline_app.command("status")
+def cline_status_command() -> None:
+    """Inspect known Cline runtime settings without modifying them."""
+    emit({"runtime_targets": cline_status(Path.home()),
+          "note": "Written and validated does not prove that Cline has reloaded its extension window."})
+
+
+@cline_app.command("activate")
+def cline_activate(project: Path = CLINE_PROJECT_ROOT_OPTION, apply: bool = typer.Option(False, "--apply"),
+                   yes: bool = typer.Option(False, "--yes")) -> None:
+    """Point Cline's visible runtime settings at one explicit project folder."""
+    try:
+        selected = project_root(project)
+        planned = cline_activation_plans(selected, Path.home())
+    except AgentError as exc:
+        emit(exc.as_dict())
+        raise typer.Exit(2) from exc
+    emit({"project_root": str(selected), "client_plans": [item.as_dict() for item in planned], "apply": apply,
+          "reload_required": "Restart Cline or run Developer: Reload Window in VS Code after activation."})
+    if not apply:
+        return
+    writable = [item for item in planned if item.action in {"add", "update"}]
+    if not yes and not typer.confirm(f"Activate Cline for {selected}?", default=False):
+        raise typer.Exit()
+    try:
+        written = apply_client_plans(writable)
+        validated = validate_client_plans([item for item in writable if item.target in written])
+    except AgentError as exc:
+        emit(exc.as_dict())
+        raise typer.Exit(2) from exc
+    emit({"status": "activated", "project_root": str(selected), "written": [str(item) for item in written],
+          "validated": [str(item) for item in validated],
+          "reload_guidance": "Restart Cline or run Developer: Reload Window in VS Code for Cline to load the selected project."})
 
 
 @app.command("configure-source")

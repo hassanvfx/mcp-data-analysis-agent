@@ -32,6 +32,7 @@ Choose one project action:
 | --- | --- |
 | **Please configure this folder.** | Deterministically initializes `.mcp-data-agent/`, then creates or opens `.mcp-data-source` and runs preflight. |
 | **Please install demo in this folder.** | Initializes the hidden workspace and creates the deterministic retail demo only in this folder. |
+| **Please enable MCP Data Analysis for this Cline project.** | Activates Cline's visible runtime settings for this one project, then tells you to reload VS Code. |
 
 The canonical commands are:
 
@@ -78,6 +79,17 @@ If you already cloned this checkout:
 ```
 
 The installer configures supported global client entries for Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue. Each global entry uses the verified absolute path of this machine’s installed `mcp-data-mcp`, avoiding editor PATH issues while still containing no database secret. For complete client compatibility, demo cleanup, project-scoped fallback setup, Cline VS Code reload guidance, and operations details, use the [hosted guide](https://hassanvfx.github.io/mcp-data-analysis-agent/).
+
+### Cline in VS Code
+
+Cline's visible MCP settings are global to the editor host, so activate one project explicitly after opening that folder:
+
+```bash
+mcp-data-cli cline activate --project-root /absolute/path/to/data-project
+mcp-data-cli cline activate --project-root /absolute/path/to/data-project --apply --yes
+```
+
+This writes only the absolute MCP executable, `--project-root`, and `.mcp-data-source` to every detected Cline runtime file; it never writes a database URL or environment secret. Run **Developer: Reload Window** in VS Code, then open Cline → MCP Servers. Switching projects requires activation again. Use `mcp-data-cli cline status` to inspect the exact files and their managed state. `.cline/mcp.json` is a legacy project-local file and is not treated as Cline's active VS Code configuration.
 
 ## Remove it from all agents
 

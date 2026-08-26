@@ -11,20 +11,27 @@ export XDG_CONFIG_HOME="$sandbox/config"
 export XDG_DATA_HOME="$sandbox/data"
 export UV_CACHE_DIR="$sandbox/uv-cache"
 checkout="$sandbox/editable-checkout"
-if [[ "$(uname -s)" == "Darwin" ]]; then
-  cline_settings="$HOME/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json"
-else
-  cline_settings=""
-fi
 cline_native="$HOME/.cline/data/settings/cline_mcp_settings.json"
+cline_configs=("$cline_native")
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  for cline_host in "Code" "Code - Insiders" "Cursor" "Windsurf"; do
+    cline_configs+=("$HOME/Library/Application Support/$cline_host/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json")
+  done
+fi
 mkdir -p "$HOME/.codex" "$HOME/.claude" "$HOME/.copilot" "$(dirname "$cline_native")" "$HOME/.cursor" "$HOME/.codeium/windsurf" "$HOME/.continue" "$sandbox/project" "$sandbox/other-project" "$checkout"
-if [[ -n "$cline_settings" ]]; then mkdir -p "$(dirname "$cline_settings")"; fi
+for config in "${cline_configs[@]}"; do mkdir -p "$(dirname "$config")"; done
 tar --exclude=.git --exclude=.venv --exclude=__pycache__ -cf - -C "$repository_root" . | tar -xf - -C "$checkout"
 printf '[mcp_servers.unrelated]\ncommand = "echo"\n' > "$HOME/.codex/config.toml"
 printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.claude/mcp.json"
 printf '{"servers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.copilot/mcp-config.json"
 printf '{"mcpServers":{"data-analysis-agent":{"command":"stale","env":{"MCP_DATA_SOURCE_URL":"stale"}},"unrelated":{"command":"echo"}}}\n' > "$cline_native"
-if [[ -n "$cline_settings" ]]; then printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$cline_settings"; fi
+for config in "${cline_configs[@]:1}"; do
+  if [[ "$config" == "${cline_configs[1]}" ]]; then
+    printf '{"mcpServers":{}}\n' > "$config"
+  else
+    printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$config"
+  fi
+done
 printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.cursor/mcp.json"
 printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.codeium/windsurf/mcp.json"
 printf 'name: Personal Continue Config\n' > "$HOME/.continue/config.yaml"
@@ -37,8 +44,6 @@ if grep -R -E -- 'postgres(ql)?://|sqlite:|--source-url|--project-root|MCP_DATA_
   echo 'client configuration contains a source location' >&2
   exit 1
 fi
-cline_configs=("$cline_native")
-if [[ -n "$cline_settings" ]]; then cline_configs+=("$cline_settings"); fi
 for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilot/mcp-config.json" "${cline_configs[@]}" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json" "$HOME/.continue/config.yaml"; do
   grep -q 'mcp-data-analysis' "$config"
   grep -q -- '--source-file' "$config"
@@ -63,6 +68,11 @@ grep -q 'read_only_select_1' ready.json
 mcp-data-cli schema data > schema.json
 mcp-data-cli query data 'SELECT id, name FROM products ORDER BY id' --limit 2 > query.json
 test -d .mcp-data-agent/observability
+mcp-data-cli cline activate --project-root "$sandbox/project" --apply --yes > cline-project.json
+for config in "${cline_configs[@]}"; do
+  grep -F -q -- "--project-root" "$config"
+  grep -F -q -- "$sandbox/project" "$config"
+done
 
 mcp-data-cli configure-policy --yes
 test -f .mcp-data-agent.toml
@@ -78,6 +88,14 @@ mcp-data-cli demo start --yes > other-demo.json
 mcp-data-cli dataset retail replacement.sqlite
 mcp-data-cli configure-source "$sandbox/other-project/replacement.sqlite" --yes
 mcp-data-cli preflight > other-ready.json
+mcp-data-cli cline activate --project-root "$sandbox/other-project" --apply --yes > cline-other-project.json
+for config in "${cline_configs[@]}"; do
+  grep -F -q -- "$sandbox/other-project" "$config"
+  if grep -F -q -- "$sandbox/project" "$config"; then
+    echo 'Cline activation retained the previous project root' >&2
+    exit 1
+  fi
+done
 cd "$sandbox/project"
 mcp-data-cli uninstall --all --project-root "$sandbox/other-project" --apply --yes > cleanup.json
 test ! -e .mcp-data-agent/playground.sqlite
@@ -93,7 +111,7 @@ if grep -R -q 'mcp-data-analysis' "$HOME"; then
   exit 1
 fi
 for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilot/mcp-config.json" "${cline_configs[@]}" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json"; do
-  grep -q 'unrelated' "$config"
+  if [[ "$config" != "${cline_configs[1]}" ]]; then grep -q 'unrelated' "$config"; fi
 done
 grep -q 'Personal Continue Config' "$HOME/.continue/config.yaml"
 test -f .mcp-data-agent.toml

@@ -12,3 +12,4 @@ Create one Engineering Journal concept per substantial task in this directory.
 * [GitHub Pages onboarding guide](github-pages-onboarding.md) - URL-based agent handoff and hosted onboarding workflow.
 * [Global client reliability and Cline synchronization](global-client-reliability.md) - Absolute global commands and synchronized Cline runtime targets.
 * [Deterministic per-project workspace initialization](deterministic-project-workspace.md) - Versioned hidden runtime state for governed project analysis.
+* [Cline explicit project activation](cline-explicit-project-activation.md) - Reliable visible Cline runtime activation for one selected project.

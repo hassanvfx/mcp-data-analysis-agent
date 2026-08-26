@@ -52,3 +52,4 @@ MCP_DATA_MCP_COMMAND="$mcp_command" uv tool run --from "$install_source" mcp-dat
 echo 'Installed MCP Data Analysis as a global, credential-free MCP server.'
 echo 'Next, open https://hassanvfx.github.io/mcp-data-analysis-agent/ for project setup, demo, and query guidance.'
 echo 'In each separate data project, configure .mcp-data-source with one absolute SQLite path/URL or PostgreSQL URL.'
+echo 'For Cline in VS Code, open the project and run: mcp-data-cli cline activate --project-root /absolute/path --apply --yes; then use Developer: Reload Window.'

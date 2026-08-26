@@ -9,6 +9,9 @@ from mcp_data_agent.cli import app
 from mcp_data_agent.clients import (
     ClientTemplate,
     apply,
+    cline_activation_plans,
+    cline_runtime_targets,
+    cline_status,
     legacy_cline_migration_needed,
     plans,
     remove_exact,
@@ -381,17 +384,21 @@ def test_global_command_resolution_prefers_validated_override_and_rejects_invali
         resolve_global_command(str(tmp_path / "missing"))
 
 
-def test_cline_falls_back_without_macos_extension_and_project_setup_is_unchanged(
+def test_cline_requires_a_detected_runtime_and_rejects_the_false_project_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     project, home = tmp_path / "project", tmp_path / "home"
     project.mkdir()
     monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Linux")
+    with pytest.raises(AgentError, match="unsupported"):
+        plans(project, home, "cline", global_scope=True)
+    with pytest.raises(AgentError, match="Cline project setup"):
+        plans(project, home, "cline")
+    native = home / ".cline" / "data" / "settings" / "cline_mcp_settings.json"
+    native.parent.mkdir(parents=True)
+    native.write_text('{"mcpServers":{}}')
     global_plan = plans(project, home, "cline", global_scope=True)
-    assert global_plan[0].target == home / ".cline" / "data" / "settings" / "cline_mcp_settings.json"
-    project_plan = plans(project, home, "cline")
-    assert project_plan[0].target == project / ".cline" / "mcp.json"
-    assert project_plan[0].migrate_legacy_cline is False
+    assert global_plan[0].target == native
 
 
 def test_cline_syncs_all_existing_runtime_targets_and_skips_only_malformed_target(
@@ -441,6 +448,126 @@ def test_cli_reports_cline_vscode_validation_and_reload_guidance(tmp_path: Path,
     assert "Developer: Reload Window" in result.output
     assert "data-analysis-agent" in result.output
     assert "MCP_DATA_SOURCE_URL" not in settings.read_text()
+
+
+def test_cline_activation_synchronizes_all_known_hosts_and_replaces_the_selected_project(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project, replacement, home = tmp_path / "project", tmp_path / "replacement", tmp_path / "home"
+    project.mkdir()
+    replacement.mkdir()
+    command = tmp_path / "bin" / "mcp-data-mcp"
+    command.parent.mkdir()
+    command.write_text("#!/bin/sh\n")
+    command.chmod(0o755)
+    monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Darwin")
+    for host in ("Code", "Code - Insiders", "Cursor", "Windsurf"):
+        target = home / "Library" / "Application Support" / host / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if host != "Code - Insiders":
+            target.write_text('{"mcpServers":{"other":{"command":"other"}}}')
+    native = home / ".cline" / "data" / "settings" / "cline_mcp_settings.json"
+    native.parent.mkdir(parents=True)
+    native.write_text('{"mcpServers":{"data-analysis-agent":{"command":"stale"}}}')
+    planned = cline_activation_plans(project, home, command)
+    assert len(planned) == 5
+    assert apply(planned) == [item.target for item in planned]
+    assert validate_client_plans(planned) == [item.target for item in planned]
+    expected = {"command": str(command), "args": ["--project-root", str(project), "--source-file", ".mcp-data-source"]}
+    empty_target = home / "Library" / "Application Support" / "Code - Insiders" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
+    for _, target in cline_runtime_targets(home):
+        payload = __import__("json").loads(target.read_text())
+        assert payload["mcpServers"]["mcp-data-analysis"] == expected
+        assert "data-analysis-agent" not in payload["mcpServers"]
+        if target not in {native, empty_target}:
+            assert payload["mcpServers"]["other"] == {"command": "other"}
+    updated = cline_activation_plans(replacement, home, command)
+    assert apply(updated) == [item.target for item in updated]
+    states = cline_status(home)
+    assert {item["status"] for item in states if item["host"] != "cline-historical"} >= {"managed_project"}
+    assert all(item.get("project_root") == str(replacement) for item in states if item["status"] == "managed_project")
+
+
+def test_cli_cline_activation_previews_and_applies_without_source_mutation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    settings = home / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
+    settings.parent.mkdir(parents=True)
+    settings.write_text('{"mcpServers":{}}')
+    command = tmp_path / "bin" / "mcp-data-mcp"
+    command.parent.mkdir()
+    command.write_text("#!/bin/sh\n")
+    command.chmod(0o755)
+    monkeypatch.setattr("mcp_data_agent.cli.Path.home", lambda: home)
+    monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Darwin")
+    monkeypatch.setattr("mcp_data_agent.clients.resolve_global_command", lambda: command)
+    preview = CliRunner().invoke(app, ["cline", "activate", "--project-root", str(project)])
+    assert preview.exit_code == 0, preview.output
+    assert not (project / SOURCE_FILE).exists()
+    applied = CliRunner().invoke(app, ["cline", "activate", "--project-root", str(project), "--apply", "--yes"])
+    assert applied.exit_code == 0, applied.output
+    assert "Developer: Reload Window" in applied.output
+    assert "MCP_DATA_SOURCE_URL" not in settings.read_text()
+
+
+def test_cline_activation_preserves_a_changed_mcp_data_entry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    settings = home / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
+    settings.parent.mkdir(parents=True)
+    settings.write_text('{"mcpServers":{"mcp-data-analysis":{"command":"custom-server"}}}')
+    command = tmp_path / "bin" / "mcp-data-mcp"
+    command.parent.mkdir()
+    command.write_text("#!/bin/sh\n")
+    command.chmod(0o755)
+    monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Darwin")
+    plan = cline_activation_plans(project, home, command)
+    assert plan[0].action == "skip"
+    assert apply(plan) == []
+    assert "custom-server" in settings.read_text()
+
+
+def test_cline_status_classifies_known_runtime_files_and_cli_reports_them(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    home = tmp_path / "home"
+    monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Darwin")
+    targets = {
+        host: home / "Library" / "Application Support" / host / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
+        for host in ("Code", "Code - Insiders", "Cursor", "Windsurf")
+    }
+    for target in targets.values():
+        target.parent.mkdir(parents=True, exist_ok=True)
+    targets["Code"].write_text("not json")
+    targets["Code - Insiders"].write_text('{"mcpServers":{}}')
+    targets["Cursor"].write_text('{"mcpServers":{"other":{"command":"other"}}}')
+    targets["Windsurf"].write_text('{"mcpServers":{"mcp-data-analysis":{"command":"mcp-data-mcp","args":["--source-file",".mcp-data-source"]}}}')
+    native = home / ".cline" / "data" / "settings" / "cline_mcp_settings.json"
+    native.parent.mkdir(parents=True)
+    native.write_text('{"mcpServers":{"mcp-data-analysis":{"command":"custom"}}}')
+    historical = home / ".cline" / "mcp.json"
+    historical.write_text('{"mcpServers":{"mcp-data-analysis":{"command":"/bin/mcp-data-mcp","args":["--project-root","/tmp/project","--source-file",".mcp-data-source"]}}}')
+    states = {item["host"]: item["status"] for item in cline_status(home)}
+    assert states == {"code": "malformed", "code---insiders": "empty", "cursor": "active", "windsurf": "managed_global", "cline-native": "foreign", "cline-historical": "managed_project"}
+    monkeypatch.setattr("mcp_data_agent.cli.Path.home", lambda: home)
+    result = CliRunner().invoke(app, ["cline", "status"])
+    assert result.exit_code == 0
+    assert '"managed_project"' in result.output
+
+
+def test_cline_activation_requires_runtime_and_global_setup_reports_pending(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Linux")
+    command = tmp_path / "bin" / "mcp-data-mcp"
+    command.parent.mkdir()
+    command.write_text("#!/bin/sh\n")
+    command.chmod(0o755)
+    with pytest.raises(AgentError, match="No Cline runtime"):
+        cline_activation_plans(project, home, command)
+    monkeypatch.setattr("mcp_data_agent.cli.Path.home", lambda: home)
+    monkeypatch.setattr("mcp_data_agent.clients.resolve_global_command", lambda: command)
+    result = CliRunner().invoke(app, ["setup", "--all", "--global"])
+    assert result.exit_code == 0, result.output
+    assert "runtime_not_detected" in result.output
 
 
 def test_cli_configure_source_creates_fixture_only_after_confirmation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
