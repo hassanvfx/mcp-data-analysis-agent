@@ -590,6 +590,49 @@ def test_client_setup_and_cleanup_reject_unsupported_or_changed_entries(tmp_path
     assert remove_exact(updated) == []
 
 
+def test_full_uninstall_removes_exact_global_and_explicit_project_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    current, other, home = tmp_path / "current", tmp_path / "other", tmp_path / "home"
+    current.mkdir()
+    other.mkdir()
+    for marker in (".codex", ".claude", ".copilot", ".cline", ".cursor", ".codeium/windsurf", ".continue"):
+        (home / marker).mkdir(parents=True, exist_ok=True)
+    monkeypatch.chdir(current)
+    monkeypatch.setattr("mcp_data_agent.cli.Path.home", lambda: home)
+    global_plans = plans(current, home, "all", global_scope=True)
+    apply(global_plans)
+    changed = home / ".cline" / "mcp.json"
+    changed.write_text('{"mcpServers":{"mcp-data-analysis":{"command":"changed"},"other":{"command":"other"}}}')
+    for selected in (current, other):
+        apply([item for item in plans(selected, home, "all") if item.scope == "project"])
+    apply_source_file(fixture_source_file_plan(current), fixture=True)
+    replacement = other / "replacement.sqlite"
+    generate("retail", "unit", 1, replacement)
+    apply_source_file(source_file_plan(other, str(replacement)))
+    monkeypatch.setattr("mcp_data_agent.cli.uninstall_tool", lambda: {"status": "removed"})
+    monkeypatch.setattr("mcp_data_agent.cli.editable_checkout", lambda path: None)
+    runner = CliRunner()
+    preview = runner.invoke(app, ["uninstall", "--all", "--project-root", str(other)])
+    assert preview.exit_code == 0, preview.output
+    assert '"mode": "full_removal"' in preview.output
+    assert '"preserved_changed"' in preview.output
+    applied = runner.invoke(app, ["uninstall", "--all", "--project-root", str(other), "--apply", "--yes"])
+    assert applied.exit_code == 0, applied.output
+    assert "mcp-data-analysis" not in (home / ".codex" / "config.toml").read_text()
+    assert "mcp-data-analysis" not in (current / ".mcp.json").read_text()
+    assert "mcp-data-analysis" not in (other / ".mcp.json").read_text()
+    assert "mcp-data-analysis" in changed.read_text()
+    assert replacement.is_file()
+    assert (other / SOURCE_FILE).is_file()
+    assert not (current / ".mcp-data" / "playground.sqlite").exists()
+
+
+def test_full_uninstall_rejects_invalid_or_unscoped_project_roots(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    assert runner.invoke(app, ["uninstall", "--project-root", str(tmp_path)]).exit_code == 2
+    assert runner.invoke(app, ["uninstall", "--all", "--project-root", "relative"]).exit_code == 2
+
+
 def test_local_postgres_database_helper_is_validated_and_non_overwriting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert local_postgres_url("mcp_data_parity") == "postgresql:///mcp_data_parity"
     with pytest.raises(ValueError):

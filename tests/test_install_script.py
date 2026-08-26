@@ -61,7 +61,9 @@ def test_install_script_defaults_to_repository_install_and_global_setup_contract
 
 
 def test_install_script_supports_safe_local_editable_checkout_mode() -> None:
-    script = (Path(__file__).parents[1] / "install.sh").read_text()
+    installer = Path(__file__).parents[1] / "install.sh"
+    script = installer.read_text()
+    assert os.access(installer, os.X_OK)
     assert '"${1:-}" == "--local"' in script
     assert 'uv tool install --force --editable "$install_source"' in script
     assert '--local requires a repository checkout.' in script

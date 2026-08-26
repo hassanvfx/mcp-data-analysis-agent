@@ -2,6 +2,10 @@
 
 ## 2026-08-25
 
+* **Full MCP removal**: Began the all-supported-agent removal flow for exact managed entries, explicit project fallbacks, managed demos, the installed tool, and local editable checkouts. See the [removal journal](journals/full-mcp-removal.md).
+
+* **Codex handoff acceptance**: Added an opt-in isolated Codex terminal-flow harness with redacted reporting and strict teardown, while retaining the deterministic user journey as CI evidence. See the [handoff acceptance journal](journals/codex-handoff-acceptance.md).
+
 * **New-user journey hardening**: Added editable clone installation, live read-only source preflight, Git-ignore assistance, managed demo/policy/client cleanup, project-root client fallback, and hermetic install-to-teardown acceptance evidence. See the [implementation journal](journals/journey-hardening-implementation.md).
 
 * **New-user journey audit**: Identified clone-install, Git-ignore, connectivity-status, overlapping-demo, client-working-directory, and optional-policy-scaffold follow-ups for the credential-free global MCP workflow. See the [new-user journey audit](journals/new-user-journey-audit.md).

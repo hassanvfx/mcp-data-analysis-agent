@@ -222,6 +222,20 @@ def remove_exact(plans_to_remove: list[SetupPlan]) -> list[Path]:
     return removed
 
 
+def removal_status(plan: SetupPlan) -> str:
+    """Describe whether one configured entry is safe for exact package removal."""
+    if not plan.target.exists():
+        return "absent"
+    try:
+        current = _read(plan.target, plan.format)
+    except (OSError, ValueError, tomllib.TOMLDecodeError, json.JSONDecodeError):
+        return "preserved_invalid"
+    expected = plan.server or SERVER
+    if plan.format == "continue":
+        return "remove" if _continue_entry(cast(str, current)) == _continue_entry(_continue_content(expected)) else "preserved_changed"
+    return "remove" if _server(current, plan.format) == expected else "preserved_changed"
+
+
 def _continue_content(server: dict[str, object]) -> str:
     args = json.dumps(cast(list[object], server["args"]))
     return (f"{CONTINUE_BEGIN}\n"

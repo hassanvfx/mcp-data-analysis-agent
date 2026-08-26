@@ -227,10 +227,30 @@ Preview cleanup first, then apply it explicitly:
 ```bash
 mcp-data-cli uninstall --clients --demo
 mcp-data-cli uninstall --clients --demo --apply --yes
-uv tool uninstall mcp-data-analysis-agent
 ```
 
 Cleanup removes only exact managed client entries and managed demo artifacts. It preserves custom sources, policies, catalogs, recipes, observability evidence, and unrelated client settings.
+
+To remove MCP Data Analysis completely from every supported global client, the current project, and additional explicit project fallback roots, use the full removal flow:
+
+```bash
+mcp-data-cli uninstall --all --project-root /absolute/path/to/another-project
+mcp-data-cli uninstall --all --project-root /absolute/path/to/another-project --apply --yes
+```
+
+The preview shows each managed entry that will be removed or preserved. Full removal deletes only exact package-managed entries, removes managed retail demos while preserving custom sources and project governance/evidence, uninstalls the `uv` tool, and deletes the validated local editable checkout when the tool was installed with `./install.sh --local`. It never scans your disk for projects, deletes a database, removes a container, or changes unrelated client settings. A remote/package installation has no local checkout to delete.
+
+---
+
+## Optional live Codex handoff acceptance
+
+This local-only test asks an authenticated Codex agent to follow the README handoff in an isolated sibling project, then independently validates the installed configuration, demo, schema, governed query, observability evidence, and teardown.
+
+```bash
+scripts/e2e-codex-handoff.sh --report /absolute/path/codex-handoff-report.json
+```
+
+The JSON report is redacted: it contains phase results, timestamps, fixed query/schema evidence, teardown status, and a hash of Codex’s final message—never a source URL, path, credential, or transcript. The test consumes authenticated Codex model usage, is deliberately excluded from CI, and does **not** prove a live MCP-tool invocation inside your existing Codex profile. The hermetic CLI journey remains the CI proof for the installer and configuration contract.
 
 ---
 

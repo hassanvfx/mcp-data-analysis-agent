@@ -42,3 +42,24 @@ then run the two PostgreSQL test modules.
 To retain deterministic domain data in that database for manual development, export the printed test URL and run `mcp-data-cli seed-postgres retail` (or `saas` / `support`). Each command replaces only its own reserved `mcp_seed_<domain>` schema.
 
 Typst is optional and required only for PDF rendering. HTML, CSV, and Parquet reports remain available without it; a PDF request returns actionable renderer-install guidance when Typst is unavailable. PostgreSQL command-line tools in this document are contributor/test tooling, not a runtime prerequisite.
+
+## Full removal
+
+Preview a complete removal before applying it:
+
+```bash
+mcp-data-cli uninstall --all --project-root /absolute/path/to/another-project
+mcp-data-cli uninstall --all --project-root /absolute/path/to/another-project --apply --yes
+```
+
+It removes exact MCP Data Analysis entries from every detected supported global client configuration and from the current project plus each explicit `--project-root`. It never scans for projects. It removes only managed retail demos, preserving custom sources, policy/catalog/recipe files, observability evidence, databases, and unrelated client entries. Finally it uninstalls the `uv` tool and, for a validated local editable installation, schedules deletion of its original checkout after the command exits. MCP Data Analysis does not run a container; a remote/package installation has no checkout to remove.
+
+## Optional live Codex handoff acceptance
+
+For an opt-in local proof that an authenticated Codex agent can follow the README terminal handoff, run:
+
+```bash
+scripts/e2e-codex-handoff.sh --report /absolute/path/codex-handoff-report.json
+```
+
+It creates and removes a marked sibling sandbox with isolated home, client configuration, and tool state. The report is redacted and contains only deterministic phase evidence and a final-message hash. It is intentionally excluded from CI because it consumes authenticated Codex model usage. It validates the terminal/CLI workflow and static client entry; it does not invoke a live MCP tool in a pre-authenticated Codex profile.

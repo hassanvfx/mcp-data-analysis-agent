@@ -6,10 +6,12 @@ import json
 import os
 import shutil
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
 
 import typer
 
+from .clients import SetupPlan, removal_status
 from .clients import apply as apply_client_plans
 from .clients import plans as client_plans
 from .clients import remove_exact as remove_client_plans
@@ -31,10 +33,12 @@ from .onboarding import (
     remove_managed_demo,
     source_file_plan,
 )
+from .removal import editable_checkout, project_root, schedule_checkout_removal, uninstall_tool
 from .service import AnalyticsService
 
 app = typer.Typer(no_args_is_help=True, help="Local governed analytics for MCP clients.")
 LEGACY_DEMO_OUTPUT = typer.Option("demo.sqlite", "--output", hidden=True)
+PROJECT_ROOT_OPTION = typer.Option([], "--project-root")
 
 
 def root() -> Path:
@@ -362,20 +366,80 @@ def seed_postgres_dataset(domain: str, tier: str = "unit", seed: int = 1) -> Non
         raise typer.Exit(2) from exc
 
 
+def _full_removal_projects(values: list[Path]) -> list[Path]:
+    roots = [root(), *(project_root(value) for value in values)]
+    result: list[Path] = []
+    for item in roots:
+        resolved = item.resolve()
+        if resolved not in result:
+            result.append(resolved)
+    return result
+
+
+def _entry_payload(items: Sequence[SetupPlan]) -> list[dict[str, object]]:
+    return [{**item.as_dict(), "removal": removal_status(item)} for item in items]
+
+
 @app.command()
 def uninstall(clients: bool = typer.Option(False, "--clients"), demo: bool = typer.Option(False, "--demo"),
+              all_managed: bool = typer.Option(False, "--all"),
+              project_roots: list[Path] = PROJECT_ROOT_OPTION,
               apply: bool = typer.Option(False, "--apply"), yes: bool = typer.Option(False, "--yes")) -> None:
     """Preview or remove exact managed client entries and the managed demo."""
     project = root()
-    plans = client_plans(project, Path.home(), "all", True) if clients else []
-    payload = {"client_entries": [item.as_dict() for item in plans], "demo": demo,
-               "apply": apply, "tool_uninstall": "uv tool uninstall mcp-data-analysis-agent"}
+    if all_managed and (clients or demo):
+        raise typer.BadParameter("--all already includes managed clients and demos; do not combine it with --clients or --demo.")
+    if project_roots and not all_managed:
+        raise typer.BadParameter("--project-root requires --all.")
+    if all_managed:
+        try:
+            roots = _full_removal_projects(project_roots)
+        except AgentError as exc:
+            emit(exc.as_dict())
+            raise typer.Exit(2) from exc
+        global_plans = client_plans(project, Path.home(), "all", True)
+        scoped_plans = [item for selected in roots for item in client_plans(selected, Path.home(), "all", False)
+                        if item.scope == "project"]
+        checkout = editable_checkout(Path(__file__))
+        payload = {
+            "mode": "full_removal",
+            "global_client_entries": _entry_payload(global_plans),
+            "project_client_entries": [{"project_root": str(selected), "entries": _entry_payload(
+                [item for item in scoped_plans if item.target.is_relative_to(selected)])} for selected in roots],
+            "managed_demos": [str(selected) for selected in roots],
+            "tool_uninstall": "uv tool uninstall mcp-data-analysis-agent",
+            "local_checkout_removal": {"status": "scheduled_on_apply", "target": str(checkout)} if checkout else {"status": "not_applicable"},
+            "apply": apply,
+        }
+    else:
+        plans = client_plans(project, Path.home(), "all", True) if clients else []
+        payload = {"client_entries": [item.as_dict() for item in plans], "demo": demo,
+                   "apply": apply, "tool_uninstall": "uv tool uninstall mcp-data-analysis-agent"}
     emit(payload)
     if not apply:
         return
     if not yes and not typer.confirm("Remove the selected managed MCP Data Analysis setup?", default=False):
         raise typer.Exit()
-    removed: dict[str, object] = {"clients": [str(path) for path in remove_client_plans(plans)] if clients else []}
+    if all_managed:
+        removed: dict[str, object] = {
+            "global_clients": [str(path) for path in remove_client_plans(global_plans)],
+            "project_clients": [str(path) for path in remove_client_plans(scoped_plans)],
+            "managed_demos": {},
+        }
+        for selected in roots:
+            try:
+                removed["managed_demos"][str(selected)] = remove_managed_demo(selected)  # type: ignore[index]
+            except AgentError as exc:
+                removed["managed_demos"][str(selected)] = exc.as_dict()  # type: ignore[index]
+        try:
+            tool = uninstall_tool()
+            checkout_removal = schedule_checkout_removal(checkout) if checkout else {"status": "not_applicable"}
+        except AgentError as exc:
+            emit({"removed": removed, "error": exc.as_dict()})
+            raise typer.Exit(2) from exc
+        emit({"removed": removed, "tool_uninstall": tool, "local_checkout_removal": checkout_removal})
+        return
+    removed = {"clients": [str(path) for path in remove_client_plans(plans)] if clients else []}
     if demo:
         try:
             removed["demo"] = remove_managed_demo(project)
