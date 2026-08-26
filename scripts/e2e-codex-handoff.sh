@@ -119,7 +119,7 @@ complete_phase "codex_executable"
 codex_auth_home="${MCP_DATA_CODEX_AUTH_HOME:-${CODEX_HOME:-${USERPROFILE:-$caller_home}/.codex}}"
 prompt_file="$sandbox/handoff-prompt.txt"
 cat > "$prompt_file" <<PROMPT
-Please install from repo.
+Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.
 
 You are executing an isolated MCP Data Analysis acceptance test. Your current directory is the empty test data project. The checked-out source repository is $repository_root, which is available as an adjacent allowed directory. Read its README and use its local installer only: $repository_root/install.sh --local. The isolated dependency cache is prewarmed because your workspace sandbox has no network; do not change HOME, UV_CACHE_DIR, UV_TOOL_DIR, or UV_TOOL_BIN_DIR. Do not use a remote installer, configure a custom source, or modify the source repository.
 

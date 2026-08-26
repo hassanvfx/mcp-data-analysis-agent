@@ -11,12 +11,17 @@ export XDG_CONFIG_HOME="$sandbox/config"
 export XDG_DATA_HOME="$sandbox/data"
 export UV_CACHE_DIR="$sandbox/uv-cache"
 checkout="$sandbox/editable-checkout"
-mkdir -p "$HOME/.codex" "$HOME/.claude" "$HOME/.copilot" "$HOME/.cline" "$HOME/.cursor" "$HOME/.codeium/windsurf" "$HOME/.continue" "$sandbox/project" "$sandbox/other-project" "$checkout"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  cline_settings="$HOME/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json"
+else
+  cline_settings="$HOME/.cline/mcp.json"
+fi
+mkdir -p "$HOME/.codex" "$HOME/.claude" "$HOME/.copilot" "$(dirname "$cline_settings")" "$HOME/.cursor" "$HOME/.codeium/windsurf" "$HOME/.continue" "$sandbox/project" "$sandbox/other-project" "$checkout"
 tar --exclude=.git --exclude=.venv --exclude=__pycache__ -cf - -C "$repository_root" . | tar -xf - -C "$checkout"
 printf '[mcp_servers.unrelated]\ncommand = "echo"\n' > "$HOME/.codex/config.toml"
 printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.claude/mcp.json"
 printf '{"servers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.copilot/mcp-config.json"
-printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.cline/mcp.json"
+printf '{"mcpServers":{"data-analysis-agent":{"command":"stale","env":{"MCP_DATA_SOURCE_URL":"stale"}},"unrelated":{"command":"echo"}}}\n' > "$cline_settings"
 printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.cursor/mcp.json"
 printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.codeium/windsurf/mcp.json"
 printf 'name: Personal Continue Config\n' > "$HOME/.continue/config.yaml"
@@ -29,7 +34,7 @@ if grep -R -E -- 'postgres(ql)?://|sqlite:|--source-url|--project-root|MCP_DATA_
   echo 'client configuration contains a source location' >&2
   exit 1
 fi
-for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilot/mcp-config.json" "$HOME/.cline/mcp.json" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json" "$HOME/.continue/config.yaml"; do
+for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilot/mcp-config.json" "$cline_settings" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json" "$HOME/.continue/config.yaml"; do
   grep -q 'mcp-data-analysis' "$config"
   grep -q -- '--source-file' "$config"
 done
@@ -78,7 +83,7 @@ if grep -R -q 'mcp-data-analysis' "$HOME"; then
   echo 'managed client configuration remains after cleanup' >&2
   exit 1
 fi
-for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilot/mcp-config.json" "$HOME/.cline/mcp.json" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json"; do
+for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilot/mcp-config.json" "$cline_settings" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json"; do
   grep -q 'unrelated' "$config"
 done
 grep -q 'Personal Continue Config' "$HOME/.continue/config.yaml"

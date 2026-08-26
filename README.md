@@ -1,266 +1,84 @@
 # MCP Data Analysis Agent
 
-## The user-to-agent handoff for safe local data analysis
+Safe, read-only SQLite and PostgreSQL analysis for coding agents.
 
-This repository gives your coding agent a small, safe protocol for working with data. You do not need to explain MCP configuration, database URLs, or client settings every time.
+## Start with one instruction
 
-## Getting started
+Tell your agent:
 
-### 1. Install and configure the global MCP server
+> **Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.**
 
-Run the repository installer once. It installs the package and writes credential-free MCP entries for detected clients; it does not configure any database or project.
+It installs MCP Data Analysis once as a credential-free global MCP server. It does **not** create a database, configure a source, or change your current project.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/main/install.sh | bash
-```
+Then open the full guide: [Getting started and project configuration](https://hassanvfx.github.io/mcp-data-analysis-agent/).
 
-If you already cloned this repository, use the local editable path instead:
+## The two-stage workflow
 
-```bash
-./install.sh --local
-```
+| Once per machine | Once per data project folder |
+| --- | --- |
+| Install the executable and static MCP client entries. | Configure that folder’s private `.mcp-data-source`. |
+| No database URL or credential is stored globally. | The file holds exactly one SQLite path/URL or PostgreSQL URL. |
+| Reuse the MCP server across projects. | Run preflight, inspect schema, and analyze that project’s data. |
 
-The installed global server command is always:
-
-```text
-mcp-data-mcp --source-file .mcp-data-source
-```
-
-Restart or trust the MCP client if it requests it. To configure client entries manually after a package install, run:
-
-```bash
-mcp-data-cli setup --all --global --apply
-```
-
-### 2. Enable one project folder
-
-Enter the folder that contains the data you want to analyze. That folder opts in by owning an ignored `.mcp-data-source` file.
+Move into the separate folder containing the data you want to analyze before the next step.
 
 ```bash
 cd /path/to/data-project
-mcp-data-cli configure-source /absolute/path/to/analytics.sqlite --yes
-mcp-data-cli preflight
 ```
 
-For PostgreSQL, pass a dedicated read-only URL instead:
+Choose one project action:
 
-```bash
-mcp-data-cli configure-source 'postgresql://readonly_user:password@db.example:5432/analytics' --yes
-mcp-data-cli preflight
-```
-
-`configure-source` writes the project’s mode-`0600` `.mcp-data-source` file and safely offers local Git-ignore protection. The global MCP server then finds that file whenever the client runs from this folder.
-
-To paste the value manually, create/open `.mcp-data-source`, paste exactly one value, save it, and rerun preflight. The agent handoff phrase **“Please configure this folder.”** performs those preparation steps and opens the file for you.
-
-### 3. Confirm the source is ready
-
-```bash
-mcp-data-cli schema data
-mcp-data-cli query data 'SELECT id, name FROM products ORDER BY id' --limit 10
-```
-
-If `preflight` reports `ready`, its bounded read-only connection probe succeeded and you can analyze the source.
-
-Start with one short instruction:
-
-| Say to your agent | What the agent does | What it must not do |
-| --- | --- | --- |
-| **“Please install from repo.”** | Runs this repository’s installer and configures a global MCP server. | Create a database, demo, source file, or policy in your project. |
-| **“Please configure this folder.”** | Prepares the current folder for a database URL that you will paste. | Invent, expose, or commit a database URL. |
-| **“Please install demo in this folder.”** | Creates the deterministic retail demo in the current folder. | Touch another folder or replace a custom source. |
-
-The result is always the same: a globally installed, credential-free MCP server plus a separately configured data folder that you control.
-
----
-
-## 1. “Please install from repo.”
-
-The agent must use this repository’s actual installer:
-
-```bash
-# Public repository installation
-curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/main/install.sh | bash
-
-# Local editable installation from an existing clone
-./install.sh --local
-```
-
-The installer installs the package and configures a global MCP server entry for detected supported clients: Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue.
-
-That global entry is intentionally static and credential-free:
-
-```text
-mcp-data-mcp --source-file .mcp-data-source
-```
-
-It has no URL, password, project policy, demo data, or connection to a database. Restart or trust the MCP client if it requests it.
-
-### What “global” means
-
-| Global installation | Per data folder |
+| Tell your agent | Result |
 | --- | --- |
-| Installs the executable and client MCP entry once. | Holds the one private source file and optional policy. |
-| Works for every project. | Opts in only that folder. |
-| Never contains a database secret. | May contain a database URL in ignored `.mcp-data-source`. |
+| **Please configure this folder.** | Creates or opens `.mcp-data-source` so you can paste one real database location, then runs a read-only preflight. |
+| **Please install demo in this folder.** | Creates the deterministic retail demo only in this folder and activates it. |
 
----
-
-## 2. “Please configure this folder.”
-
-This phrase makes the current folder a candidate data project. The agent follows this sequence:
-
-1. Create an empty private `.mcp-data-source` file in the current folder with mode `0600`.
-2. Add `.mcp-data-source` and `.mcp-data/` to the folder’s `.gitignore` only when it is safe to do so.
-3. Open the file in the default text editor.
-4. Ask you to paste one database location, then wait for you to save it.
-5. Run `mcp-data-cli preflight` and report the redacted result.
-
-The agent does not choose or paste your database URL. You paste exactly one value into `.mcp-data-source`:
-
-```text
-# SQLite
-/absolute/path/to/analytics.sqlite
-```
-
-```text
-# PostgreSQL - use a dedicated read-only database account
-postgresql://readonly_user:password@db.example:5432/analytics
-```
-
-The file is your only runtime connection secret. It must be a regular, non-symlink file containing exactly one absolute SQLite path/URL or PostgreSQL URL. Do not commit it.
-
-To open the file, the agent uses the default editor appropriate to the machine, such as:
-
-```text
-macOS:   open -t .mcp-data-source
-Linux:   xdg-open .mcp-data-source
-Windows: start "" .mcp-data-source
-```
-
-You paste and save the value; the agent then performs the non-mutating preflight check.
-
----
-
-## 3. “Please install demo in this folder.”
-
-Use the demo when you want to try the MCP before connecting real data. It is an explicit project action:
+The canonical commands are:
 
 ```bash
+# Real source: writes an ignored, mode-0600 .mcp-data-source file.
+mcp-data-cli configure-source /absolute/path/to/analytics.sqlite --yes
+
+# Or activate the deterministic retail demo for the current folder.
 mcp-data-cli demo start --yes
+
+# Confirm a bounded, read-only connection probe succeeds.
 mcp-data-cli preflight
-mcp-data-cli schema data
 ```
 
-It creates a deterministic retail SQLite database at `.mcp-data/playground.sqlite`, writes `.mcp-data-source` to point to it, and applies safe ignore protection where possible.
+## Supported databases and safety
 
-The agent can then inspect the schema or run a governed example:
+- **SQLite:** an absolute local path or local SQLite URL.
+- **PostgreSQL:** a `postgres://` or `postgresql://` URL using a dedicated database-level read-only account.
+- **Not supported:** MySQL and other database dialects.
+
+`.mcp-data-source` is the project’s runtime connection secret. Keep it regular (not a symlink), one line only, mode `0600`, and out of version control. Global MCP configuration never contains a database URL or `MCP_DATA_SOURCE_URL`.
+
+After `preflight` returns `ready`, ask the agent to inspect schema or run a bounded governed query. For the demo:
 
 ```bash
+mcp-data-cli schema data
 mcp-data-cli query data 'SELECT id, name, stock FROM products ORDER BY id' --limit 10
 ```
 
----
+## Installation commands
 
-## When a folder is ready
-
-The MCP and CLI use a short bounded, read-only `SELECT 1` probe before data-dependent work.
-
-| Preflight status | Meaning | Next instruction |
-| --- | --- | --- |
-| `source_configuration_required` | No source has been configured. | “Please configure this folder” or “Please install demo in this folder.” |
-| `source_configuration_invalid` | The source/policy file is malformed or unsafe. | Correct the local configuration. |
-| `source_unavailable` | The configured database could not pass the read-only probe. | Check access, network, and database privileges. |
-| `ready` | The source passed the read-only probe. | Ask the agent to inspect the schema or analyze data. |
-
-`ready` does not expose the database URL.
-
----
-
-## What the MCP can do after `ready`
-
-| Goal | Example |
-| --- | --- |
-| Inspect a source | `mcp-data-cli schema data` |
-| Validate a query before it runs | `mcp-data-cli sql data 'SELECT id FROM products WHERE id = :id' --params '{"id": 1}'` |
-| Explain a query | `mcp-data-cli explain data 'SELECT id FROM products WHERE id = :id' --params '{"id": 1}'` |
-| Run bounded analysis | `mcp-data-cli query data 'SELECT id, name FROM products ORDER BY id' --limit 25` |
-| Retain task evidence | `mcp-data-cli task-begin 'Inventory review' 'Find low-stock products.'` |
-| Export a report | `mcp-data-cli report data '<approved query>' outputs/report --parquet` |
-
-The agent validates parameterized read-only `SELECT` and `WITH` queries. It rejects mutations, DDL, attachments, multi-statements, unsafe functions, restricted fields, and unsafe artifact paths. PostgreSQL must still use a database-level least-privilege read-only account.
-
-Observability receipts and task evidence stay in the project-local `observability/` directory.
-
----
-
-## Optional governance
-
-After the source is ready, you can say: **“Please add project governance.”**
-
-The agent can run:
+Public install:
 
 ```bash
-mcp-data-cli configure-policy --yes
+curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/main/install.sh | bash
 ```
 
-This creates non-secret `.mcp-data-agent.toml`, `catalog/metrics.toml`, and `recipes/README.md` only if they do not already exist. It never overwrites policy or configures a source.
-
----
-
-## Client working-directory fallback
-
-Global setup expects the MCP client to start from the active data folder. If it does not, tell the agent: **“Please configure a project entry for this client.”**
+If you already cloned this checkout:
 
 ```bash
-mcp-data-cli setup --client <client> --apply
+./install.sh --local
 ```
 
-That writes a static `--project-root` argument for that project and still contains no URL or credential. See [operations](docs/OPERATIONS.md) for the supported-client matrix.
+The installer configures supported global client entries for Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue. For complete client compatibility, demo cleanup, project-scoped fallback setup, Cline VS Code reload guidance, and operations details, use the [hosted guide](https://hassanvfx.github.io/mcp-data-analysis-agent/).
 
----
+## More information
 
-## Cleanup
-
-Preview cleanup first, then apply it explicitly:
-
-```bash
-mcp-data-cli uninstall --clients --demo
-mcp-data-cli uninstall --clients --demo --apply --yes
-```
-
-Cleanup removes only exact managed client entries and managed demo artifacts. It preserves custom sources, policies, catalogs, recipes, observability evidence, and unrelated client settings.
-
-To remove MCP Data Analysis completely from every supported global client, the current project, and additional explicit project fallback roots, use the full removal flow:
-
-```bash
-mcp-data-cli uninstall --all --project-root /absolute/path/to/another-project
-mcp-data-cli uninstall --all --project-root /absolute/path/to/another-project --apply --yes
-```
-
-The preview shows each managed entry that will be removed or preserved. Full removal deletes only exact package-managed entries, removes managed retail demos while preserving custom sources and project governance/evidence, uninstalls the `uv` tool, and deletes the validated local editable checkout when the tool was installed with `./install.sh --local`. It never scans your disk for projects, deletes a database, removes a container, or changes unrelated client settings. A remote/package installation has no local checkout to delete.
-
----
-
-## Optional live Codex handoff acceptance
-
-This local-only test asks an authenticated Codex agent to follow the README handoff in an isolated sibling project, then independently validates the installed configuration, demo, schema, governed query, observability evidence, and teardown.
-
-```bash
-scripts/e2e-codex-handoff.sh --report /absolute/path/codex-handoff-report.json
-```
-
-The JSON report is redacted: it contains phase results, timestamps, fixed query/schema evidence, teardown status, and a hash of Codex’s final message—never a source URL, path, credential, or transcript. The test consumes authenticated Codex model usage, is deliberately excluded from CI, and does **not** prove a live MCP-tool invocation inside your existing Codex profile. The hermetic CLI journey remains the CI proof for the installer and configuration contract.
-
----
-
-## Features
-
-- Global credential-free MCP setup with per-folder database opt-in.
-- SQLite and PostgreSQL governed read-only access.
-- Redacted preflight, schema discovery, profile/quality checks, and relationship discovery.
-- SQL validation, query plans, bounded execution, pagination, cancellation, and timeouts.
-- Approved metrics/recipes, comparisons, change detection, offline reports, and audit evidence.
-- Deterministic retail, SaaS, and support fixtures for development and tests only.
-
-The earlier bootstrap-oriented README is deprecated. See [the legacy notice](docs/README-LEGACY.md) only for historical context. For detailed operations and security policy, see [operations](docs/OPERATIONS.md) and [security](docs/SECURITY.md).
+- [Hosted getting-started guide](https://hassanvfx.github.io/mcp-data-analysis-agent/)
+- [Operational reference](docs/OPERATIONS.md)
+- [Security policy](docs/SECURITY.md)

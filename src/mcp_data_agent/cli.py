@@ -11,10 +11,11 @@ from pathlib import Path
 
 import typer
 
-from .clients import SetupPlan, removal_status
+from .clients import SetupPlan, legacy_cline_migration_needed, removal_status
 from .clients import apply as apply_client_plans
 from .clients import plans as client_plans
 from .clients import remove_exact as remove_client_plans
+from .clients import validate as validate_client_plans
 from .errors import AgentError
 from .fixtures import (
     clone_sqlite_to_postgres,
@@ -70,8 +71,17 @@ def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"),
         targets = ", ".join(f"{item.client} ({item.scope})" for item in writable)
         if not typer.confirm(f"Merge mcp-data-analysis into: {targets}?", default=False):
             raise typer.Exit()
-    emit({"written": [str(path) for path in apply_client_plans(writable)],
-          "skipped": [item.as_dict() for item in planned if item.action == "skip"]})
+    migrated = [item for item in writable if legacy_cline_migration_needed(item)]
+    written = apply_client_plans(writable)
+    validated = validate_client_plans([item for item in writable if item.target in written])
+    cline_targets = [item.target for item in writable if item.client == "cline" and item.scope == "global" and item.target in written]
+    emit({
+        "written": [str(path) for path in written],
+        "validated": [str(path) for path in validated],
+        "migrated": [{"client": "cline", "legacy_server": "data-analysis-agent", "target": str(item.target)} for item in migrated],
+        "reload_guidance": [{"client": "cline", "target": str(path), "action": "Restart or run Developer: Reload Window in VS Code for Cline to load the new server."} for path in cline_targets],
+        "skipped": [item.as_dict() for item in planned if item.action == "skip"],
+    })
 
 
 @app.command("configure-source")

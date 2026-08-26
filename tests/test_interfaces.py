@@ -9,10 +9,14 @@ from mcp_data_agent.cli import app
 from mcp_data_agent.clients import (
     ClientTemplate,
     apply,
+    legacy_cline_migration_needed,
     plans,
     remove_exact,
     templates,
     write_template,
+)
+from mcp_data_agent.clients import (
+    validate as validate_client_plans,
 )
 from mcp_data_agent.config import SOURCE_FILE, Settings, SourcePolicy, infer_dialect, load_settings
 from mcp_data_agent.errors import AgentError
@@ -322,6 +326,59 @@ def test_cli_setup_yes_applies_detected_global_client_entry(tmp_path: Path, monk
     result = CliRunner().invoke(app, ["setup", "--client", "claude-code", "--global", "--apply", "--yes"])
     assert result.exit_code == 0, result.output
     assert "mcp-data-analysis" in (home / ".claude" / "mcp.json").read_text()
+
+
+def test_cline_macos_vscode_target_migrates_legacy_entry_and_preserves_other_servers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    settings = home / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
+    settings.parent.mkdir(parents=True)
+    settings.write_text('{"mcpServers":{"data-analysis-agent":{"command":"stale","env":{"MCP_DATA_SOURCE_URL":"secret"}},"other":{"command":"other"}}}')
+    monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Darwin")
+    plan = plans(project, home, "cline", global_scope=True)
+    assert plan[0].target == settings
+    assert plan[0].migrate_legacy_cline is True
+    assert plan[0].action == "update"
+    assert legacy_cline_migration_needed(plan[0]) is True
+    assert apply(plan) == [settings]
+    assert validate_client_plans(plan) == [settings]
+    payload = __import__("json").loads(settings.read_text())
+    assert payload["mcpServers"] == {
+        "mcp-data-analysis": {"command": "mcp-data-mcp", "args": ["--source-file", ".mcp-data-source"]},
+        "other": {"command": "other"},
+    }
+
+
+def test_cline_falls_back_without_macos_extension_and_project_setup_is_unchanged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Linux")
+    global_plan = plans(project, home, "cline", global_scope=True)
+    assert global_plan[0].target == home / ".cline" / "mcp.json"
+    project_plan = plans(project, home, "cline")
+    assert project_plan[0].target == project / ".cline" / "mcp.json"
+    assert project_plan[0].migrate_legacy_cline is False
+
+
+def test_cli_reports_cline_vscode_validation_and_reload_guidance(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    settings = home / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
+    settings.parent.mkdir(parents=True)
+    settings.write_text('{"mcpServers":{"data-analysis-agent":{"command":"stale"}}}')
+    monkeypatch.chdir(project)
+    monkeypatch.setattr("mcp_data_agent.cli.Path.home", lambda: home)
+    monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Darwin")
+    result = CliRunner().invoke(app, ["setup", "--client", "cline", "--global", "--apply", "--yes"])
+    assert result.exit_code == 0, result.output
+    assert str(settings) in result.output
+    assert "Developer: Reload Window" in result.output
+    assert "data-analysis-agent" in result.output
+    assert "MCP_DATA_SOURCE_URL" not in settings.read_text()
 
 
 def test_cli_configure_source_creates_fixture_only_after_confirmation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -8,3 +8,5 @@ Create one Engineering Journal concept per substantial task in this directory.
 * [Operational guide PDF](operational-pdf.md) - Compact web-friendly PDF companion to the current README.
 * [Codex agent-handoff acceptance](codex-handoff-acceptance.md) - Opt-in live terminal-flow acceptance evidence with isolated teardown.
 * [Full MCP removal](full-mcp-removal.md) - Confirmation-gated removal of managed MCP installation artifacts.
+* [Cline VS Code settings target](cline-vscode-settings.md) - Visible macOS Cline extension MCP configuration support.
+* [GitHub Pages onboarding guide](github-pages-onboarding.md) - URL-based agent handoff and hosted onboarding workflow.

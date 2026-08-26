@@ -47,4 +47,5 @@ fi
 uv tool run --from "$install_source" mcp-data-cli setup --all --global --apply --yes
 
 echo 'Installed MCP Data Analysis as a global, credential-free MCP server.'
-echo 'In each project, create .mcp-data-source with one absolute SQLite path/URL or PostgreSQL URL.'
+echo 'Next, open https://hassanvfx.github.io/mcp-data-analysis-agent/ for project setup, demo, and query guidance.'
+echo 'In each separate data project, configure .mcp-data-source with one absolute SQLite path/URL or PostgreSQL URL.'

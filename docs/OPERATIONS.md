@@ -1,5 +1,11 @@
 # Operations
 
+For the complete new-user workflow and copy-pasteable agent handoffs, start with the [hosted getting-started guide](https://hassanvfx.github.io/mcp-data-analysis-agent/). Its initial instruction is:
+
+> **Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.**
+
+The installation is global and credential-free; only a separate project folder becomes data-enabled when it contains its ignored `.mcp-data-source` file.
+
 For a GitHub-repository installation that configures a credential-free global server, run:
 
 ```bash
@@ -25,6 +31,16 @@ Global entries rely on the client starting MCP from the active project directory
 | --- | --- | --- |
 | Codex | Open a project and call MCP `preflight`. | Codex uses its user configuration; confirm its launched CWD before relying on global setup. |
 | Claude Code, Copilot, Cline, Cursor, Windsurf, Continue | Open a project and call MCP `preflight`. | Run `mcp-data-cli setup --client <client> --apply` from that project, restart the client, then call `preflight` again. |
+
+### Cline VS Code target on macOS
+
+When the Cline extension storage exists, global Cline setup targets:
+
+```text
+~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+```
+
+The setup output reports and validates that exact path. It merges the credential-free `mcp-data-analysis` entry, removes only the obsolete `data-analysis-agent` legacy key, and preserves all other Cline MCP servers. It never writes `MCP_DATA_SOURCE_URL`, a database URL, or an `env` block. Run **Developer: Reload Window** in VS Code to make an already-open Cline instance reload the changed MCP settings. When that extension storage is unavailable, the fallback remains `~/.cline/mcp.json`.
 
 For local PostgreSQL parity without supplying a URL, use
 `mcp-data-cli dataset-postgres retail mcp_data_parity`. The command uses `createdb`, refuses to

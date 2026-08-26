@@ -2,6 +2,10 @@
 
 ## 2026-08-25
 
+* **GitHub Pages onboarding guide**: Replaced the ambiguous repository handoff with a URL-specific install instruction, concise README, installer guidance, static hosted guide, and Pages deployment workflow. See the [onboarding journal](journals/github-pages-onboarding.md).
+
+* **Cline VS Code settings target**: Began migrating global Cline setup to the macOS VS Code extension settings file that its MCP panel reads. See the [Cline settings journal](journals/cline-vscode-settings.md).
+
 * **Full MCP removal**: Began the all-supported-agent removal flow for exact managed entries, explicit project fallbacks, managed demos, the installed tool, and local editable checkouts. See the [removal journal](journals/full-mcp-removal.md).
 
 * **Codex handoff acceptance**: Added an opt-in isolated Codex terminal-flow harness with redacted reporting and strict teardown, while retaining the deterministic user journey as CI evidence. See the [handoff acceptance journal](journals/codex-handoff-acceptance.md).

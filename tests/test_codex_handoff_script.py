@@ -41,7 +41,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 prompt="$(cat)"
-[[ "$prompt" == 'Please install from repo.'$'\\n'* ]]
+[[ "$prompt" == 'Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.'$'\\n'* ]]
 grep -q -- '--local' <<<"$prompt"
 printf '\\n[mcp_servers.mcp-data-analysis]\\ncommand = "mcp-data-mcp"\\nargs = ["--source-file", ".mcp-data-source"]\\n' >> "$HOME/.codex/config.toml"
 mkdir -p "$project/.mcp-data" "$project/observability"
@@ -88,7 +88,7 @@ def test_handoff_script_uses_isolated_live_codex_contract_without_ci_wiring() ->
     assert '-a never' not in script
     assert '-s workspace-write' not in script
     assert '--add-dir "$repository_root"' in script
-    assert 'Please install from repo.' in script
+    assert 'Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.' in script
     assert 'CODEX_HOME="$codex_auth_home"' in script
     assert 'repository_status_before=' in script
     assert 'source_repository_integrity' in script

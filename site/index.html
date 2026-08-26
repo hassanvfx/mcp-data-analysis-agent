@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Install and use MCP Data Analysis safely in any SQLite or PostgreSQL project.">
+    <title>MCP Data Analysis Agent — Getting started</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <p class="eyebrow">MCP Data Analysis Agent</p>
+      <h1>Install once. Analyze safely in any project.</h1>
+      <p class="lead">A credential-free global MCP server paired with one private source file in each data project.</p>
+      <p><a class="button" href="https://github.com/hassanvfx/mcp-data-analysis-agent">Open the repository</a></p>
+    </header>
+    <main>
+      <section aria-labelledby="start">
+        <h2 id="start">Tell your agent</h2>
+        <div class="cards">
+          <article><h3>1. Install</h3><code>Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.</code><p>Installs the package and static global MCP entries. It never creates a database or source file.</p></article>
+          <article><h3>2. Configure a project</h3><code>Please configure this folder.</code><p>Use this from the separate folder containing the data you intend to analyze.</p></article>
+          <article><h3>3. Try the demo</h3><code>Please install demo in this folder.</code><p>Creates the deterministic retail demo only in the current project folder.</p></article>
+        </div>
+      </section>
+
+      <section aria-labelledby="model">
+        <h2 id="model">The two-stage model</h2>
+        <table><thead><tr><th>Install once per machine</th><th>Enable once per project folder</th></tr></thead><tbody>
+          <tr><td>Installs <code>mcp-data-mcp</code> and credential-free client entries.</td><td>Creates an ignored <code>.mcp-data-source</code> containing that project’s connection location.</td></tr>
+          <tr><td>No database URLs, passwords, demos, or policy are global.</td><td>Run preflight, schema discovery, queries, and optional policy setup from this folder.</td></tr>
+        </tbody></table>
+        <p>The global server starts with <code>mcp-data-mcp --source-file .mcp-data-source</code>. When you switch projects, it resolves the source file in the active project folder. Each project remains independent.</p>
+      </section>
+
+      <section aria-labelledby="install">
+        <h2 id="install">Install the global server</h2>
+        <p>Ask your agent with the install prompt above, or run one of these commands yourself:</p>
+        <pre><code># Public package installation
+curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/main/install.sh | bash
+
+# Editable installation from an existing clone
+./install.sh --local</code></pre>
+        <p>The installer detects and merges exact, credential-free entries for Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue. Restart or trust your client if it requests it.</p>
+      </section>
+
+      <section aria-labelledby="configure">
+        <h2 id="configure">Enable a specific project</h2>
+        <p>First move to a folder that represents the project you want to analyze. Installation does not enable every folder automatically.</p>
+        <pre><code>cd /path/to/data-project
+mcp-data-cli configure-source /absolute/path/to/analytics.sqlite --yes
+mcp-data-cli preflight</code></pre>
+        <p>For PostgreSQL, configure a dedicated read-only account:</p>
+        <pre><code>mcp-data-cli configure-source 'postgresql://readonly_user:password@db.example:5432/analytics' --yes
+mcp-data-cli preflight</code></pre>
+        <p><code>configure-source</code> writes <code>.mcp-data-source</code> with mode <code>0600</code> and safely offers to add <code>.mcp-data-source</code> and <code>.mcp-data/</code> to the project’s <code>.gitignore</code>. It never stores the value in global MCP configuration.</p>
+        <h3>Manual configuration</h3>
+        <p>Ask “Please configure this folder” to have your agent create or open the empty file in your normal text editor. Paste exactly one value, save, then run preflight. The file must be a regular non-symlink file containing one absolute SQLite path/local URL or PostgreSQL URL. Never commit it.</p>
+      </section>
+
+      <section aria-labelledby="preflight">
+        <h2 id="preflight">Confirm readiness</h2>
+        <p>Preflight makes a short, bounded, read-only connection and runs <code>SELECT 1</code>; it does not create evidence, caches, artifacts, or data.</p>
+        <table><thead><tr><th>Status</th><th>Meaning and next action</th></tr></thead><tbody>
+          <tr><td><code>source_configuration_required</code></td><td>No source file yet. Configure this folder or install the demo.</td></tr>
+          <tr><td><code>source_configuration_invalid</code></td><td>The source file or policy is malformed or unsafe. Correct the local configuration.</td></tr>
+          <tr><td><code>source_unavailable</code></td><td>The configured source failed a read-only probe. Check the path, network, and permissions.</td></tr>
+          <tr><td><code>ready</code></td><td>The read-only probe succeeded. Inspect schema or analyze data.</td></tr>
+        </tbody></table>
+      </section>
+
+      <section aria-labelledby="demo">
+        <h2 id="demo">Try the deterministic retail demo</h2>
+        <p>Use the demo before connecting real data. It is an explicit, confirmation-gated action in the current project only.</p>
+        <pre><code>mcp-data-cli demo start --yes
+mcp-data-cli preflight
+mcp-data-cli schema data
+mcp-data-cli query data 'SELECT id, name, stock FROM products ORDER BY id' --limit 10</code></pre>
+        <p>This creates <code>.mcp-data/playground.sqlite</code>, points <code>.mcp-data-source</code> to it, and creates governed observability evidence after a query. To remove it safely, use <code>mcp-data-cli demo stop --yes</code>; it refuses to delete a custom source.</p>
+      </section>
+
+      <section aria-labelledby="analyze">
+        <h2 id="analyze">Inspect and analyze</h2>
+        <pre><code># Discover tables and columns
+mcp-data-cli schema data
+
+# A bounded governed query
+mcp-data-cli query data 'SELECT id, name FROM products ORDER BY id' --limit 2</code></pre>
+        <p>The agent accepts read-only <code>SELECT</code> and <code>WITH</code> queries and rejects mutations, DDL, unsafe functions, attachments, multi-statements, and policy-restricted fields. PostgreSQL still needs database-level least-privilege permissions.</p>
+      </section>
+
+      <section aria-labelledby="databases">
+        <h2 id="databases">Supported databases</h2>
+        <ul><li><strong>SQLite:</strong> an absolute local filesystem path or a local SQLite URL.</li><li><strong>PostgreSQL:</strong> <code>postgres://</code> or <code>postgresql://</code> using a dedicated read-only database account.</li><li><strong>Not supported at runtime:</strong> MySQL and other database dialects.</li></ul>
+      </section>
+
+      <section aria-labelledby="clients">
+        <h2 id="clients">When a client does not use the project folder</h2>
+        <p>Global setup depends on the client launching the MCP server from the active project directory. If that is not true for your client, run this from the data project to create a static project fallback:</p>
+        <pre><code>mcp-data-cli setup --client &lt;client&gt; --apply</code></pre>
+        <p>The fallback adds a validated <code>--project-root</code>, never a URL or credential. On macOS, Cline uses its VS Code extension settings when available; after setup, run <strong>Developer: Reload Window</strong> in VS Code.</p>
+      </section>
+
+      <section aria-labelledby="governance">
+        <h2 id="governance">Optional project governance and cleanup</h2>
+        <pre><code># After a successful preflight, create non-secret starter governance files.
+mcp-data-cli configure-policy --yes
+
+# Preview complete managed-client/demo cleanup.
+mcp-data-cli uninstall --all --project-root /absolute/path/to/data-project</code></pre>
+        <p>Policy setup never infers rules from data or overwrites existing governance files. Cleanup preserves custom sources, databases, policy/catalog/recipe files, observability evidence, and unrelated client settings.</p>
+      </section>
+    </main>
+    <footer><p><a href="https://github.com/hassanvfx/mcp-data-analysis-agent">GitHub repository</a> · <a href="https://github.com/hassanvfx/mcp-data-analysis-agent/blob/main/docs/OPERATIONS.md">Operations reference</a></p><p>Repository administrators: configure GitHub Pages to use <strong>GitHub Actions</strong> as its build and deployment source.</p></footer>
+  </body>
+</html>
