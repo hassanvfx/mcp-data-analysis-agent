@@ -16,7 +16,7 @@ Then open the full guide: [Getting started and project configuration](https://ha
 
 | Once per machine | Once per data project folder |
 | --- | --- |
-| Install the executable and static MCP client entries. | Configure that folder’s private `.mcp-data-source`. |
+| Install the executable and machine-local absolute MCP client entries. | Configure that folder’s private `.mcp-data-source`. |
 | No database URL or credential is stored globally. | The file holds exactly one SQLite path/URL or PostgreSQL URL. |
 | Reuse the MCP server across projects. | Run preflight, inspect schema, and analyze that project’s data. |
 
@@ -75,7 +75,18 @@ If you already cloned this checkout:
 ./install.sh --local
 ```
 
-The installer configures supported global client entries for Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue. For complete client compatibility, demo cleanup, project-scoped fallback setup, Cline VS Code reload guidance, and operations details, use the [hosted guide](https://hassanvfx.github.io/mcp-data-analysis-agent/).
+The installer configures supported global client entries for Codex, Claude Code, Copilot, Cline, Cursor, Windsurf, and Continue. Each global entry uses the verified absolute path of this machine’s installed `mcp-data-mcp`, avoiding editor PATH issues while still containing no database secret. For complete client compatibility, demo cleanup, project-scoped fallback setup, Cline VS Code reload guidance, and operations details, use the [hosted guide](https://hassanvfx.github.io/mcp-data-analysis-agent/).
+
+## Remove it from all agents
+
+Tell your agent: **“Please uninstall MCP Data Analysis from all agents.”** It previews exact managed global entries and managed demos first. After you confirm the preview, it runs:
+
+```bash
+mcp-data-cli uninstall --all
+mcp-data-cli uninstall --all --apply --yes
+```
+
+Add `--project-root /absolute/path/to/project` for every project-scoped fallback entry you also want removed. Cleanup never deletes custom sources, databases, governance files, observability evidence, or unrelated client settings.
 
 ## More information
 

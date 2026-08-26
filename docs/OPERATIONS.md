@@ -13,7 +13,8 @@ curl -fsSL https://raw.githubusercontent.com/hassanvfx/mcp-data-analysis-agent/m
 ```
 
 This installs the tool and merges only credential-free `mcp-data-analysis` stdio entries into detected
-global client configuration. It does not initialize any project or read/write a database URL.
+global client configuration. Each global entry uses the verified absolute path of the installed local
+`mcp-data-mcp` executable, avoiding editor PATH differences. It does not initialize any project or read/write a database URL.
 
 For each project, create an ignored `.mcp-data-source` containing one absolute SQLite path/URL or
 PostgreSQL URL. `preflight` fails closed with setup instructions until that file is valid. Use
@@ -32,15 +33,17 @@ Global entries rely on the client starting MCP from the active project directory
 | Codex | Open a project and call MCP `preflight`. | Codex uses its user configuration; confirm its launched CWD before relying on global setup. |
 | Claude Code, Copilot, Cline, Cursor, Windsurf, Continue | Open a project and call MCP `preflight`. | Run `mcp-data-cli setup --client <client> --apply` from that project, restart the client, then call `preflight` again. |
 
-### Cline VS Code target on macOS
+### Cline runtime settings
 
-When the Cline extension storage exists, global Cline setup targets:
+Global Cline setup synchronizes every recognized existing runtime settings file, rather than selecting one as authoritative:
 
 ```text
 ~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+~/.cline/data/settings/cline_mcp_settings.json
+~/.cline/mcp.json (only when the historical file already exists)
 ```
 
-The setup output reports and validates that exact path. It merges the credential-free `mcp-data-analysis` entry, removes only the obsolete `data-analysis-agent` legacy key, and preserves all other Cline MCP servers. It never writes `MCP_DATA_SOURCE_URL`, a database URL, or an `env` block. Run **Developer: Reload Window** in VS Code to make an already-open Cline instance reload the changed MCP settings. When that extension storage is unavailable, the fallback remains `~/.cline/mcp.json`.
+The VS Code target is used on macOS when its extension storage exists. Native and historical files are synchronized only when present; an explicit Cline setup with no known target creates the native settings file. Setup reports and validates every written target, merges the credential-free `mcp-data-analysis` entry, removes only the obsolete `data-analysis-agent` legacy key, and preserves all other Cline MCP servers. It never writes `MCP_DATA_SOURCE_URL`, a database URL, or an `env` block. Run **Developer: Reload Window** in VS Code to make an already-open Cline instance reload the changed MCP settings.
 
 For local PostgreSQL parity without supplying a URL, use
 `mcp-data-cli dataset-postgres retail mcp_data_parity`. The command uses `createdb`, refuses to
@@ -60,6 +63,8 @@ To retain deterministic domain data in that database for manual development, exp
 Typst is optional and required only for PDF rendering. HTML, CSV, and Parquet reports remain available without it; a PDF request returns actionable renderer-install guidance when Typst is unavailable. PostgreSQL command-line tools in this document are contributor/test tooling, not a runtime prerequisite.
 
 ## Full removal
+
+Agent handoff: **“Please uninstall MCP Data Analysis from all agents.”** The agent must show the preview first, then apply removal only after confirmation.
 
 Preview a complete removal before applying it:
 

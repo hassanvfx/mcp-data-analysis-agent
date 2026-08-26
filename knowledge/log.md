@@ -2,6 +2,8 @@
 
 ## 2026-08-25
 
+* **Global client reliability and Cline synchronization**: Added verified absolute global MCP commands, synchronized Cline runtime settings files, legacy-aware cleanup, and the preview-first agentic uninstall handoff. See the [reliability journal](journals/global-client-reliability.md).
+
 * **GitHub Pages onboarding guide**: Replaced the ambiguous repository handoff with a URL-specific install instruction, concise README, installer guidance, static hosted guide, and Pages deployment workflow. See the [onboarding journal](journals/github-pages-onboarding.md).
 
 * **Cline VS Code settings target**: Began migrating global Cline setup to the macOS VS Code extension settings file that its MCP panel reads. See the [Cline settings journal](journals/cline-vscode-settings.md).

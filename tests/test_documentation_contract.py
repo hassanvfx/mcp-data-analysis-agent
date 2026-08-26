@@ -46,8 +46,26 @@ def test_hosted_guide_covers_project_workflow_and_supported_databases() -> None:
         "MySQL",
         "source_configuration_required",
         "Developer: Reload Window",
+        "Please uninstall MCP Data Analysis from all agents.",
+        "mcp-data-cli uninstall --all",
+        "--apply --yes",
+        "--project-root",
     ):
         assert expected in guide
+
+
+def test_removal_handoff_documents_preview_apply_and_preservation() -> None:
+    readme = (ROOT / "README.md").read_text()
+    operations = (ROOT / "docs" / "OPERATIONS.md").read_text()
+    phrase = "Please uninstall MCP Data Analysis from all agents."
+
+    for document in (readme, operations):
+        assert phrase in document
+        assert "mcp-data-cli uninstall --all" in document
+        assert "--apply --yes" in document
+        assert "--project-root" in document
+    assert "custom sources" in readme
+    assert "unrelated client settings" in readme
 
 
 def test_pages_workflow_deploys_only_the_static_site_artifact() -> None:

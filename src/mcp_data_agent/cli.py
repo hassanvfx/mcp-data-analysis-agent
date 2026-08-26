@@ -60,7 +60,7 @@ def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"),
     except AgentError as exc:
         raise typer.BadParameter(exc.message) from exc
     payload = {"client_plans": [item.as_dict() for item in planned], "apply": apply,
-               "status": status, "detected": [item.client for item in planned]}
+               "status": status, "detected": list(dict.fromkeys(item.client for item in planned))}
     emit(payload)
     if status or not apply:
         return
@@ -404,10 +404,10 @@ def uninstall(clients: bool = typer.Option(False, "--clients"), demo: bool = typ
     if all_managed:
         try:
             roots = _full_removal_projects(project_roots)
+            global_plans = client_plans(project, Path.home(), "all", True)
         except AgentError as exc:
             emit(exc.as_dict())
             raise typer.Exit(2) from exc
-        global_plans = client_plans(project, Path.home(), "all", True)
         scoped_plans = [item for selected in roots for item in client_plans(selected, Path.home(), "all", False)
                         if item.scope == "project"]
         checkout = editable_checkout(Path(__file__))

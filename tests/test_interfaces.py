@@ -12,6 +12,7 @@ from mcp_data_agent.clients import (
     legacy_cline_migration_needed,
     plans,
     remove_exact,
+    resolve_global_command,
     templates,
     write_template,
 )
@@ -261,6 +262,22 @@ def test_client_plans_detect_all_and_skip_malformed_files(tmp_path: Path) -> Non
     assert "malformed" in detected[0].reason
 
 
+def test_global_entries_use_absolute_command_while_project_entries_remain_portable(tmp_path: Path) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    command = tmp_path / "bin" / "mcp-data-mcp"
+    command.parent.mkdir()
+    command.write_text("#!/bin/sh\n")
+    command.chmod(0o755)
+    for marker in (".codex", ".claude", ".copilot", ".cursor", ".codeium/windsurf", ".continue"):
+        (home / marker).mkdir(parents=True, exist_ok=True)
+    global_plans = plans(project, home, "all", global_scope=True, global_command=command)
+    assert global_plans
+    assert all(item.server and item.server["command"] == str(command) for item in global_plans)
+    project_plan = plans(project, home, "claude-code")
+    assert project_plan[0].server and project_plan[0].server["command"] == "mcp-data-mcp"
+
+
 def test_client_plan_formats_preserve_toml_and_continue_scope(tmp_path: Path) -> None:
     project = tmp_path / "project"
     home = tmp_path / "home"
@@ -344,11 +361,22 @@ def test_cline_macos_vscode_target_migrates_legacy_entry_and_preserves_other_ser
     assert legacy_cline_migration_needed(plan[0]) is True
     assert apply(plan) == [settings]
     assert validate_client_plans(plan) == [settings]
+    assert plan[0].server is not None
     payload = __import__("json").loads(settings.read_text())
     assert payload["mcpServers"] == {
-        "mcp-data-analysis": {"command": "mcp-data-mcp", "args": ["--source-file", ".mcp-data-source"]},
+        "mcp-data-analysis": {"command": plan[0].server["command"], "args": ["--source-file", ".mcp-data-source"]},
         "other": {"command": "other"},
     }
+
+
+def test_global_command_resolution_prefers_validated_override_and_rejects_invalid_path(tmp_path: Path) -> None:
+    command = tmp_path / "bin" / "mcp-data-mcp"
+    command.parent.mkdir()
+    command.write_text("#!/bin/sh\n")
+    command.chmod(0o755)
+    assert resolve_global_command(str(command)) == command
+    with pytest.raises(AgentError, match="absolute mcp-data-mcp"):
+        resolve_global_command(str(tmp_path / "missing"))
 
 
 def test_cline_falls_back_without_macos_extension_and_project_setup_is_unchanged(
@@ -358,10 +386,42 @@ def test_cline_falls_back_without_macos_extension_and_project_setup_is_unchanged
     project.mkdir()
     monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Linux")
     global_plan = plans(project, home, "cline", global_scope=True)
-    assert global_plan[0].target == home / ".cline" / "mcp.json"
+    assert global_plan[0].target == home / ".cline" / "data" / "settings" / "cline_mcp_settings.json"
     project_plan = plans(project, home, "cline")
     assert project_plan[0].target == project / ".cline" / "mcp.json"
     assert project_plan[0].migrate_legacy_cline is False
+
+
+def test_cline_syncs_all_existing_runtime_targets_and_skips_only_malformed_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    command = tmp_path / "bin" / "mcp-data-mcp"
+    command.parent.mkdir()
+    command.write_text("#!/bin/sh\n")
+    command.chmod(0o755)
+    vscode = home / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json"
+    native = home / ".cline" / "data" / "settings" / "cline_mcp_settings.json"
+    historical = home / ".cline" / "mcp.json"
+    for target in (vscode, native, historical):
+        target.parent.mkdir(parents=True, exist_ok=True)
+    vscode.write_text('{"mcpServers":{"other":{"command":"other"}}}')
+    native.write_text('{"mcpServers":{"data-analysis-agent":{"command":"stale"}}}')
+    historical.write_text("not json")
+    monkeypatch.setattr("mcp_data_agent.clients.platform.system", lambda: "Darwin")
+
+    plan = plans(project, home, "cline", global_scope=True, global_command=command)
+    assert [item.target for item in plan] == [vscode, native, historical]
+    assert [item.action for item in plan] == ["add", "update", "skip"]
+    assert apply(plan) == [vscode, native]
+    assert validate_client_plans([item for item in plan if item.action != "skip"]) == [vscode, native]
+    for target in (vscode, native):
+        payload = __import__("json").loads(target.read_text())
+        assert payload["mcpServers"]["mcp-data-analysis"] == {
+            "command": str(command), "args": ["--source-file", ".mcp-data-source"],
+        }
+        assert "data-analysis-agent" not in payload["mcpServers"]
 
 
 def test_cli_reports_cline_vscode_validation_and_reload_guidance(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

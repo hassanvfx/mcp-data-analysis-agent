@@ -42,9 +42,12 @@ if $local_install; then
 else
   uv tool install --force "$install_source"
 fi
+tool_bin="$(uv tool dir --bin)"
+mcp_command="$tool_bin/mcp-data-mcp"
+[[ -x "$mcp_command" ]] || { echo 'Installed mcp-data-mcp executable could not be resolved.' >&2; exit 1; }
 # `uv tool run --from` does not depend on the user's tool-bin directory being on PATH.
 # Global setup is intentionally credential-free; projects opt in through .mcp-data-source.
-uv tool run --from "$install_source" mcp-data-cli setup --all --global --apply --yes
+MCP_DATA_MCP_COMMAND="$mcp_command" uv tool run --from "$install_source" mcp-data-cli setup --all --global --apply --yes
 
 echo 'Installed MCP Data Analysis as a global, credential-free MCP server.'
 echo 'Next, open https://hassanvfx.github.io/mcp-data-analysis-agent/ for project setup, demo, and query guidance.'

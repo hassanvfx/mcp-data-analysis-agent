@@ -18,7 +18,7 @@
       <section aria-labelledby="start">
         <h2 id="start">Tell your agent</h2>
         <div class="cards">
-          <article><h3>1. Install</h3><code>Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.</code><p>Installs the package and static global MCP entries. It never creates a database or source file.</p></article>
+          <article><h3>1. Install</h3><code>Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.</code><p>Installs the package and credential-free global MCP entries using this machine’s absolute executable path. It never creates a database or source file.</p></article>
           <article><h3>2. Configure a project</h3><code>Please configure this folder.</code><p>Use this from the separate folder containing the data you intend to analyze.</p></article>
           <article><h3>3. Try the demo</h3><code>Please install demo in this folder.</code><p>Creates the deterministic retail demo only in the current project folder.</p></article>
         </div>
@@ -30,7 +30,7 @@
           <tr><td>Installs <code>mcp-data-mcp</code> and credential-free client entries.</td><td>Creates an ignored <code>.mcp-data-source</code> containing that project’s connection location.</td></tr>
           <tr><td>No database URLs, passwords, demos, or policy are global.</td><td>Run preflight, schema discovery, queries, and optional policy setup from this folder.</td></tr>
         </tbody></table>
-        <p>The global server starts with <code>mcp-data-mcp --source-file .mcp-data-source</code>. When you switch projects, it resolves the source file in the active project folder. Each project remains independent.</p>
+        <p>Global client entries use this machine’s verified absolute <code>mcp-data-mcp</code> path plus <code>--source-file .mcp-data-source</code>, avoiding editor PATH issues. When you switch projects, the server resolves the source file in the active project folder. Each project remains independent.</p>
       </section>
 
       <section aria-labelledby="install">
@@ -98,16 +98,20 @@ mcp-data-cli query data 'SELECT id, name FROM products ORDER BY id' --limit 2</c
         <h2 id="clients">When a client does not use the project folder</h2>
         <p>Global setup depends on the client launching the MCP server from the active project directory. If that is not true for your client, run this from the data project to create a static project fallback:</p>
         <pre><code>mcp-data-cli setup --client &lt;client&gt; --apply</code></pre>
-        <p>The fallback adds a validated <code>--project-root</code>, never a URL or credential. On macOS, Cline uses its VS Code extension settings when available; after setup, run <strong>Developer: Reload Window</strong> in VS Code.</p>
+        <p>The fallback adds a validated <code>--project-root</code>, never a URL or credential. Cline synchronizes every recognized VS Code, native, and historical runtime settings file; after setup, run <strong>Developer: Reload Window</strong> in VS Code.</p>
       </section>
 
       <section aria-labelledby="governance">
         <h2 id="governance">Optional project governance and cleanup</h2>
+        <p>Tell your agent: <strong>“Please uninstall MCP Data Analysis from all agents.”</strong> It previews exact managed cleanup first and applies only after your confirmation.</p>
         <pre><code># After a successful preflight, create non-secret starter governance files.
 mcp-data-cli configure-policy --yes
 
 # Preview complete managed-client/demo cleanup.
-mcp-data-cli uninstall --all --project-root /absolute/path/to/data-project</code></pre>
+mcp-data-cli uninstall --all --project-root /absolute/path/to/data-project
+
+# Apply after review; repeat --project-root for every project fallback.
+mcp-data-cli uninstall --all --project-root /absolute/path/to/data-project --apply --yes</code></pre>
         <p>Policy setup never infers rules from data or overwrites existing governance files. Cleanup preserves custom sources, databases, policy/catalog/recipe files, observability evidence, and unrelated client settings.</p>
       </section>
     </main>

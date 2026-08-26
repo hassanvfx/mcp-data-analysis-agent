@@ -20,6 +20,10 @@ def _fake_tools(tmp_path: Path) -> Path:
     commands = tmp_path / "commands"
     commands.mkdir()
     _write_executable(
+        commands / "mcp-data-mcp",
+        "#!/usr/bin/env bash\nexit 0\n",
+    )
+    _write_executable(
         commands / "uv",
         """#!/usr/bin/env bash
 set -eu
@@ -43,7 +47,7 @@ done
 prompt="$(cat)"
 [[ "$prompt" == 'Please install from https://github.com/hassanvfx/mcp-data-analysis-agent.'$'\\n'* ]]
 grep -q -- '--local' <<<"$prompt"
-printf '\\n[mcp_servers.mcp-data-analysis]\\ncommand = "mcp-data-mcp"\\nargs = ["--source-file", ".mcp-data-source"]\\n' >> "$HOME/.codex/config.toml"
+printf '\\n[mcp_servers.mcp-data-analysis]\\ncommand = "%s/mcp-data-mcp"\\nargs = ["--source-file", ".mcp-data-source"]\\n' "$FAKE_TOOL_BIN" >> "$HOME/.codex/config.toml"
 mkdir -p "$project/.mcp-data" "$project/observability"
 printf '%s\\n' "$project/.mcp-data/playground.sqlite" > "$project/.mcp-data-source"
 chmod 600 "$project/.mcp-data-source"
@@ -99,6 +103,7 @@ def test_handoff_script_uses_isolated_live_codex_contract_without_ci_wiring() ->
     assert '--output-last-message "$project/.codex-final-message.txt"' in script
     assert 'mcp-data-cli preflight' in script
     assert 'mcp-data-cli query data' in script
+    assert 'grep -F -q "$tool_bin/mcp-data-mcp"' in script
     assert 'e2e-codex-handoff' not in workflow
 
 

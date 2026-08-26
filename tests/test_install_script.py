@@ -17,12 +17,13 @@ def test_install_script_verifies_artifact_before_fake_uv_install(tmp_path: Path)
     (commands / "curl").write_text(
         "#!/bin/sh\nwhile [ \"$#\" -gt 0 ]; do if [ \"$1\" = -o ]; then cp \"$TEST_ARTIFACT\" \"$2\"; exit 0; fi; shift; done; exit 1\n"
     )
-    (commands / "uv").write_text("#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$TEST_UV_LOG\"\n")
+    (commands / "mcp-data-mcp").write_text("#!/bin/sh\nexit 0\n")
+    (commands / "uv").write_text("#!/bin/sh\nif [ \"$*\" = \"tool dir --bin\" ]; then printf '%s\\n' \"$TEST_TOOL_BIN\"; exit 0; fi\nprintf '%s\\n' \"$*\" >> \"$TEST_UV_LOG\"\n")
     for command in commands.iterdir():
         command.chmod(0o755)
     log = tmp_path / "uv.log"
     environment = {**os.environ, "PATH": f"{commands}:/usr/bin:/bin", "TEST_ARTIFACT": str(artifact),
-                   "TEST_UV_LOG": str(log), "MCP_DATA_RELEASE_URL": "https://example.invalid/package.whl",
+                   "TEST_UV_LOG": str(log), "TEST_TOOL_BIN": str(commands), "MCP_DATA_RELEASE_URL": "https://example.invalid/package.whl",
                    "MCP_DATA_RELEASE_SHA256": hashlib.sha256(artifact.read_bytes()).hexdigest()}
     subprocess.run(["bash", str(root / "install.sh")], check=True, cwd=root, env=environment)
     commands_run = log.read_text().splitlines()

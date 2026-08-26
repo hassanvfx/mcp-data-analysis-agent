@@ -147,6 +147,7 @@ cd "$project"
 phase="static_global_entry"
 grep -q 'mcp-data-analysis' "$HOME/.codex/config.toml"
 grep -q -- '--source-file' "$HOME/.codex/config.toml"
+grep -F -q "$tool_bin/mcp-data-mcp" "$HOME/.codex/config.toml"
 if grep -E -q -- 'postgres(ql)?://|sqlite:|--source-url|--project-root|MCP_DATA_SOURCE_URL' "$HOME/.codex/config.toml"; then
   exit 1
 fi

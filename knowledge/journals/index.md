@@ -10,3 +10,4 @@ Create one Engineering Journal concept per substantial task in this directory.
 * [Full MCP removal](full-mcp-removal.md) - Confirmation-gated removal of managed MCP installation artifacts.
 * [Cline VS Code settings target](cline-vscode-settings.md) - Visible macOS Cline extension MCP configuration support.
 * [GitHub Pages onboarding guide](github-pages-onboarding.md) - URL-based agent handoff and hosted onboarding workflow.
+* [Global client reliability and Cline synchronization](global-client-reliability.md) - Absolute global commands and synchronized Cline runtime targets.
