@@ -15,6 +15,7 @@ from .clients import (
     SetupPlan,
     cline_activation_plans,
     cline_status,
+    legacy_claude_diagnostics,
     legacy_cline_migration_needed,
     removal_status,
 )
@@ -72,7 +73,8 @@ def setup(client: str = "all", all_clients: bool = typer.Option(False, "--all"),
     cline_pending = global_scope and (all_clients or client in {"all", "cline"}) and not any(item.client == "cline" for item in planned)
     payload = {"client_plans": [item.as_dict() for item in planned], "apply": apply,
                "status": status, "detected": list(dict.fromkeys(item.client for item in planned)),
-               "cline": {"status": "runtime_not_detected", "action": "Open Cline → MCP Servers → Configure MCP Servers, then run mcp-data-cli cline activate --project-root /absolute/project."} if cline_pending else None}
+               "cline": {"status": "runtime_not_detected", "action": "Open Cline → MCP Servers → Configure MCP Servers, then run mcp-data-cli cline activate --project-root /absolute/project."} if cline_pending else None,
+               "claude_legacy": legacy_claude_diagnostics(Path.home())}
     emit(payload)
     if status or not apply:
         return
@@ -490,10 +492,12 @@ def uninstall(clients: bool = typer.Option(False, "--clients"), demo: bool = typ
             "tool_uninstall": "uv tool uninstall mcp-data-analysis-agent",
             "local_checkout_removal": {"status": "scheduled_on_apply", "target": str(checkout)} if checkout else {"status": "not_applicable"},
             "apply": apply,
+            "claude_legacy": legacy_claude_diagnostics(Path.home()),
         }
     else:
         plans = client_plans(project, Path.home(), "all", True) if clients else []
         payload = {"client_entries": [item.as_dict() for item in plans], "demo": demo,
+                   "claude_legacy": legacy_claude_diagnostics(Path.home()),
                    "apply": apply, "tool_uninstall": "uv tool uninstall mcp-data-analysis-agent"}
     emit(payload)
     if not apply:

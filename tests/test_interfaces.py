@@ -12,6 +12,7 @@ from mcp_data_agent.clients import (
     cline_activation_plans,
     cline_runtime_targets,
     cline_status,
+    legacy_claude_diagnostics,
     legacy_cline_migration_needed,
     plans,
     remove_exact,
@@ -343,11 +344,98 @@ def test_cli_setup_and_doctor(tmp_path: Path, monkeypatch) -> None:
 def test_cli_setup_yes_applies_detected_global_client_entry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     home = tmp_path / "home"
-    (home / ".claude").mkdir(parents=True)
+    monkeypatch.setattr("mcp_data_agent.clients._claude_cli", lambda: None)
     monkeypatch.setattr("mcp_data_agent.cli.Path.home", lambda: home)
     result = CliRunner().invoke(app, ["setup", "--client", "claude-code", "--global", "--apply", "--yes"])
     assert result.exit_code == 0, result.output
-    assert "mcp-data-analysis" in (home / ".claude" / "mcp.json").read_text()
+    assert "config-fallback" in result.output
+    assert "mcp-data-analysis" in (home / ".claude.json").read_text()
+
+
+def test_claude_global_cli_registers_validates_and_removes_exact_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    command = tmp_path / "bin" / "mcp-data-mcp"
+    command.parent.mkdir()
+    command.write_text("#!/bin/sh\n")
+    command.chmod(0o755)
+    calls: list[tuple[list[str], str, bool]] = []
+    monkeypatch.setattr("mcp_data_agent.clients._claude_cli", lambda: "/usr/local/bin/claude")
+    monkeypatch.setattr(
+        "mcp_data_agent.clients._run_claude",
+        lambda arguments, purpose, expect_success: calls.append((arguments, purpose, expect_success)),
+    )
+
+    plan = plans(project, home, "claude-code", global_scope=True, global_command=command)
+    assert plan[0].target == home / ".claude.json"
+    assert plan[0].method == "claude-cli"
+    assert plan[0].action == "add"
+    assert apply(plan) == [home / ".claude.json"]
+    assert validate_client_plans(plan) == [home / ".claude.json"]
+    home.mkdir(exist_ok=True)
+    registered = {"type": "stdio", **(plan[0].server or {})}
+    registered["env"] = {}
+    (home / ".claude.json").write_text(__import__("json").dumps({"mcpServers": {"mcp-data-analysis": registered}}))
+    assert plans(project, home, "claude-code", global_scope=True, global_command=command)[0].action == "unchanged"
+    assert remove_exact(plan) == [home / ".claude.json"]
+    assert calls == [
+        (["add", "--scope", "user", "mcp-data-analysis", "--", str(command), "--source-file", ".mcp-data-source"], "register the MCP server", True),
+        (["get", "mcp-data-analysis"], "verify the MCP server registration", True),
+        (["remove", "mcp-data-analysis"], "remove the MCP server registration", True),
+        (["get", "mcp-data-analysis"], "verify MCP server removal", False),
+    ]
+
+
+def test_claude_cli_failure_does_not_fall_back_to_writing_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    monkeypatch.setattr("mcp_data_agent.clients._claude_cli", lambda: "/usr/local/bin/claude")
+
+    def fail(*_args: object, **_kwargs: object) -> None:
+        raise AgentError("CLAUDE_CLI_FAILED", "Claude Code could not register the MCP server.")
+
+    monkeypatch.setattr("mcp_data_agent.clients._run_claude", fail)
+    plan = plans(project, home, "claude-code", global_scope=True)
+    with pytest.raises(AgentError, match="could not register"):
+        apply(plan)
+    assert not (home / ".claude.json").exists()
+
+
+def test_claude_global_fallback_preserves_state_and_legacy_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    monkeypatch.setattr("mcp_data_agent.clients._claude_cli", lambda: None)
+    home.mkdir()
+    canonical = home / ".claude.json"
+    canonical.write_text('{"projects":{"/other":{}},"mcpServers":{"other":{"command":"echo"}}}')
+    legacy = home / ".claude" / "mcp.json"
+    legacy.parent.mkdir()
+    legacy.write_text('{"mcpServers":{"mcp-data-analysis":{"command":"mcp-data-mcp","args":["--source-file",".mcp-data-source"]}}}')
+
+    plan = plans(project, home, "claude-code", global_scope=True)
+    assert plan[0].method == "config-fallback"
+    apply(plan)
+    data = __import__("json").loads(canonical.read_text())
+    assert data["projects"] == {"/other": {}}
+    assert data["mcpServers"]["other"] == {"command": "echo"}
+    assert data["mcpServers"]["mcp-data-analysis"] == plan[0].server
+    assert "mcp-data-analysis" in legacy.read_text()
+    assert legacy_claude_diagnostics(home)[0]["status"] == "obsolete_managed_entry"
+
+
+def test_claude_global_changed_entry_is_preserved(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project, home = tmp_path / "project", tmp_path / "home"
+    project.mkdir()
+    monkeypatch.setattr("mcp_data_agent.clients._claude_cli", lambda: None)
+    home.mkdir()
+    target = home / ".claude.json"
+    target.write_text('{"mcpServers":{"mcp-data-analysis":{"command":"custom-server"}}}')
+    plan = plans(project, home, "claude-code", global_scope=True)
+    assert plan[0].action == "skip"
+    assert "user-managed" in plan[0].reason
+    assert apply(plan) == []
 
 
 def test_cline_macos_vscode_target_migrates_legacy_entry_and_preserves_other_servers(
@@ -808,10 +896,12 @@ def test_cli_onboarding_requires_explicit_input_or_source_readiness(tmp_path: Pa
     assert runner.invoke(app, ["configure-policy", "--yes"]).exit_code == 2
 
 
-def test_remove_exact_client_entry_preserves_other_servers(tmp_path: Path) -> None:
+def test_remove_exact_client_entry_preserves_other_servers(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     project = tmp_path / "project"
     home = tmp_path / "home"
-    (home / ".claude").mkdir(parents=True)
+    monkeypatch.setattr("mcp_data_agent.clients._claude_cli", lambda: None)
+    home.mkdir()
+    (home / ".claude.json").write_text('{"mcpServers":{}}')
     plan = plans(project, home, "claude-code", global_scope=True)
     apply(plan)
     target = plan[0].target
@@ -822,20 +912,22 @@ def test_remove_exact_client_entry_preserves_other_servers(tmp_path: Path) -> No
     assert __import__("json").loads(target.read_text())["mcpServers"] == {"other": {"command": "other"}}
 
 
-def test_client_setup_and_cleanup_reject_unsupported_or_changed_entries(tmp_path: Path) -> None:
+def test_client_setup_and_cleanup_reject_unsupported_or_changed_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     project = tmp_path / "project"
     home = tmp_path / "home"
-    (home / ".claude").mkdir(parents=True)
+    monkeypatch.setattr("mcp_data_agent.clients._claude_cli", lambda: None)
+    home.mkdir()
+    (home / ".claude.json").write_text('{"mcpServers":{}}')
     with pytest.raises(AgentError):
         plans(project, home, "unknown")
-    target = home / ".claude" / "mcp.json"
+    target = home / ".claude.json"
     target.write_text("[]")
     skipped = plans(project, home, "claude-code", global_scope=True)
     assert skipped[0].action == "skip"
     assert apply(skipped) == []
     target.write_text('{"mcpServers":{"mcp-data-analysis":{"command":"changed"}}}')
     updated = plans(project, home, "claude-code", global_scope=True)
-    assert updated[0].action == "update"
+    assert updated[0].action == "skip"
     assert remove_exact(updated) == []
 
 
@@ -846,6 +938,7 @@ def test_full_uninstall_removes_exact_global_and_explicit_project_entries(tmp_pa
     for marker in (".codex", ".claude", ".copilot", ".cline", ".cursor", ".codeium/windsurf", ".continue"):
         (home / marker).mkdir(parents=True, exist_ok=True)
     monkeypatch.chdir(current)
+    monkeypatch.setattr("mcp_data_agent.clients._claude_cli", lambda: None)
     monkeypatch.setattr("mcp_data_agent.cli.Path.home", lambda: home)
     global_plans = plans(current, home, "all", global_scope=True)
     apply(global_plans)

@@ -1,5 +1,9 @@
 # Knowledge Update Log
 
+## 2026-08-27
+
+* **Claude Code global installer**: Replaced the obsolete Claude config target with the authoritative user registry, official-CLI verification, safe config fallback, and exact cleanup. See the [Claude installer journal](journals/claude-code-global-installer.md).
+
 ## 2026-08-25
 
 * **Cline explicit project activation**: Added a visible-runtime activation flow, host-aware status diagnostics, and safe Cline project switching without source secrets. See the [Cline activation journal](journals/cline-explicit-project-activation.md).

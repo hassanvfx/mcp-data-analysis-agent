@@ -22,7 +22,7 @@ mkdir -p "$HOME/.codex" "$HOME/.claude" "$HOME/.copilot" "$(dirname "$cline_nati
 for config in "${cline_configs[@]}"; do mkdir -p "$(dirname "$config")"; done
 tar --exclude=.git --exclude=.venv --exclude=__pycache__ -cf - -C "$repository_root" . | tar -xf - -C "$checkout"
 printf '[mcp_servers.unrelated]\ncommand = "echo"\n' > "$HOME/.codex/config.toml"
-printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.claude/mcp.json"
+printf '{"mcpServers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.claude.json"
 printf '{"servers":{"unrelated":{"command":"echo"}}}\n' > "$HOME/.copilot/mcp-config.json"
 printf '{"mcpServers":{"data-analysis-agent":{"command":"stale","env":{"MCP_DATA_SOURCE_URL":"stale"}},"unrelated":{"command":"echo"}}}\n' > "$cline_native"
 for config in "${cline_configs[@]:1}"; do
@@ -44,11 +44,11 @@ if grep -R -E -- 'postgres(ql)?://|sqlite:|--source-url|--project-root|MCP_DATA_
   echo 'client configuration contains a source location' >&2
   exit 1
 fi
-for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilot/mcp-config.json" "${cline_configs[@]}" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json" "$HOME/.continue/config.yaml"; do
+for config in "$HOME/.codex/config.toml" "$HOME/.claude.json" "$HOME/.copilot/mcp-config.json" "${cline_configs[@]}" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json" "$HOME/.continue/config.yaml"; do
   grep -q 'mcp-data-analysis' "$config"
   grep -q -- '--source-file' "$config"
 done
-for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilot/mcp-config.json" "${cline_configs[@]}" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json" "$HOME/.continue/config.yaml"; do
+for config in "$HOME/.codex/config.toml" "$HOME/.claude.json" "$HOME/.copilot/mcp-config.json" "${cline_configs[@]}" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json" "$HOME/.continue/config.yaml"; do
   grep -F -q "$tool_bin/mcp-data-mcp" "$config"
 done
 
@@ -110,7 +110,7 @@ if grep -R -q 'mcp-data-analysis' "$HOME"; then
   echo 'managed client configuration remains after cleanup' >&2
   exit 1
 fi
-for config in "$HOME/.codex/config.toml" "$HOME/.claude/mcp.json" "$HOME/.copilot/mcp-config.json" "${cline_configs[@]}" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json"; do
+for config in "$HOME/.codex/config.toml" "$HOME/.claude.json" "$HOME/.copilot/mcp-config.json" "${cline_configs[@]}" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/mcp.json"; do
   if [[ "$config" != "${cline_configs[1]}" ]]; then grep -q 'unrelated' "$config"; fi
 done
 grep -q 'Personal Continue Config' "$HOME/.continue/config.yaml"

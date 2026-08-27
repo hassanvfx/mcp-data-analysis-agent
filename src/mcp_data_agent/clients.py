@@ -79,19 +79,22 @@ class SetupPlan:
     reason: str = ""
     server: dict[str, object] | None = None
     migrate_legacy_cline: bool = False
+    method: str | None = None
 
     def as_dict(self) -> dict[str, str]:
         payload = {"client": self.client, "target": str(self.target), "scope": self.scope,
                    "action": self.action, "format": self.format, "reason": self.reason}
         if self.server is not None:
             payload["command"] = str(self.server["command"])
+        if self.method is not None:
+            payload["method"] = self.method
         return payload
 
 
 def _clients(project: Path, home: Path) -> list[tuple[str, Path | None, Path, str, Path]]:
     return [
         ("codex", None, home / ".codex" / "config.toml", "toml", home / ".codex"),
-        ("claude-code", project / ".mcp.json", home / ".claude" / "mcp.json", "json-mcp", home / ".claude"),
+        ("claude-code", project / ".mcp.json", home / ".claude.json", "json-mcp", home / ".claude"),
         ("copilot", project / ".vscode" / "mcp.json", home / ".copilot" / "mcp-config.json", "json-servers", home / ".vscode"),
         ("cline", None, _cline_native_target(home), "json-mcp", home / ".cline"),
         ("cursor", project / ".cursor" / "mcp.json", home / ".cursor" / "mcp.json", "json-mcp", home / ".cursor"),
@@ -211,16 +214,97 @@ def plans(project: Path, home: Path, client: str = "all", global_scope: bool = F
                         pass
                 result.append(SetupPlan(name, target, "global", action, format_name, reason, server, True))
             continue
-        if client == "all" and not (marker.exists() or (preferred is not None and preferred.exists()) or fallback.exists()):
+        detected = marker.exists() or (preferred is not None and preferred.exists()) or fallback.exists()
+        if client == "all" and not detected:
             continue
         target, scope = (fallback, "global") if global_scope else ((preferred, "project") if preferred is not None else (fallback, "user-fallback"))
         assert target is not None
         server = server_for(scope, project, resolved_command)
         action, reason = _action(target, format_name, server)
-        result.append(SetupPlan(name, target, scope, action, format_name, reason, server))
+        method = None
+        if name == "claude-code" and scope == "global":
+            method = "claude-cli" if _claude_cli() else "config-fallback"
+            existing = None
+            if target.exists():
+                try:
+                    existing = _server(_read(target, format_name), format_name)
+                except (OSError, ValueError, json.JSONDecodeError):
+                    pass
+            if _claude_managed_match(existing, server):
+                action, reason = "unchanged", "server already matches"
+            elif action == "update":
+                action, reason = "skip", "the Claude Code MCP entry is user-managed; preserving it"
+            elif action == "add":
+                reason = ("registers with Claude Code through its official CLI"
+                          if method == "claude-cli" else "merges the documented Claude user configuration")
+        result.append(SetupPlan(name, target, scope, action, format_name, reason, server, method=method))
     if client != "all" and not result:
         raise AgentError("CLIENT_UNSUPPORTED", "The selected client is unsupported.")
     return result
+
+
+def _claude_cli() -> str | None:
+    """Return Claude Code's executable when its authoritative MCP CLI is available."""
+    return shutil.which("claude")
+
+
+def _claude_managed_match(actual: object | None, expected: dict[str, object]) -> bool:
+    """Accept Claude CLI's optional stdio marker while retaining exact command ownership."""
+    if actual == expected:
+        return True
+    if not isinstance(actual, dict) or actual.get("type") != "stdio":
+        return False
+    normalized = {key: value for key, value in actual.items() if key != "type"}
+    if normalized.get("env") == {}:
+        normalized.pop("env")
+    return normalized == expected
+
+
+def _run_claude(arguments: list[str], purpose: str, expect_success: bool) -> subprocess.CompletedProcess[str]:
+    executable = _claude_cli()
+    if executable is None:
+        raise AgentError("CLAUDE_CLI_UNAVAILABLE", "Claude Code CLI is no longer available for this operation.")
+    try:
+        result = subprocess.run([executable, "mcp", *arguments], capture_output=True, text=True,
+                                check=False, timeout=15)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise AgentError("CLAUDE_CLI_FAILED", f"Claude Code could not {purpose}; fix the Claude CLI and retry.") from exc
+    if (result.returncode == 0) != expect_success:
+        raise AgentError("CLAUDE_CLI_FAILED", f"Claude Code could not {purpose}; fix the Claude CLI/configuration and retry.")
+    return result
+
+
+def _apply_claude_user(plan: SetupPlan) -> Path:
+    expected = plan.server or SERVER
+    _run_claude(["add", "--scope", "user", SERVER_NAME, "--", str(expected["command"]),
+                 *(str(value) for value in cast(list[object], expected["args"]))], "register the MCP server", True)
+    return plan.target
+
+
+def _validate_claude_user(plan: SetupPlan) -> Path:
+    _run_claude(["get", SERVER_NAME], "verify the MCP server registration", True)
+    return plan.target
+
+
+def _remove_claude_user(plan: SetupPlan) -> Path:
+    _run_claude(["remove", SERVER_NAME], "remove the MCP server registration", True)
+    _run_claude(["get", SERVER_NAME], "verify MCP server removal", False)
+    return plan.target
+
+
+def legacy_claude_diagnostics(home: Path) -> list[dict[str, str]]:
+    """Report, but never alter, obsolete configuration written by older releases."""
+    target = home / ".claude" / "mcp.json"
+    if not target.exists():
+        return []
+    try:
+        current = _read(target, "json-mcp")
+    except (OSError, ValueError, json.JSONDecodeError):
+        return []
+    if _server(current, "json-mcp") == SERVER:
+        return [{"target": str(target), "status": "obsolete_managed_entry",
+                 "message": "Legacy Claude configuration is ignored and was left untouched."}]
+    return []
 
 
 def _action(target: Path, format_name: str, expected: dict[str, object]) -> tuple[str, str]:
@@ -308,6 +392,9 @@ def apply(plans_to_apply: list[SetupPlan]) -> list[Path]:
     for plan in plans_to_apply:
         if plan.action in {"skip", "unchanged"}:
             continue
+        if plan.client == "claude-code" and plan.scope == "global" and plan.method == "claude-cli":
+            written.append(_apply_claude_user(plan))
+            continue
         _write_atomic(plan.target, _merged(plan))
         written.append(plan.target)
     return written
@@ -317,6 +404,9 @@ def validate(plans_to_validate: list[SetupPlan]) -> list[Path]:
     """Confirm the exact intended server survives the merge in each written target."""
     validated: list[Path] = []
     for plan in plans_to_validate:
+        if plan.client == "claude-code" and plan.scope == "global" and plan.method == "claude-cli":
+            validated.append(_validate_claude_user(plan))
+            continue
         try:
             current = _read(plan.target, plan.format)
         except (OSError, ValueError, tomllib.TOMLDecodeError, json.JSONDecodeError) as exc:
@@ -409,6 +499,9 @@ def remove_exact(plans_to_remove: list[SetupPlan]) -> list[Path]:
             continue
         if not _managed_match(_server(current, plan.format), expected, plan):
             continue
+        if plan.client == "claude-code" and plan.scope == "global" and plan.method == "claude-cli":
+            removed.append(_remove_claude_user(plan))
+            continue
         if plan.format == "toml":
             original = plan.target.read_text(encoding="utf-8")
             updated = re.sub(r"(?ms)^\[mcp_servers\.mcp-data-analysis\].*?(?=^\[|\Z)", "", original).strip() + "\n"
@@ -459,6 +552,8 @@ def _managed_match(actual: object | None, expected: object | None, plan: SetupPl
         return actual == _continue_entry(_continue_content(SERVER))
     if not isinstance(actual, dict):
         return False
+    if plan.client == "claude-code" and plan.scope == "global" and isinstance(expected, dict):
+        return _claude_managed_match(actual, expected)
     if plan.client == "cline" and (_managed_global_server(actual) or _managed_project_root(actual)):
         return True
     return actual == SERVER
